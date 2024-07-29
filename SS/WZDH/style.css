@@ -60,7 +60,7 @@ svg.icon { width: 14px; height: 14px; margin: 0 5px 0 8px; vertical-align: -0.15
 .set-check{margin-top:3px;font-size:9pt}.set-check label{margin-left:3px}
 .set-check input,.set-check label{opacity:0;transition:all .3s ease}
 .search-type li{list-style:none;display:inline-block}
-.mylist{list-style: none; padding:10px 20px; position: relative; z-index: 1000; margin: 20px 0; -moz-opacity:0.1;opacity: 0.5 ; border-radius: 15px; background: #CCFFFF; box-shadow: 0 0.5rem 0.625rem #4d4d4d;大框主题色}
+.mylist{list-style: none; padding:10px 20px; position: relative; z-index: 1000; margin: 20px 0; -moz-opacity:0.1;opacity: 0.5 ; border-radius: 15px; background: #e2ccff; box-shadow: 0 0.5rem 0.625rem #4d4d4d;大框主题色}
 .mylist li.col-3{ width: 100px; transition: 0.3s all linear; font-size: 14px; overflow: hidden; padding:10px 0; border-radius: 15px;按钮框}
 .mylist li.col-3 svg{ display: block; width: 45px; height: 45px; padding: 3px; background: #;图标背景;border: 0px solid #515151;图标框线;  border-radius:13px;圆角; margin: 0 auto; }
 .mylist li.col-3:hover{ background: #395578; 图标点击框}
