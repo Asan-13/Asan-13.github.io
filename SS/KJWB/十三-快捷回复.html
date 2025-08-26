@@ -1,0 +1,453 @@
+<html lang="zh-CN"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>十三 | 快捷回复</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial', sans-serif; }
+        body { background-color: #121212; color: #e0e0e0; padding: 20px; min-height: 100vh; position: relative; }
+        .title { text-align: center; margin-bottom: 15px; font-size: 24px; color: #fff; }
+        
+        .category-bar { max-width: 1200px; margin: 0 auto 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .category-btn { padding: 6px 14px; background-color: #1e1e1e; border: 1px solid #333; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+        .category-btn.active { background-color: #2196F3; color: #fff; border-color: #2196F3; }
+        .add-category-btn { padding: 6px 14px; background-color: #333; border: 1px solid #444; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+        .add-category-btn:hover { background-color: #444; }
+        
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-width: 1200px; margin: 0 auto; padding-bottom: 80px; }
+        .grid-item { background-color: #1e1e1e; border: 1px solid #333; border-radius: 4px; padding: 15px 10px; text-align: center; cursor: pointer; transition: all 0.2s; min-height: 60px; display: flex; align-items: center; justify-content: center; word-break: break-all; }
+        .grid-item:hover { background-color: #2d2d2d; border-color: #555; }
+        
+        .btn-group { position: fixed; bottom: 30px; right: 30px; display: flex; gap: 12px; }
+        .func-btn { width: 50px; height: 50px; border-radius: 50%; border: none; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .add-grid-btn { background-color: #2196F3; }
+        .add-grid-btn:hover { background-color: #1976D2; }
+        .save-file-btn { background-color: #4CAF50; }
+        .save-file-btn:hover { background-color: #388E3C; }
+        
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 8px 16px; border-radius: 4px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .copy-toast { background-color: #32cd32; color: #fff; }
+        .save-toast { background-color: #ff9800; color: #fff; }
+        .toast.show { opacity: 1; }
+        
+        .grid-item::-webkit-context-menu { display: none; }
+    </style>
+</head>
+<body>
+    <h1 class="title">快捷回复</h1>
+    
+    <div class="category-bar" id="categoryBar">
+        <div class="category-btn" data-category="all">全部</div>
+        
+        <div class="category-btn" data-category="默认">默认</div><div class="category-btn" data-category="1">1</div><div class="category-btn" data-category="2">2</div><div class="category-btn" data-category="3">3</div><div class="category-btn" data-category="4">4</div><div class="category-btn" data-category="5">5</div><div class="category-btn" data-category="6">6</div><div class="category-btn" data-category="7">7</div><div class="category-btn" data-category="8">8</div><div class="category-btn" data-category="9">9</div><div class="category-btn active" data-category="10">10</div><button class="add-category-btn" id="addCategoryBtn">+</button>
+    </div>
+    
+    <div class="grid-container" id="gridContainer"><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199121760_794" data-grid-category="10">嗨嗨</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199655133_339" data-grid-category="10">早</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199748862_153" data-grid-category="10">(ง๑ •̀_•́)ง</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199794598_634" data-grid-category="10">(っ●ω●)っ</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199843852_515" data-grid-category="10">(●⁰౪⁰●)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199861972_360" data-grid-category="10">٩(•ิ˓̭ •ิ )ง</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199874218_121" data-grid-category="10">(⁰▿⁰)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199930575_651" data-grid-category="10">(ㆆᴗㆆ)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199956409_255" data-grid-category="10">ก็ʕ•͡ᴥ•ʔ ก้</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756199972342_212" data-grid-category="10">ʕ´• ᴥ•̥`ʔ</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756200077456_505" data-grid-category="10">(⸝⸝•̀֊•́⸝⸝)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756200106058_222" data-grid-category="10">(っ﹏-) .｡o</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756200204160_766" data-grid-category="10">ㅇㅅㅇ</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756200278679_900" data-grid-category="10">ʕ´• ᴥ•̥`ʔ</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756201187423_65" data-grid-category="10">(๑•ั็ω•็ั๑)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756201302549_434" data-grid-category="10">( ´･･)ﾉ(._.`)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756201315211_497" data-grid-category="10">╭∩╮ʕ´• ᴥ•̥`ʔ╭∩╮</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756201500467_973" data-grid-category="10">╭∩╮(ㆆᴗㆆ)╭∩╮</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756206386144_968" data-grid-category="10">(╥﹏╥)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756206389637_534" data-grid-category="10">(〒︿〒)</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756206389779_797" data-grid-category="10">:;(∩´﹏`∩);:</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756206417349_12" data-grid-category="10">( ´•̥̥̥ω•̥̥̥` )</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756206705432_259" data-grid-category="10">( ˘•ω•˘ )</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756208832101_266" data-grid-category="10">•᷄ࡇ•᷅..</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1756210351136_587" data-grid-category="10">( •́ _ •̀)？</div></div>
+    
+    <div class="btn-group">
+        <button class="func-btn add-grid-btn" id="addGridBtn">+</button>
+        <button class="func-btn save-file-btn" id="saveFileBtn">💾</button>
+    </div>
+    
+    <div class="toast copy-toast" id="copyToast">已复制到剪贴板</div>
+    <div class="toast save-toast" id="saveToast">文件已开始下载</div>
+
+    <script>
+        // DOM元素
+        const categoryBar = document.getElementById('categoryBar');
+        const gridContainer = document.getElementById('gridContainer');
+        const addCategoryBtn = document.getElementById('addCategoryBtn');
+        const addGridBtn = document.getElementById('addGridBtn');
+        const saveFileBtn = document.getElementById('saveFileBtn');
+        const copyToast = document.getElementById('copyToast');
+        const saveToast = document.getElementById('saveToast');
+
+        // 核心数据：同时存储「格子数据」和「分类列表」，确保保存时两者都能嵌入HTML
+        let appData = {
+  "grids": [
+    {
+      "id": "grid_1756199071990_48",
+      "content": "1",
+      "category": "1"
+    },
+    {
+      "id": "grid_1756199076267_19",
+      "content": "2",
+      "category": "2"
+    },
+    {
+      "id": "grid_1756199083252_615",
+      "content": "3",
+      "category": "3"
+    },
+    {
+      "id": "grid_1756199087058_949",
+      "content": "4",
+      "category": "4"
+    },
+    {
+      "id": "grid_1756199090694_808",
+      "content": "5",
+      "category": "5"
+    },
+    {
+      "id": "grid_1756199094721_670",
+      "content": "6",
+      "category": "6"
+    },
+    {
+      "id": "grid_1756199100689_889",
+      "content": "7",
+      "category": "7"
+    },
+    {
+      "id": "grid_1756199105066_670",
+      "content": "8",
+      "category": "8"
+    },
+    {
+      "id": "grid_1756199117198_776",
+      "content": "9",
+      "category": "9"
+    },
+    {
+      "id": "grid_1756199121760_794",
+      "content": "嗨嗨",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199127103_330",
+      "content": "0",
+      "category": "默认"
+    },
+    {
+      "id": "grid_1756199655133_339",
+      "content": "早",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199748862_153",
+      "content": "(ง๑ •̀_•́)ง",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199794598_634",
+      "content": "(っ●ω●)っ",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199843852_515",
+      "content": "(●⁰౪⁰●)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199861972_360",
+      "content": "٩(•ิ˓̭ •ิ )ง",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199874218_121",
+      "content": "(⁰▿⁰)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199930575_651",
+      "content": "(ㆆᴗㆆ)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199956409_255",
+      "content": "ก็ʕ•͡ᴥ•ʔ ก้",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756199972342_212",
+      "content": "ʕ´• ᴥ•̥`ʔ",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756200077456_505",
+      "content": "(⸝⸝•̀֊•́⸝⸝)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756200106058_222",
+      "content": "(っ﹏-) .｡o",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756200204160_766",
+      "content": "ㅇㅅㅇ",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756200278679_900",
+      "content": "ʕ´• ᴥ•̥`ʔ",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756201187423_65",
+      "content": "(๑•ั็ω•็ั๑)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756201302549_434",
+      "content": "( ´･･)ﾉ(._.`)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756201315211_497",
+      "content": "╭∩╮ʕ´• ᴥ•̥`ʔ╭∩╮",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756201500467_973",
+      "content": "╭∩╮(ㆆᴗㆆ)╭∩╮",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756206386144_968",
+      "content": "(╥﹏╥)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756206389637_534",
+      "content": "(〒︿〒)",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756206389779_797",
+      "content": ":;(∩´﹏`∩);:",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756206417349_12",
+      "content": "( ´•̥̥̥ω•̥̥̥` )",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756206705432_259",
+      "content": "( ˘•ω•˘ )",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756208832101_266",
+      "content": "•᷄ࡇ•᷅..",
+      "category": "10"
+    },
+    {
+      "id": "grid_1756210351136_587",
+      "content": "( •́ _ •̀)？",
+      "category": "10"
+    }
+  ],
+  "categories": [
+    "默认",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10"
+  ]
+};
+        let activeCategory = 'all'; // 当前激活分类
+
+        // 生成唯一ID
+        function generateUuid() {
+            return 'grid_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        }
+
+        // 初始化：加载数据并渲染
+        function init() {
+            renderCategories(); // 先渲染分类（确保分类列表与数据同步）
+            renderGridsByCategory(); // 再渲染格子
+            bindAllEvents();
+        }
+
+        // 1. 渲染分类栏（关键：从appData.categories加载，确保新增分类能保存）
+        function renderCategories() {
+            // 清空现有分类按钮（除了"全部"和"新增分类"按钮）
+            const existingCategoryBtns = categoryBar.querySelectorAll('.category-btn:not([data-category="all"])');
+            existingCategoryBtns.forEach(btn => btn.remove());
+
+            // 从appData.categories渲染所有分类按钮
+            appData.categories.forEach(category => {
+                const categoryBtn = document.createElement('div');
+                categoryBtn.className = 'category-btn';
+                categoryBtn.dataset.category = category;
+                categoryBtn.textContent = category;
+                // 插入到"新增分类"按钮前
+                categoryBar.insertBefore(categoryBtn, addCategoryBtn);
+            });
+
+            // 恢复"全部"按钮的激活状态（初始化时默认激活）
+            document.querySelector('.category-btn[data-category="all"]').classList.add('active');
+        }
+
+        // 2. 按分类渲染格子（从appData.grids加载，确保数据同步）
+        function renderGridsByCategory() {
+            gridContainer.innerHTML = '';
+            const filteredGrids = activeCategory === 'all' 
+                ? appData.grids 
+                : appData.grids.filter(grid => grid.category === activeCategory);
+
+            filteredGrids.forEach(grid => {
+                const gridElem = document.createElement('div');
+                gridElem.className = 'grid-item';
+                gridElem.contentEditable = 'false';
+                gridElem.textContent = grid.content;
+                gridElem.dataset.gridId = grid.id;
+                gridElem.dataset.gridCategory = grid.category;
+                gridContainer.appendChild(gridElem);
+            });
+        }
+
+        // 3. 绑定所有事件
+        function bindAllEvents() {
+            bindCategoryEvents();
+            bindGridClickCopy();
+            bindGridRightClickEdit();
+            bindGridEditEnd();
+            bindAddGrid();
+            bindSaveFile();
+        }
+
+        // 分类切换+新增（操作同步到appData.categories）
+        function bindCategoryEvents() {
+            // 切换分类
+            categoryBar.addEventListener('click', (e) => {
+                const categoryBtn = e.target.closest('.category-btn');
+                if (!categoryBtn) return;
+                document.querySelector('.category-btn.active').classList.remove('active');
+                categoryBtn.classList.add('active');
+                activeCategory = categoryBtn.dataset.category;
+                renderGridsByCategory();
+            });
+
+            // 新增分类（关键：新增后同步到appData.categories，确保保存时能包含）
+            addCategoryBtn.addEventListener('click', () => {
+                const newCategory = `分类${appData.categories.length + 1}`;
+                // 同步到数据中
+                appData.categories.push(newCategory);
+                // 重新渲染分类栏
+                renderCategories();
+            });
+        }
+
+        // 格子单击复制
+        function bindGridClickCopy() {
+            gridContainer.addEventListener('click', async (e) => {
+                const gridElem = e.target.closest('.grid-item');
+                if (!gridElem) return;
+                const text = gridElem.textContent.trim();
+                if (text) {
+                    await navigator.clipboard.writeText(text);
+                    showToast(copyToast);
+                }
+            });
+        }
+
+        // 格子右键编辑
+        function bindGridRightClickEdit() {
+            gridContainer.addEventListener('contextmenu', (e) => {
+                const gridElem = e.target.closest('.grid-item');
+                if (!gridElem) return;
+                e.preventDefault();
+                gridElem.contentEditable = 'true';
+                gridElem.focus();
+                const range = document.createRange();
+                range.selectNodeContents(gridElem);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            });
+        }
+
+        // 格子编辑结束（同步到appData.grids）
+        function bindGridEditEnd() {
+            gridContainer.addEventListener('blur', (e) => {
+                const gridElem = e.target.closest('.grid-item');
+                if (!gridElem || gridElem.contentEditable !== 'true') return;
+
+                const newContent = gridElem.textContent.trim();
+                const gridId = gridElem.dataset.gridId;
+                const gridCategory = gridElem.dataset.gridCategory;
+
+                const gridIndex = appData.grids.findIndex(grid => grid.id === gridId);
+                if (gridIndex === -1) return;
+
+                if (!newContent) {
+                    appData.grids.splice(gridIndex, 1);
+                } else {
+                    appData.grids[gridIndex] = { ...appData.grids[gridIndex], content: newContent };
+                }
+
+                gridElem.contentEditable = 'false';
+                renderGridsByCategory();
+            }, true);
+
+            gridContainer.addEventListener('keydown', (e) => {
+                const gridElem = e.target.closest('.grid-item');
+                if (e.key === 'Enter' && !e.shiftKey && gridElem?.contentEditable === 'true') {
+                    e.preventDefault();
+                    gridElem.blur();
+                }
+            });
+        }
+
+        // 新增格子（同步到appData.grids）
+        function bindAddGrid() {
+            addGridBtn.addEventListener('click', () => {
+                const newCategory = activeCategory === 'all' ? '默认' : activeCategory;
+                const newGrid = {
+                    id: generateUuid(),
+                    content: `新文本${appData.grids.length + 1}`,
+                    category: newCategory
+                };
+                // 同步到数据中
+                appData.grids.push(newGrid);
+                renderGridsByCategory();
+            });
+        }
+
+        // 关键修复：保存时确保appData完整嵌入HTML，避免数据丢失
+        function bindSaveFile() {
+            saveFileBtn.addEventListener('click', () => {
+                // 1. 获取当前HTML代码
+                let htmlCode = document.documentElement.outerHTML;
+
+                // 2. 找到script标签中appData的位置，替换为最新数据（核心：确保保存的是实时数据）
+                const appDataStr = JSON.stringify(appData, null, 2);
+                // 匹配script中"let appData = "开头的行，替换为最新数据
+                htmlCode = htmlCode.replace(
+                    /let appData = [\s\S]*?;/, 
+                    `let appData = ${appDataStr};`
+                );
+
+                // 3. 生成Blob文件并下载
+                const blob = new Blob([htmlCode], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = '十三-快捷回复.html';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast(saveToast);
+            });
+        }
+
+        // 提示框显示
+        function showToast(toastElem) {
+            toastElem.classList.add('show');
+            setTimeout(() => toastElem.classList.remove('show'), 1500);
+        }
+
+        // 页面加载初始化
+        window.addEventListener('load', init);
+    </script>
+
+</body></html>
