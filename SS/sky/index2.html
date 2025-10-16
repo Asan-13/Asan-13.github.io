@@ -187,7 +187,7 @@
         </div>
         
         <!-- 当前时间显示（始终显示） -->
-        <div id="current-time" class="text-center text-2xl font-semibold text-dark-text mb-4"></div>
+        <div id="current-time" class="text-center text-2xl font-semibold text-dark-text mb-6"></div>
         
         <!-- 项目轮播容器 -->
         <div id="tasks-container" class="relative min-h-[80px] overflow-hidden">
@@ -197,7 +197,7 @@
         </div>
         
         <!-- 未来事件标题（始终显示） -->
-        <div class="text-sm text-dark-textSecondary mb-2 font-medium text-center empty-hover-area p-2">
+        <div class="text-sm text-dark-textSecondary mb-3 font-medium text-center empty-hover-area p-2">
             未来事件
         </div>
         
@@ -1290,23 +1290,22 @@
             });
         }
 
-        // 调整容器大小和样式 - 减少底部空白
+        // 调整容器大小和样式
         function adjustContainerSize(hasContent) {
             if (hasContent) {
                 appContainer.classList.remove('app-compact');
                 appContainer.classList.add('app-expanded');
                 controlsContainer.classList.remove('opacity-0', 'pointer-events-none', 'h-0');
                 
-                // 优化高度计算，减少额外空间
                 const height = visibleTasks.length > 0 ? 
-                    120 + visibleTasks.length * 100 : 120; // 减少基础高度和每个项目的高度
+                    160 + visibleTasks.length * 110 : 140; // 增加高度以容纳更好的排版
                 
                 appContainer.style.minHeight = `${height}px`;
             } else {
                 appContainer.classList.remove('app-expanded');
                 appContainer.classList.add('app-compact');
                 controlsContainer.classList.add('opacity-0', 'pointer-events-none', 'h-0');
-                appContainer.style.minHeight = '120px'; // 减少基础高度
+                appContainer.style.minHeight = '140px'; // 固定高度以容纳时间显示
             }
         }
 
@@ -1314,7 +1313,7 @@
         function updateCarouselPosition() {
             if (visibleTasks.length <= 1) return;
             
-            const slideHeight = 100; // 减少轮播高度
+            const slideHeight = 110; // 增加高度以适应优化后的排版
             taskCarousel.style.transform = `translateY(-${currentSlide * slideHeight}px)`;
         }
 
