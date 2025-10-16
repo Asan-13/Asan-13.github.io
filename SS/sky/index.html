@@ -1,0 +1,1593 @@
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间项目提醒</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 - 暗黑模式 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        priority: {
+                            high: '#ef4444',    // 红色表示高优先级
+                            medium: '#f59e0b',  // 黄色表示中优先级
+                            low: '#10b981'      // 绿色表示低优先级
+                        },
+                        primary: '#60a5fa',   // 稍浅的蓝色，适合暗黑模式
+                        secondary: '#94a3b8', // 稍浅的灰色，适合暗黑模式
+                        dark: {
+                            bg: '#1e293b',      // 主背景色
+                            card: '#334155',    // 卡片背景色
+                            hover: '#475569',   // 悬停状态颜色
+                            text: '#f8fafc',    // 主要文本色
+                            textSecondary: '#cbd5e1' // 次要文本色
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .task-transition {
+                transition: all 0.5s ease-in-out;
+            }
+            .hover-expand {
+                transition: max-height 0.5s ease-in-out;
+            }
+            .context-menu {
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            }
+            .modal-backdrop {
+                backdrop-filter: blur(2px);
+            }
+            .app-compact {
+                padding: 1.5rem;
+                min-height: auto !important;
+                width: auto !important;
+                max-width: 280px;
+            }
+            .app-expanded {
+                padding: 2rem;
+                width: auto !important;
+                max-width: 500px;
+            }
+            .task-item {
+                cursor: pointer;
+            }
+            .day-checkbox {
+                width: 1.5rem;
+                height: 1.5rem;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .recurrence-option {
+                @apply p-3 border border-gray-600 rounded-lg cursor-pointer transition-all hover:border-primary;
+            }
+            .recurrence-option.selected {
+                @apply border-primary bg-primary/10;
+            }
+            .ongoing-indicator {
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.6; }
+                100% { opacity: 1; }
+            }
+            .time-input-group {
+                @apply flex items-center gap-3;
+            }
+            .time-input {
+                @apply w-20 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+            }
+            .time-select {
+                @apply flex-1 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+            }
+            .countdown {
+                @apply text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary;
+            }
+            .download-btn {
+                @apply fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
+            }
+            .download-tooltip {
+                @apply absolute right-full mr-3 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
+            }
+            .download-container:hover .download-tooltip {
+                @apply opacity-100 visible;
+            }
+            .notification {
+                @apply fixed top-4 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full;
+            }
+            .notification.show {
+                @apply translate-x-0;
+            }
+            .notification.error {
+                @apply bg-red-500;
+            }
+            .save-btn {
+                @apply fixed bottom-6 left-6 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
+            }
+            .save-tooltip {
+                @apply absolute left-full ml-3 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
+            }
+            .save-container:hover .save-tooltip {
+                @apply opacity-100 visible;
+            }
+            /* 保存状态指示器 */
+            .save-status {
+                @apply fixed bottom-6 left-20 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm z-40;
+            }
+            /* 新增：优化文字间距和排版 */
+            .task-title {
+                @apply tracking-wide;
+            }
+            .task-meta {
+                @apply tracking-tight mt-1.5;
+            }
+            .task-meta-item {
+                @apply mr-3 last:mr-0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark-bg min-h-screen flex items-center justify-center p-4 font-inter text-dark-text m-0">
+    <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded">
+        <!-- 当前时间显示（始终显示） -->
+        <div id="current-time" class="text-center text-2xl font-semibold text-dark-text mb-6"></div>
+        
+        <!-- 项目轮播容器 -->
+        <div id="tasks-container" class="relative min-h-[80px] overflow-hidden">
+            <div id="task-carousel" class="transition-transform duration-500 ease-in-out">
+                <!-- 项目将通过JavaScript动态添加 -->
+            </div>
+        </div>
+        
+        <!-- 全部项目（鼠标悬停时显示） -->
+        <div id="all-tasks" class="mt-6 max-h-0 overflow-hidden hover-expand">
+            <div class="text-sm text-dark-textSecondary mb-3 font-medium text-center">未来事件:</div>
+            <div id="all-tasks-list" class="space-y-2.5 text-sm"></div>
+        </div>
+        
+        <!-- 轮播控制按钮已删除 -->
+        <div id="controls-container" class="flex justify-center mt-4 space-x-2 transition-all duration-300 hidden">
+        </div>
+    </div>
+
+    <!-- 右键菜单 - 通用菜单 -->
+    <div id="main-context-menu" class="context-menu hidden absolute bg-dark-card rounded-lg shadow-lg p-2 w-48 border border-gray-700">
+        <div id="add-task-option" class="px-4 py-2 text-sm text-dark-text hover:bg-dark-hover rounded cursor-pointer">
+            <i class="fa fa-plus mr-2 text-primary"></i>添加新事件
+        </div>
+    </div>
+
+    <!-- 任务右键菜单 -->
+    <div id="task-context-menu" class="context-menu hidden absolute bg-dark-card rounded-lg shadow-lg p-2 w-48 border border-gray-700">
+        <div id="edit-task-option" class="px-4 py-2 text-sm text-dark-text hover:bg-dark-hover rounded cursor-pointer">
+            <i class="fa fa-pencil mr-2 text-primary"></i>编辑事件
+        </div>
+        <div id="delete-task-option" class="px-4 py-2 text-sm text-dark-text hover:bg-dark-hover rounded cursor-pointer">
+            <i class="fa fa-trash mr-2 text-red-500"></i>删除事件
+        </div>
+    </div>
+
+    <!-- 确认删除模态框 -->
+    <div id="confirm-delete-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
+        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-dark-text">确认删除</h3>
+                <button id="close-delete-modal" class="text-dark-textSecondary hover:text-dark-text">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <p class="text-dark-textSecondary mb-6">您确定要删除这个事件吗？此操作无法撤销。</p>
+            
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-delete" class="px-4 py-2 border border-gray-600 rounded-lg text-dark-text hover:bg-dark-hover transition-colors">取消</button>
+                <button id="confirm-delete" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑任务模态框 -->
+    <div id="task-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
+        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-lg font-semibold text-dark-text">添加新事件</h3>
+                <button id="close-modal" class="text-dark-textSecondary hover:text-dark-text">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                
+                <div class="mb-4">
+                    <label for="task-name" class="block text-sm font-medium text-dark-textSecondary mb-1">事件名称</label>
+                    <input type="text" id="task-name" name="task-name" required="" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="task-priority" class="block text-sm font-medium text-dark-textSecondary mb-1">优先级</label>
+                    <select id="task-priority" name="task-priority" required="" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="high">高 (红色)</option>
+                        <option value="medium" selected="">中 (黄色)</option>
+                        <option value="low">低 (绿色)</option>
+                    </select>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="display-threshold" class="block text-sm font-medium text-dark-textSecondary mb-1">提前提醒时间</label>
+                    <div class="time-input-group">
+                        <input type="number" id="display-threshold" name="display-threshold" min="1" value="10" class="time-input">
+                        <select id="display-threshold-unit" name="display-threshold-unit" class="time-select">
+                            <option value="minute">分钟</option>
+                            <option value="hour">小时</option>
+                            <option value="day">天</option>
+                            <option value="week">周</option>
+                        </select>
+                    </div>
+                    <p class="text-xs text-primary mt-1">事件开始前多久显示提醒</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-dark-textSecondary mb-2">开始时间</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <input type="date" id="start-date" name="start-date" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <label for="start-date" class="text-xs text-dark-textSecondary">日期</label>
+                        </div>
+                        <div>
+                            <input type="time" id="start-time" name="start-time" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <label for="start-time" class="text-xs text-dark-textSecondary">时间</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-dark-textSecondary mb-2">重复方式</label>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <div class="recurrence-option selected" data-type="none">
+                            <div class="font-medium">不重复</div>
+                            <div class="text-xs text-dark-textSecondary">仅一次</div>
+                        </div>
+                        <div class="recurrence-option" data-type="daily">
+                            <div class="font-medium">每天</div>
+                            <div class="text-xs text-dark-textSecondary">每天同一时间</div>
+                        </div>
+                        <div class="recurrence-option" data-type="weekly">
+                            <div class="font-medium">每周</div>
+                            <div class="text-xs text-dark-textSecondary">每周特定日期</div>
+                        </div>
+                        <div class="recurrence-option" data-type="custom">
+                            <div class="font-medium">自定义</div>
+                            <div class="text-xs text-dark-textSecondary">按间隔重复</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="recurrence-type" value="none">
+                </div>
+                
+                <!-- 每周重复选项 -->
+                <div id="weekly-options" class="mb-4 hidden bg-dark-bg p-3 rounded-lg border border-gray-600">
+                    <label class="block text-sm font-medium text-dark-textSecondary mb-2">每周重复日期</label>
+                    <div class="flex flex-wrap gap-2 mb-1">
+                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                            <input type="checkbox" name="weekday" value="1" class="hidden peer">
+                            <span class="text-xs peer-checked:text-primary">一</span>
+                        </label>
+                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                            <input type="checkbox" name="weekday" value="2" class="hidden peer">
+                            <span class="text-xs peer-checked:text-primary">二</span>
+                        </label>
+                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                            <input type="checkbox" name="weekday" value="3" class="hidden peer">
+                            <span class="text-xs peer-checked:text-primary">三</span>
+                        </label>
+                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                            <input type="checkbox" name="weekday" value="4" class="hidden peer">
+                            <span class="text-xs peer-checked:text-primary">四</span>
+                        </label>
+                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                            <input type="checkbox" name="weekday" value="5" class="hidden peer">
+                            <span class="text-xs peer-checked:text-primary">五</span>
+                        </label>
+                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                            <input type="checkbox" name="weekday" value="6" class="hidden peer">
+                            <span class="text-xs peer-checked:text-primary">六</span>
+                        </label>
+                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                            <input type="checkbox" name="weekday" value="0" class="hidden peer">
+                            <span class="text-xs peer-checked:text-primary">日</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- 自定义重复选项 -->
+                <div id="custom-options" class="mb-4 hidden bg-dark-bg p-3 rounded-lg border border-gray-600">
+                    <label class="block text-sm font-medium text-dark-textSecondary mb-2">重复间隔</label>
+                    <div class="time-input-group">
+                        <input type="number" id="interval-count" name="interval-count" min="1" value="1" class="time-input">
+                        <select id="interval-unit" name="interval-unit" class="time-select">
+                            <option value="minute">分钟</option>
+                            <option value="hour">小时</option>
+                            <option value="day">天</option>
+                            <option value="week">周</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="task-duration" class="block text-sm font-medium text-dark-textSecondary mb-1">持续时间</label>
+                    <div class="time-input-group">
+                        <input type="number" id="task-duration" name="task-duration" min="1" value="10" class="time-input">
+                        <select id="duration-unit" name="duration-unit" class="time-select">
+                            <option value="minute">分钟</option>
+                            <option value="hour">小时</option>
+                            <option value="day">天</option>
+                            <option value="week">周</option>
+                        </select>
+                    </div>
+                    <p class="text-xs text-primary mt-1">事件进行的时长，将作为进行中事件的倒计时基准</p>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" id="cancel-task" class="px-4 py-2 border border-gray-600 rounded-lg text-dark-text hover:bg-dark-hover transition-colors">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                        保存事件
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 下载按钮 -->
+    <div class="download-container relative">
+        <button id="download-btn" class="download-btn">
+            <i class="fa fa-download"></i>
+        </button>
+        <span class="download-tooltip">保存当前事件到HTML文件</span>
+    </div>
+
+    <!-- 手动保存按钮 -->
+    <div class="save-container relative">
+        <button id="manual-save-btn" class="save-btn">
+            <i class="fa fa-save"></i>
+        </button>
+        <span class="save-tooltip">手动保存当前数据</span>
+    </div>
+
+    <!-- 保存状态指示器 -->
+    <div id="save-status" class="save-status hidden">
+        <span id="save-status-text">保存中...</span>
+    </div>
+
+    <!-- 通知提示 -->
+    <div id="notification" class="notification">数据已保存</div>
+
+    <script>
+        // 用于存储外部数据的变量 - 从localStorage加载或使用默认值
+        let externalData = null;
+        
+        // 保存状态管理
+        const saveState = {
+            isSaving: false,
+            lastSaved: null,
+            saveAttempts: 0,
+            maxAttempts: 3
+        };
+        
+        // 尝试从localStorage加载数据
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('timeProjectReminderTasks');
+                if (savedData) {
+                    return JSON.parse(savedData);
+                }
+            } catch (e) {
+                console.error('Failed to load from localStorage:', e);
+                showNotification('加载数据失败: ' + e.message, true);
+            }
+            return null;
+        }
+        
+        // 保存数据到localStorage - 核心保存函数
+        function saveToLocalStorage(data, retry = 0) {
+            // 如果正在保存中，等待后重试
+            if (saveState.isSaving) {
+                if (retry < saveState.maxAttempts) {
+                    return new Promise(resolve => {
+                        setTimeout(() => {
+                            saveToLocalStorage(data, retry + 1)
+                                .then(resolve)
+                                .catch(resolve);
+                        }, 300);
+                    });
+                }
+                return Promise.resolve(false);
+            }
+            
+            // 标记为正在保存
+            saveState.isSaving = true;
+            showSaveStatus(true);
+            
+            return new Promise(resolve => {
+                try {
+                    // 验证数据格式
+                    if (!data || !Array.isArray(data)) {
+                        throw new Error('无效的数据格式');
+                    }
+                    
+                    // 尝试保存数据
+                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(data));
+                    
+                    // 更新保存状态
+                    saveState.lastSaved = new Date();
+                    saveState.saveAttempts = 0;
+                    saveState.isSaving = false;
+                    
+                    // 显示成功状态
+                    showSaveStatus(false, true);
+                    showNotification('数据已成功保存');
+                    resolve(true);
+                } catch (e) {
+                    console.error('Failed to save to localStorage:', e);
+                    
+                    // 处理保存失败
+                    saveState.saveAttempts++;
+                    saveState.isSaving = false;
+                    
+                    // 显示失败状态
+                    showSaveStatus(false, false);
+                    showNotification('保存失败: ' + e.message, true);
+                    
+                    // 如果达到最大尝试次数，提示用户导出数据
+                    if (saveState.saveAttempts >= saveState.maxAttempts) {
+                        if (confirm('多次保存失败，是否导出数据以防止丢失？')) {
+                            downloadAsHtml();
+                        }
+                    }
+                    
+                    resolve(false);
+                }
+            });
+        }
+        
+        // 显示保存状态指示器
+        function showSaveStatus(isSaving, success = false) {
+            const statusEl = document.getElementById('save-status');
+            const statusTextEl = document.getElementById('save-status-text');
+            
+            if (isSaving) {
+                statusTextEl.textContent = '保存中...';
+                statusEl.classList.remove('hidden', 'text-green-500', 'text-red-500');
+                statusEl.classList.add('text-primary');
+            } else {
+                if (success) {
+                    statusTextEl.textContent = '保存成功';
+                    statusEl.classList.remove('hidden', 'text-primary', 'text-red-500');
+                    statusEl.classList.add('text-green-500');
+                    
+                    // 2秒后隐藏成功状态
+                    setTimeout(() => {
+                        statusEl.classList.add('hidden');
+                    }, 2000);
+                } else {
+                    statusTextEl.textContent = '保存失败';
+                    statusEl.classList.remove('hidden', 'text-primary', 'text-green-500');
+                    statusEl.classList.add('text-red-500');
+                }
+            }
+        }
+        
+        // 显示通知
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            
+            // 添加或移除错误类
+            if (isError) {
+                notification.classList.add('error');
+            } else {
+                notification.classList.remove('error');
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 事件数据 - 从localStorage加载或使用测试数据
+        let tasks = loadFromLocalStorage() || [
+            {
+                id: 1,
+                name: "正在进行的测试事件",
+                startDate: new Date().toISOString().split('T')[0],
+                startTime: new Date(Date.now() - 10 * 60 * 1000).toTimeString().split(':').slice(0, 2).join(':'),
+                displayThreshold: 10,
+                displayThresholdUnit: "minute",
+                recurrence: {
+                    type: "none",
+                    duration: 30,
+                    durationUnit: "minute"
+                },
+                priority: "high"
+            },
+            {
+                id: 2,
+                name: "每日会议",
+                startDate: new Date().toISOString().split('T')[0],
+                startTime: new Date(Date.now() - 5 * 60 * 1000).toTimeString().split(':').slice(0, 2).join(':'),
+                displayThreshold: 10,
+                displayThresholdUnit: "minute",
+                recurrence: {
+                    type: "daily",
+                    duration: 20,
+                    durationUnit: "minute"
+                },
+                priority: "medium"
+            }
+        ];
+
+        // 当前操作的事件ID
+        let currentTaskId = null;
+
+        // DOM元素
+        const currentTimeEl = document.getElementById('current-time');
+        const taskCarousel = document.getElementById('task-carousel');
+        const allTasksEl = document.getElementById('all-tasks');
+        const allTasksListEl = document.getElementById('all-tasks-list');
+        const appContainer = document.getElementById('app-container');
+        const controlsContainer = document.getElementById('controls-container');
+        const mainContextMenu = document.getElementById('main-context-menu');
+        const taskContextMenu = document.getElementById('task-context-menu');
+        const addTaskOption = document.getElementById('add-task-option');
+        const editTaskOption = document.getElementById('edit-task-option');
+        const deleteTaskOption = document.getElementById('delete-task-option');
+        const taskModal = document.getElementById('task-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const closeModal = document.getElementById('close-modal');
+        const cancelTask = document.getElementById('cancel-task');
+        const taskForm = document.getElementById('task-form');
+        const taskIdInput = document.getElementById('task-id');
+        const displayThresholdInput = document.getElementById('display-threshold');
+        const displayThresholdUnitInput = document.getElementById('display-threshold-unit');
+        const confirmDeleteModal = document.getElementById('confirm-delete-modal');
+        const closeDeleteModal = document.getElementById('close-delete-modal');
+        const cancelDelete = document.getElementById('cancel-delete');
+        const confirmDelete = document.getElementById('confirm-delete');
+        const recurrenceTypeInput = document.getElementById('recurrence-type');
+        const weeklyOptions = document.getElementById('weekly-options');
+        const customOptions = document.getElementById('custom-options');
+        const startDateInput = document.getElementById('start-date');
+        const startTimeInput = document.getElementById('start-time');
+        const intervalCountInput = document.getElementById('interval-count');
+        const intervalUnitInput = document.getElementById('interval-unit');
+        const taskDurationInput = document.getElementById('task-duration');
+        const durationUnitInput = document.getElementById('duration-unit');
+        const weekdayCheckboxes = document.querySelectorAll('input[name="weekday"]');
+        const recurrenceOptions = document.querySelectorAll('.recurrence-option');
+        const downloadBtn = document.getElementById('download-btn');
+        const manualSaveBtn = document.getElementById('manual-save-btn');
+        
+        // 初始化日期和时间为今天和当前时间
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
+            
+            startDateInput.value = dateStr;
+            startTimeInput.value = timeStr;
+            
+            // 初始化重复选项点击事件
+            recurrenceOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    const type = option.getAttribute('data-type');
+                    recurrenceTypeInput.value = type;
+                    showRecurrenceOptions(type);
+                });
+            });
+            
+            // 检查是否有外部数据并加载
+            if (externalData && externalData.tasks) {
+                tasks = externalData.tasks;
+                saveToLocalStorage(tasks); // 将外部数据同步到localStorage
+            }
+            
+            // 初始化下载按钮事件
+            downloadBtn.addEventListener('click', downloadAsHtml);
+            
+            // 初始化手动保存按钮事件
+            manualSaveBtn.addEventListener('click', async () => {
+                await saveToLocalStorage(tasks);
+            });
+            
+            // 验证本地存储是否可用
+            testLocalStorageAvailability();
+        });
+        
+        // 测试本地存储是否可用
+        function testLocalStorageAvailability() {
+            try {
+                const testKey = 'test_local_storage_availability_' + Math.random();
+                localStorage.setItem(testKey, testKey);
+                localStorage.removeItem(testKey);
+                // 不显示成功通知，避免干扰
+            } catch (e) {
+                console.error('LocalStorage is not available:', e);
+                showNotification('本地存储不可用，建议使用下载功能保存数据', true);
+            }
+        }
+        
+        // 转换时间单位为毫秒
+        function convertToMilliseconds(value, unit) {
+            const units = {
+                minute: 60 * 1000,
+                hour: 60 * 60 * 1000,
+                day: 24 * 60 * 60 * 1000,
+                week: 7 * 24 * 60 * 60 * 1000
+            };
+            return value * (units[unit] || units.minute);
+        }
+        
+        // 转换毫秒为最适合的单位
+        function convertFromMilliseconds(ms) {
+            if (ms >= 7 * 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (7 * 24 * 60 * 60 * 1000)), unit: 'week', text: '周' };
+            } else if (ms >= 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (24 * 60 * 60 * 1000)), unit: 'day', text: '天' };
+            } else if (ms >= 60 * 60 * 1000) {
+                return { value: Math.round(ms / (60 * 60 * 1000)), unit: 'hour', text: '小时' };
+            } else {
+                return { value: Math.round(ms / (60 * 1000)), unit: 'minute', text: '分钟' };
+            }
+        }
+
+        // 格式化倒计时显示
+        function formatCountdown(ms) {
+            if (ms < 0) return "已开始";
+            
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+            
+            if (days > 0) {
+                return `${days}天${hours}时`;
+            } else if (hours > 0) {
+                return `${hours}时${minutes}分`;
+            } else if (minutes > 0) {
+                return `${minutes}分${seconds}秒`;
+            } else {
+                return `${seconds}秒`;
+            }
+        }
+
+        // 轮播状态
+        let currentSlide = 0;
+        let visibleTasks = [];
+
+        // 更新当前时间显示
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 计算事件的下一次发生时间
+        function getNextOccurrence(task, now) {
+            // 解析事件的开始时间（忽略日期，只关注时间部分）
+            const [startHour, startMinute] = task.startTime.split(':').map(Number);
+            
+            // 克隆当前时间，用于计算
+            let nextTime = new Date(now);
+            nextTime.setHours(startHour, startMinute, 0, 0);
+            
+            // 处理每周重复的特殊情况
+            if (task.recurrence.type === "weekly") {
+                const todayWeekday = now.getDay();
+                let daysToAdd = 0;
+                let found = false;
+                
+                // 查找下一个符合条件的星期几（包括今天）
+                for (let i = 0; i < 7; i++) {
+                    const checkDay = (todayWeekday + i) % 7;
+                    if (task.recurrence.weekdays.includes(checkDay)) {
+                        daysToAdd = i;
+                        found = true;
+                        break;
+                    }
+                }
+                
+                // 如果没有找到（理论上不会发生），默认一周后
+                if (!found && task.recurrence.weekdays.length > 0) {
+                    daysToAdd = 7;
+                }
+                
+                // 设置到下一个符合条件的星期几
+                nextTime.setDate(nextTime.getDate() + daysToAdd);
+                
+                // 计算事件持续时间
+                const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                
+                // 检查是否在本周的同一天但时间已过但仍在持续时间内
+                const sameDay = nextTime.toDateString() === now.toDateString();
+                if (sameDay && nextTime <= now && now < nextTime.getTime() + durationMs) {
+                    // 如果在持续时间内，返回原始开始时间
+                    return new Date(nextTime);
+                }
+                
+                // 如果计算出的时间仍在当前时间之前且不在持续时间内，再加一周
+                if (nextTime <= now) {
+                    nextTime.setDate(nextTime.getDate() + 7);
+                }
+                
+                return nextTime;
+            }
+            
+            // 处理其他重复类型
+            const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
+            const initialStart = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
+            
+            // 对于重复事件，计算最近的一次发生时间（可能在过去但仍在持续时间内）
+            if (task.recurrence.type !== "none") {
+                // 计算间隔毫秒数
+                let intervalMs;
+                switch(task.recurrence.type) {
+                    case "daily":
+                        intervalMs = 24 * 60 * 60 * 1000; // 一天的毫秒数
+                        break;
+                    case "custom":
+                        intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
+                        break;
+                    default:
+                        intervalMs = 24 * 60 * 60 * 1000; // 默认一天
+                }
+                
+                // 计算从初始时间到现在的总间隔数
+                const timeDiff = now - initialStart;
+                const intervals = Math.floor(timeDiff / intervalMs);
+                
+                // 计算最近一次发生时间（可能在过去）
+                const lastOccurrence = new Date(initialStart.getTime() + intervals * intervalMs);
+                
+                // 计算事件持续时间
+                const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                
+                // 如果当前时间仍在最近一次事件的持续时间内，返回该时间
+                if (now <= lastOccurrence.getTime() + durationMs) {
+                    return lastOccurrence;
+                }
+                
+                // 否则返回下一次发生时间
+                return new Date(lastOccurrence.getTime() + intervalMs);
+            }
+            
+            // 非重复事件的处理
+            if (initialStart > now) {
+                return new Date(initialStart);
+            }
+            
+            return new Date(initialStart);
+        }
+
+        // 获取事件状态信息 - 修改为显示距离开始时间
+        function getTaskStatus(task, now) {
+            const nextStart = getNextOccurrence(task, now);
+            
+            // 计算事件结束时间（基于持续时间）
+            const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+            const endTime = new Date(nextStart.getTime() + durationMs);
+            
+            // 计算事件的显示开始时间（开始时间 - 提前提醒时间）
+            const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+            const displayStartTime = new Date(nextStart.getTime() - thresholdMs);
+            
+            // 计算事件的显示结束时间（结束时间）
+            const displayEndTime = new Date(endTime);
+            
+            // 判断是否在显示时间范围内（提前提醒时间到结束时间）
+            const isInDisplayRange = now >= displayStartTime && now <= displayEndTime;
+            
+            // 判断是否正在进行中（当前时间在开始时间和结束时间之间）
+            const isOngoing = now >= nextStart && now < endTime;
+            
+            // 计算距离开始时间的毫秒数（核心修改：不再使用显示时间）
+            const timeUntilStart = nextStart - now;
+            
+            // 对于重复事件，不标记为已完成
+            if (task.recurrence.type === "none" && now > displayEndTime) {
+                return {
+                    status: "completed",
+                    timeText: "已完成",
+                    countdownMs: 0,
+                    countdownText: "已完成",
+                    minutes: Infinity,
+                    startTime: null,
+                    endTime: null,
+                    displayStartTime: displayStartTime,
+                    displayEndTime: displayEndTime
+                };
+            }
+            
+            if (isOngoing) {
+                const timeLeft = endTime - now;
+                const converted = convertFromMilliseconds(timeLeft);
+                return {
+                    status: "ongoing",
+                    timeText: `正在进行，${converted.value}${converted.text}后结束`,
+                    countdownMs: timeLeft,
+                    countdownText: formatCountdown(timeLeft),
+                    minutes: Math.ceil(timeLeft / (1000 * 60)),
+                    startTime: nextStart,
+                    endTime: endTime,
+                    displayStartTime: displayStartTime,
+                    displayEndTime: displayEndTime
+                };
+            } else if (isInDisplayRange) {
+                // 还未开始但在提前提醒范围内 - 显示距离开始时间
+                const converted = convertFromMilliseconds(timeUntilStart);
+                return {
+                    status: "upcoming",
+                    timeText: `${converted.value}${converted.text}后开始`,
+                    countdownMs: timeUntilStart,
+                    countdownText: formatCountdown(timeUntilStart),
+                    minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                    startTime: nextStart,
+                    endTime: endTime,
+                    displayStartTime: displayStartTime,
+                    displayEndTime: displayEndTime
+                };
+            } else {
+                // 不在显示范围内 - 显示距离开始时间
+                const converted = convertFromMilliseconds(timeUntilStart);
+                return {
+                    status: "future",
+                    timeText: `${converted.value}${converted.text}后开始`,
+                    countdownMs: timeUntilStart,
+                    countdownText: formatCountdown(timeUntilStart),
+                    minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                    startTime: nextStart,
+                    endTime: endTime,
+                    displayStartTime: displayStartTime,
+                    displayEndTime: displayEndTime
+                };
+            }
+        }
+
+        // 过滤出需要显示的事件
+        function getVisibleTasks() {
+            const now = new Date();
+            return tasks
+                .map(task => {
+                    const status = getTaskStatus(task, now);
+                    return {
+                        ...task,
+                        ...status
+                    };
+                })
+                .filter(task => {
+                    // 显示正在进行和即将开始的事件（在显示时间范围内），排除已完成的
+                    return task.status !== "completed" && 
+                           (task.status === "ongoing" || task.status === "upcoming");
+                })
+                .sort((a, b) => {
+                    // 优先显示正在进行的事件，然后按剩余时间排序
+                    if (a.status === "ongoing" && b.status !== "ongoing") return -1;
+                    if (a.status !== "ongoing" && b.status === "ongoing") return 1;
+                    return a.minutes - b.minutes;
+                });
+        }
+
+        // 获取所有事件（用于悬停显示）
+        function getAllTasksWithStatus() {
+            const now = new Date();
+            return tasks
+                .map(task => {
+                    const status = getTaskStatus(task, now);
+                    return {
+                        ...task,
+                        ...status
+                    };
+                })
+                .filter(task => task.status !== "completed")
+                .sort((a, b) => a.startTime - b.startTime);
+        }
+
+        // 创建事件元素 - 统一正在进行和即将开始的UI，优化排版
+        function createTaskElement(task) {
+            const taskEl = document.createElement('div');
+            // 统一所有可见事件的基础样式，仅通过指示器区分状态
+            const baseClass = "task-item p-4 rounded-xl mb-3 task-transition bg-dark-bg shadow-sm mx-auto max-w-md";
+            
+            taskEl.className = baseClass;
+            taskEl.dataset.taskId = task.id;
+            
+            // 生成重复规则文本描述
+            let recurrenceText = "";
+            switch(task.recurrence.type) {
+                case "none":
+                    recurrenceText = "不重复";
+                    break;
+                case "daily":
+                    recurrenceText = "每天";
+                    break;
+                case "weekly":
+                    const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                    const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
+                    recurrenceText = `每周${selectedDays}`;
+                    break;
+                case "custom":
+                    const unitNames = {
+                        "minute": "分钟",
+                        "hour": "小时",
+                        "day": "天",
+                        "week": "周"
+                    };
+                    recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
+                    break;
+            }
+            
+            // 生成持续时间文本
+            const durationUnitNames = {
+                "minute": "分钟",
+                "hour": "小时",
+                "day": "天",
+                "week": "周"
+            };
+            const durationText = `${task.recurrence.duration}${durationUnitNames[task.recurrence.durationUnit]}`;
+            
+            // 格式化日期显示
+            const isToday = task.startTime.toLocaleDateString() === new Date().toLocaleDateString();
+            const dateText = isToday ? '今天' : task.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'});
+            
+            // 为正在进行的事件添加视觉指示器
+            const ongoingIndicator = task.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            
+            // 倒计时文本
+            const countdownBadge = `<span class="countdown ml-2">${task.countdownText}</span>`;
+            
+            taskEl.innerHTML = `
+                <div class="flex justify-between items-center task-title">
+                    <div class="font-medium text-dark-text flex items-center">
+                        <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
+                        ${task.name}
+                    </div>
+                    <div class="text-sm text-primary flex items-center">
+                        ${ongoingIndicator}${task.timeText}${countdownBadge}
+                    </div>
+                </div>
+                <div class="text-xs text-dark-textSecondary task-meta flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span class="task-meta-item"><i class="fa fa-repeat mr-1 opacity-70"></i>${recurrenceText}</span>
+                    <span class="task-meta-item"><i class="fa fa-clock-o mr-1 opacity-70"></i>持续 ${durationText}</span>
+                    <span class="task-meta-item"><i class="fa fa-calendar mr-1 opacity-70"></i>${dateText}</span>
+                    <span class="task-meta-item"><i class="fa fa-hourglass-start mr-1 opacity-70"></i>${task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - 
+                    ${task.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}</span>
+                </div>
+            `;
+            
+            // 为事件项添加右键菜单事件
+            taskEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                currentTaskId = task.id;
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                taskContextMenu.style.left = `${x}px`;
+                taskContextMenu.style.top = `${y}px`;
+                taskContextMenu.classList.remove('hidden');
+            });
+            
+            return taskEl;
+        }
+
+        // 创建缩略事件元素（用于悬停显示）
+        function createMiniTaskElement(task) {
+            const taskEl = document.createElement('div');
+            // 统一缩略事件的样式
+            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover";
+            
+            taskEl.className = baseClass;
+            taskEl.dataset.taskId = task.id;
+            
+            // 为正在进行的事件添加视觉指示器
+            const ongoingIndicator = task.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            
+            // 倒计时徽章
+            const countdownBadge = `<span class="countdown ml-2">${task.countdownText}</span>`;
+            
+            taskEl.innerHTML = `
+                <div class="flex items-center">
+                    <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
+                    <span>${ongoingIndicator}${task.name}${countdownBadge}</span>
+                </div>
+                <div class="text-xs text-dark-textSecondary">
+                    ${task.status === 'ongoing' ? '进行中' : task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}
+                </div>
+            `;
+            
+            // 为缩略事件项添加右键菜单事件
+            taskEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                currentTaskId = task.id;
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                taskContextMenu.style.left = `${x}px`;
+                taskContextMenu.style.top = `${y}px`;
+                taskContextMenu.classList.remove('hidden');
+            });
+            
+            return taskEl;
+        }
+
+        // 更新事件显示
+        function updateTasks() {
+            visibleTasks = getVisibleTasks();
+            const allTasks = getAllTasksWithStatus();
+            const hasVisibleContent = visibleTasks.length > 0 || allTasks.length > 0;
+            
+            // 清空轮播容器
+            taskCarousel.innerHTML = '';
+            
+            if (visibleTasks.length === 0) {
+                // 没有可见事件时显示提示
+                taskCarousel.innerHTML = `
+                    <div class="text-center py-4 text-dark-textSecondary">
+                        目前没有即将开始的事件
+                    </div>
+                `;
+            } else {
+                // 添加所有可见事件到轮播
+                visibleTasks.forEach(task => {
+                    const taskEl = createTaskElement(task);
+                    taskCarousel.appendChild(taskEl);
+                });
+                
+                // 重置轮播位置
+                currentSlide = 0;
+                updateCarouselPosition();
+            }
+            
+            // 更新所有事件列表（悬停时显示）
+            updateAllTasksList();
+            
+            // 调整容器大小和样式
+            adjustContainerSize(hasVisibleContent);
+        }
+
+        // 更新所有事件列表
+        function updateAllTasksList() {
+            const allTasks = getAllTasksWithStatus();
+            allTasksListEl.innerHTML = '';
+            
+            allTasks.forEach(task => {
+                const taskEl = createMiniTaskElement(task);
+                allTasksListEl.appendChild(taskEl);
+            });
+        }
+
+        // 调整容器大小和样式
+        function adjustContainerSize(hasContent) {
+            if (hasContent) {
+                appContainer.classList.remove('app-compact');
+                appContainer.classList.add('app-expanded');
+                controlsContainer.classList.remove('opacity-0', 'pointer-events-none', 'h-0');
+                
+                const height = visibleTasks.length > 0 ? 
+                    160 + visibleTasks.length * 110 : 140; // 增加高度以容纳更好的排版
+                
+                appContainer.style.minHeight = `${height}px`;
+            } else {
+                appContainer.classList.remove('app-expanded');
+                appContainer.classList.add('app-compact');
+                controlsContainer.classList.add('opacity-0', 'pointer-events-none', 'h-0');
+                appContainer.style.minHeight = '140px'; // 固定高度以容纳时间显示
+            }
+        }
+
+        // 更新轮播位置
+        function updateCarouselPosition() {
+            if (visibleTasks.length <= 1) return;
+            
+            const slideHeight = 110; // 增加高度以适应优化后的排版
+            taskCarousel.style.transform = `translateY(-${currentSlide * slideHeight}px)`;
+        }
+
+        // 显示对应的重复选项面板
+        function showRecurrenceOptions(type) {
+            weeklyOptions.classList.add('hidden');
+            customOptions.classList.add('hidden');
+            
+            if (type === 'weekly') {
+                weeklyOptions.classList.remove('hidden');
+            } else if (type === 'custom') {
+                customOptions.classList.remove('hidden');
+            }
+        }
+
+        // 验证表单数据
+        function validateFormData(recurrenceType) {
+            if (recurrenceType === 'weekly') {
+                const checkedDays = Array.from(weekdayCheckboxes).filter(cb => cb.checked);
+                if (checkedDays.length === 0) {
+                    alert('请至少选择一个星期几');
+                    return false;
+                }
+            } else if (recurrenceType === 'custom') {
+                const count = parseInt(intervalCountInput.value) || 0;
+                if (count < 1) {
+                    alert('间隔计数必须大于0');
+                    return false;
+                }
+            }
+            
+            // 验证提前提醒时间
+            const threshold = parseInt(displayThresholdInput.value) || 0;
+            if (threshold < 1) {
+                alert('提前提醒时间必须大于0');
+                return false;
+            }
+            
+            // 验证持续时间
+            const duration = parseInt(taskDurationInput.value) || 0;
+            if (duration < 1) {
+                alert('持续时间必须大于0');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // 添加新事件
+        async function addNewTask(taskData) {
+            const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+            
+            let newTask = {
+                id: newId,
+                name: taskData.name,
+                startDate: taskData.startDate || new Date().toISOString().split('T')[0],
+                startTime: taskData.startTime || new Date().toTimeString().split(':').slice(0, 2).join(':'),
+                displayThreshold: parseInt(taskData.displayThreshold) || 10,
+                displayThresholdUnit: taskData.displayThresholdUnit || "minute",
+                priority: taskData.priority,
+                recurrence: {
+                    duration: parseInt(taskData.duration) || 10,
+                    durationUnit: taskData.durationUnit || "minute",
+                    type: taskData.recurrenceType
+                }
+            };
+            
+            switch(taskData.recurrenceType) {
+                case "weekly":
+                    newTask.recurrence.weekdays = taskData.weekdays ? 
+                        taskData.weekdays.map(Number) : [1];
+                    break;
+                case "custom":
+                    newTask.recurrence.count = parseInt(taskData.intervalCount) || 1;
+                    newTask.recurrence.unit = taskData.intervalUnit || "day";
+                    break;
+            }
+            
+            tasks.push(newTask);
+            // 强制保存并处理可能的失败
+            const saveSuccess = await saveToLocalStorage(tasks);
+            if (saveSuccess) {
+                updateTasks();
+            } else {
+                // 如果保存失败，从数组中移除刚刚添加的任务
+                tasks.pop();
+                alert('添加事件失败，请重试');
+            }
+        }
+
+        // 更新现有事件
+        async function updateExistingTask(taskData) {
+            const taskIndex = tasks.findIndex(t => t.id === parseInt(taskData.id));
+            if (taskIndex === -1) return;
+            
+            // 保存原始任务数据，用于失败时恢复
+            const originalTask = {...tasks[taskIndex]};
+            
+            tasks[taskIndex].name = taskData.name;
+            tasks[taskIndex].startDate = taskData.startDate;
+            tasks[taskIndex].startTime = taskData.startTime;
+            tasks[taskIndex].displayThreshold = parseInt(taskData.displayThreshold) || 10;
+            tasks[taskIndex].displayThresholdUnit = taskData.displayThresholdUnit || "minute";
+            tasks[taskIndex].priority = taskData.priority;
+            tasks[taskIndex].recurrence.duration = parseInt(taskData.duration) || 10;
+            tasks[taskIndex].recurrence.durationUnit = taskData.durationUnit || "minute";
+            tasks[taskIndex].recurrence.type = taskData.recurrenceType;
+            
+            delete tasks[taskIndex].recurrence.weekdays;
+            delete tasks[taskIndex].recurrence.count;
+            delete tasks[taskIndex].recurrence.unit;
+            
+            switch(taskData.recurrenceType) {
+                case "weekly":
+                    tasks[taskIndex].recurrence.weekdays = taskData.weekdays ? 
+                        taskData.weekdays.map(Number) : [1];
+                    break;
+                case "custom":
+                    tasks[taskIndex].recurrence.count = parseInt(taskData.intervalCount) || 1;
+                    tasks[taskIndex].recurrence.unit = taskData.intervalUnit || "day";
+                    break;
+            }
+            
+            // 强制保存并处理可能的失败
+            const saveSuccess = await saveToLocalStorage(tasks);
+            if (saveSuccess) {
+                updateTasks();
+            } else {
+                // 如果保存失败，恢复原始任务数据
+                tasks[taskIndex] = originalTask;
+                alert('更新事件失败，请重试');
+            }
+        }
+
+        // 删除事件
+        async function deleteTask(taskId) {
+            // 保存要删除的任务，用于失败时恢复
+            const taskToDelete = tasks.find(t => t.id === taskId);
+            if (!taskToDelete) return;
+            
+            tasks = tasks.filter(task => task.id !== taskId);
+            
+            // 强制保存并处理可能的失败
+            const saveSuccess = await saveToLocalStorage(tasks);
+            if (saveSuccess) {
+                updateTasks();
+            } else {
+                // 如果保存失败，恢复被删除的任务
+                tasks.push(taskToDelete);
+                alert('删除事件失败，请重试');
+            }
+        }
+
+        // 显示添加事件模态框
+        function showAddTaskModal() {
+            modalTitle.textContent = "添加新事件";
+            taskForm.reset();
+            taskIdInput.value = "";
+            
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
+            
+            startDateInput.value = dateStr;
+            startTimeInput.value = timeStr;
+            displayThresholdInput.value = 10;
+            displayThresholdUnitInput.value = "minute";
+            taskDurationInput.value = 10;
+            durationUnitInput.value = "minute";
+            
+            recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.recurrence-option[data-type="none"]').classList.add('selected');
+            recurrenceTypeInput.value = "none";
+            showRecurrenceOptions("none");
+            
+            taskModal.classList.remove('hidden');
+            hideAllContextMenus();
+        }
+
+        // 显示编辑事件模态框
+        function showEditTaskModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            modalTitle.textContent = "编辑事件";
+            taskIdInput.value = task.id;
+            document.getElementById('task-name').value = task.name;
+            document.getElementById('task-priority').value = task.priority;
+            document.getElementById('task-duration').value = task.recurrence.duration;
+            document.getElementById('duration-unit').value = task.recurrence.durationUnit || "minute";
+            document.getElementById('start-date').value = task.startDate;
+            document.getElementById('start-time').value = task.startTime;
+            document.getElementById('display-threshold').value = task.displayThreshold;
+            document.getElementById('display-threshold-unit').value = task.displayThresholdUnit || "minute";
+            
+            const recurrenceType = task.recurrence.type || "none";
+            recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
+            const selectedOption = document.querySelector(`.recurrence-option[data-type="${recurrenceType}"]`) || 
+                                  document.querySelector('.recurrence-option[data-type="none"]');
+            selectedOption.classList.add('selected');
+            recurrenceTypeInput.value = recurrenceType;
+            
+            weekdayCheckboxes.forEach(checkbox => checkbox.checked = false);
+            intervalCountInput.value = 1;
+            intervalUnitInput.value = "day";
+            
+            if (recurrenceType === "weekly" && task.recurrence.weekdays) {
+                task.recurrence.weekdays.forEach(day => {
+                    const checkbox = document.querySelector(`input[name="weekday"][value="${day}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            } else if (recurrenceType === "custom") {
+                intervalCountInput.value = task.recurrence.count || 1;
+                intervalUnitInput.value = task.recurrence.unit || "day";
+            }
+            
+            showRecurrenceOptions(recurrenceType);
+            taskModal.classList.remove('hidden');
+            hideAllContextMenus();
+        }
+
+        // 显示确认删除模态框
+        function showConfirmDeleteModal(taskId) {
+            currentTaskId = taskId;
+            confirmDeleteModal.classList.remove('hidden');
+            hideAllContextMenus();
+        }
+
+        // 隐藏所有右键菜单
+        function hideAllContextMenus() {
+            mainContextMenu.classList.add('hidden');
+            taskContextMenu.classList.add('hidden');
+        }
+
+        // 隐藏事件模态框
+        function hideTaskModal() {
+            taskModal.classList.add('hidden');
+        }
+
+        // 隐藏确认删除模态框
+        function hideConfirmDeleteModal() {
+            confirmDeleteModal.classList.add('hidden');
+        }
+
+        // 鼠标悬停显示所有事件
+        appContainer.addEventListener('mouseenter', () => {
+            allTasksEl.style.maxHeight = '500px';
+        });
+
+        appContainer.addEventListener('mouseleave', () => {
+            allTasksEl.style.maxHeight = '0';
+        });
+
+        // 应用容器右键菜单事件
+        appContainer.addEventListener('contextmenu', (e) => {
+            if (!e.target.closest('.task-item') && !e.target.closest('[data-task-id]')) {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                mainContextMenu.style.left = `${x}px`;
+                mainContextMenu.style.top = `${y}px`;
+                mainContextMenu.classList.remove('hidden');
+            }
+        });
+
+        // 点击其他地方隐藏右键菜单
+        document.addEventListener('click', hideAllContextMenus);
+
+        // 添加事件选项点击事件
+        addTaskOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showAddTaskModal();
+        });
+
+        // 编辑事件选项点击事件
+        editTaskOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentTaskId !== null) {
+                showEditTaskModal(currentTaskId);
+            }
+        });
+
+        // 删除事件选项点击事件
+        deleteTaskOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentTaskId !== null) {
+                showConfirmDeleteModal(currentTaskId);
+            }
+        });
+
+        // 关闭模态框事件
+        closeModal.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideTaskModal();
+        });
+        
+        cancelTask.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideTaskModal();
+        });
+        
+        taskModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideTaskModal();
+        });
+
+        // 关闭确认删除模态框事件
+        closeDeleteModal.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideConfirmDeleteModal();
+        });
+        
+        cancelDelete.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideConfirmDeleteModal();
+        });
+        
+        confirmDeleteModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideConfirmDeleteModal();
+        });
+
+        // 确认删除事件
+        confirmDelete.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (currentTaskId !== null) {
+                await deleteTask(currentTaskId);
+                currentTaskId = null;
+                hideConfirmDeleteModal();
+            }
+        });
+
+        // 表单提交事件
+        taskForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // 明确获取表单数据
+            const formData = {
+                id: document.getElementById('task-id').value,
+                name: document.getElementById('task-name').value,
+                startDate: document.getElementById('start-date').value,
+                startTime: document.getElementById('start-time').value,
+                displayThreshold: document.getElementById('display-threshold').value,
+                displayThresholdUnit: document.getElementById('display-threshold-unit').value,
+                priority: document.getElementById('task-priority').value,
+                recurrenceType: recurrenceTypeInput.value,
+                duration: document.getElementById('task-duration').value,
+                durationUnit: document.getElementById('duration-unit').value,
+                intervalCount: document.getElementById('interval-count').value,
+                intervalUnit: document.getElementById('interval-unit').value,
+                weekdays: Array.from(weekdayCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value)
+            };
+            
+            // 验证表单数据
+            if (!validateFormData(formData.recurrenceType)) {
+                return;
+            }
+            
+            // 执行保存操作
+            if (formData.id) {
+                await updateExistingTask(formData);
+            } else {
+                await addNewTask(formData);
+            }
+            
+            hideTaskModal();
+        });
+
+        // 下载为HTML文件功能 - 已修复tempDiv.getElementById错误
+        function downloadAsHtml() {
+            try {
+                // 创建完整的HTML内容，包含当前数据
+                const dataToSave = { tasks: tasks };
+                
+                // 创建一个临时div用于处理HTML内容
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = document.documentElement.outerHTML;
+                
+                // 确保移除任何内联样式，这些样式会导致显示不一致
+                const elementsWithStyles = tempDiv.querySelectorAll('[style]');
+                elementsWithStyles.forEach(el => {
+                    // 只保留transform样式，其他内联样式会导致问题
+                    if (el.style.transform) {
+                        const transform = el.style.transform;
+                        el.removeAttribute('style');
+                        el.style.transform = transform;
+                    } else {
+                        el.removeAttribute('style');
+                    }
+                });
+                
+                // 确保app-container使用默认的app-compact类
+                // 修复错误：使用querySelector代替getElementById，因为tempDiv是DOM元素而非文档
+                const appContainer = tempDiv.querySelector('#app-container');
+                if (appContainer) {
+                    appContainer.className = 'bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-compact';
+                }
+                
+                // 找到并更新包含externalData的script标签
+                const scripts = tempDiv.querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.textContent.includes('let externalData = null;')) {
+                        const newContent = script.textContent.replace(
+                            'let externalData = null;',
+                            `let externalData = ${JSON.stringify(dataToSave)};`
+                        );
+                        script.textContent = newContent;
+                    }
+                });
+                
+                // 确保body标签包含正确的样式类，修复背景色和居中问题
+                const body = tempDiv.querySelector('body');
+                if (body) {
+                    body.className = 'bg-dark-bg min-h-screen flex items-center justify-center p-4 font-inter text-dark-text m-0';
+                }
+                
+                // 获取更新后的HTML内容
+                const updatedHtml = '<!DOCTYPE html>' + tempDiv.innerHTML;
+                
+                // 创建Blob对象，确保使用UTF-8编码
+                const blob = new Blob([updatedHtml], { 
+                    type: 'text/html; charset=utf-8' 
+                });
+                
+                // 创建下载链接
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                // 生成包含当前日期的文件名
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                a.download = `时间项目提醒_${dateStr}.html`;
+                
+                a.href = url;
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+                
+                showNotification('数据已导出为HTML文件');
+            } catch (e) {
+                console.error('下载失败:', e);
+                showNotification('导出HTML文件失败: ' + e.message, true);
+            }
+        }
+
+        // 初始化并定时更新
+        updateCurrentTime();
+        updateTasks();
+        
+        // 每秒更新时间
+        setInterval(updateCurrentTime, 1000);
+        
+        // 每秒更新一次事件状态
+        setInterval(updateTasks, 1000);
+    </script>
+</body>
+</html>
+    
