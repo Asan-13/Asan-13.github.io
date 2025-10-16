@@ -155,26 +155,7 @@
             }
             /* 空白区域样式 - 用于点击锁定 */
             .empty-hover-area {
-                cursor: pointer;
-                @apply hover:bg-dark-hover/30 transition-colors rounded-lg;
-            }
-            /* 修复列表显示问题：添加滚动条和最大高度限制 */
-            .scrollable-list {
-                max-height: 300px;
-                overflow-y: auto;
-                scrollbar-width: thin;
-                scrollbar-color: theme('colors.primary') theme('colors.dark.bg');
-            }
-            .scrollable-list::-webkit-scrollbar {
-                width: 6px;
-            }
-            .scrollable-list::-webkit-scrollbar-track {
-                background: theme('colors.dark.bg');
-                border-radius: 3px;
-            }
-            .scrollable-list::-webkit-scrollbar-thumb {
-                background-color: theme('colors.primary');
-                border-radius: 3px;
+                @apply cursor-pointer hover:bg-dark-hover/30 transition-colors rounded-lg;
             }
         }
     </style>
@@ -196,15 +177,12 @@
             </div>
         </div>
         
-        <!-- 未来事件标题（始终显示） -->
-        <div class="text-sm text-dark-textSecondary mb-3 font-medium text-center empty-hover-area p-2">
-            未来事件
-        </div>
-        
         <!-- 全部项目（鼠标悬停时显示） -->
-        <div id="all-tasks" class="mt-0 max-h-0 overflow-hidden hover-expand">
-            <!-- 修复：添加scrollable-list类以启用滚动 -->
-            <div id="all-tasks-list" class="space-y-2.5 text-sm scrollable-list"></div>
+        <div id="all-tasks" class="mt-6 max-h-0 overflow-hidden hover-expand">
+            <div class="text-sm text-dark-textSecondary mb-3 font-medium text-center empty-hover-area p-2">
+                未来事件: <span class="text-xs">(点击此处锁定/解锁显示)</span>
+            </div>
+            <div id="all-tasks-list" class="space-y-2.5 text-sm"></div>
         </div>
         
         <!-- 轮播控制按钮已删除 -->
@@ -797,7 +775,7 @@
                 icon.classList.remove('fa-unlock');
                 icon.classList.add('fa-lock');
                 lockIndicator.classList.add('locked');
-                allTasksEl.style.maxHeight = '500px'; // 增加最大高度以容纳滚动列表
+                allTasksEl.style.maxHeight = '500px';
                 showNotification('任务列表已锁定显示');
             } else {
                 icon.classList.remove('fa-lock');
@@ -1561,7 +1539,7 @@
         // 鼠标悬停显示所有事件 - 考虑锁定状态
         appContainer.addEventListener('mouseenter', () => {
             if (!isListLocked) {
-                allTasksEl.style.maxHeight = '500px'; // 增加最大高度以容纳滚动列表
+                allTasksEl.style.maxHeight = '500px';
             }
         });
 
