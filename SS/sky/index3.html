@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>时间项目提醒</title>
+    <title>十三 | Sky 事件</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
@@ -322,10 +322,6 @@
                             <div class="font-medium">每周</div>
                             <div class="text-xs text-dark-textSecondary">每周特定日期</div>
                         </div>
-                        <div class="recurrence-option" data-type="monthly">
-                            <div class="font-medium">每月</div>
-                            <div class="text-xs text-dark-textSecondary">每月特定日期</div>
-                        </div>
                         <div class="recurrence-option" data-type="custom">
                             <div class="font-medium">自定义</div>
                             <div class="text-xs text-dark-textSecondary">按间隔重复</div>
@@ -369,87 +365,6 @@
                     </div>
                 </div>
                 
-                <!-- 每月重复选项 -->
-                <div id="monthly-options" class="mb-4 hidden bg-dark-bg p-3 rounded-lg border border-gray-600">
-                    <label class="block text-sm font-medium text-dark-textSecondary mb-2">每月重复日期</label>
-                    <div class="flex flex-wrap gap-2 mb-1">
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="1" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">1</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="2" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">2</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="3" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">3</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="4" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">4</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="5" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">5</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="6" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">6</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="7" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">7</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="8" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">8</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="9" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">9</span>
-                        </label>
-                        <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                            <input type="checkbox" name="monthday" value="10" class="hidden peer">
-                            <span class="text-xs peer-checked:text-primary">10</span>
-                        </label>
-                        <!-- 更多日期可以根据需要添加 -->
-                    </div>
-                    <div class="mt-2">
-                        <label class="block text-sm font-medium text-dark-textSecondary mb-1">或按星期几</label>
-                        <div class="flex flex-wrap gap-2">
-                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                                <input type="checkbox" name="monthweekday" value="1" class="hidden peer">
-                                <span class="text-xs peer-checked:text-primary">一</span>
-                            </label>
-                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                                <input type="checkbox" name="monthweekday" value="2" class="hidden peer">
-                                <span class="text-xs peer-checked:text-primary">二</span>
-                            </label>
-                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                                <input type="checkbox" name="monthweekday" value="3" class="hidden peer">
-                                <span class="text-xs peer-checked:text-primary">三</span>
-                            </label>
-                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                                <input type="checkbox" name="monthweekday" value="4" class="hidden peer">
-                                <span class="text-xs peer-checked:text-primary">四</span>
-                            </label>
-                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                                <input type="checkbox" name="monthweekday" value="5" class="hidden peer">
-                                <span class="text-xs peer-checked:text-primary">五</span>
-                            </label>
-                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                                <input type="checkbox" name="monthweekday" value="6" class="hidden peer">
-                                <span class="text-xs peer-checked:text-primary">六</span>
-                            </label>
-                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
-                                <input type="checkbox" name="monthweekday" value="0" class="hidden peer">
-                                <span class="text-xs peer-checked:text-primary">日</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- 自定义重复选项 -->
                 <div id="custom-options" class="mb-4 hidden bg-dark-bg p-3 rounded-lg border border-gray-600">
                     <label class="block text-sm font-medium text-dark-textSecondary mb-2">重复间隔</label>
@@ -460,7 +375,6 @@
                             <option value="hour">小时</option>
                             <option value="day">天</option>
                             <option value="week">周</option>
-                            <option value="month">月</option>
                         </select>
                     </div>
                 </div>
@@ -659,7 +573,7 @@
             return `${year}-${month}-${day}`;
         }
         
-        // 事件数据 - 按用户要求修改空间站项目为每周四15:00，持续5小时
+        // 事件数据 - 按用户要求添加新事件
         let tasks = [
             {
                 id: 1,
@@ -726,7 +640,7 @@
             },
             {
                 id: 5,
-                name: "每日 重置",
+                name: "重置",
                 startDate: getTodayDate(),
                 startTime: "15:00",
                 displayThreshold: 30,
@@ -756,8 +670,8 @@
             },
             {
                 id: 7,
-                name: "先祖复刻",
-                startDate: "2025-10-09",
+                name: "复刻先祖",
+                startDate: getTodayDate(),
                 startTime: "15:00",
                 displayThreshold: 1,
                 displayThresholdUnit: "day",
@@ -781,8 +695,8 @@
                 recurrence: {
                     type: "weekly",
                     weekdays: [4], // 4表示周四
-                    duration: 5,
-                    durationUnit: "hour"
+                    duration: 1,
+                    durationUnit: "day"
                 }
             }
         ];
@@ -816,7 +730,6 @@
         const confirmDelete = document.getElementById('confirm-delete');
         const recurrenceTypeInput = document.getElementById('recurrence-type');
         const weeklyOptions = document.getElementById('weekly-options');
-        const monthlyOptions = document.getElementById('monthly-options');
         const customOptions = document.getElementById('custom-options');
         const startDateInput = document.getElementById('start-date');
         const startTimeInput = document.getElementById('start-time');
@@ -825,8 +738,6 @@
         const taskDurationInput = document.getElementById('task-duration');
         const durationUnitInput = document.getElementById('duration-unit');
         const weekdayCheckboxes = document.querySelectorAll('input[name="weekday"]');
-        const monthdayCheckboxes = document.querySelectorAll('input[name="monthday"]');
-        const monthweekdayCheckboxes = document.querySelectorAll('input[name="monthweekday"]');
         const recurrenceOptions = document.querySelectorAll('.recurrence-option');
         const downloadBtn = document.getElementById('download-btn');
         const manualSaveBtn = document.getElementById('manual-save-btn');
@@ -916,17 +827,14 @@
                 minute: 60 * 1000,
                 hour: 60 * 60 * 1000,
                 day: 24 * 60 * 60 * 1000,
-                week: 7 * 24 * 60 * 60 * 1000,
-                month: 30 * 24 * 60 * 60 * 1000 // 近似值
+                week: 7 * 24 * 60 * 60 * 1000
             };
             return value * (units[unit] || units.minute);
         }
         
         // 转换毫秒为最适合的单位
         function convertFromMilliseconds(ms) {
-            if (ms >= 30 * 24 * 60 * 60 * 1000) {
-                return { value: Math.round(ms / (30 * 24 * 60 * 60 * 1000)), unit: 'month', text: '月' };
-            } else if (ms >= 7 * 24 * 60 * 60 * 1000) {
+            if (ms >= 7 * 24 * 60 * 60 * 1000) {
                 return { value: Math.round(ms / (7 * 24 * 60 * 60 * 1000)), unit: 'week', text: '周' };
             } else if (ms >= 24 * 60 * 60 * 1000) {
                 return { value: Math.round(ms / (24 * 60 * 60 * 1000)), unit: 'day', text: '天' };
@@ -1020,53 +928,6 @@
                 }
                 
                 return nextTime;
-            }
-            
-            // 处理每月重复的情况
-            if (task.recurrence.type === "monthly") {
-                // 按星期几重复
-                if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
-                    const targetWeekday = task.recurrence.weekdays[0]; // 取第一个目标星期几
-                    let currentMonth = now.getMonth();
-                    let currentYear = now.getFullYear();
-                    let candidateDate = new Date(currentYear, currentMonth, 1);
-                    
-                    // 找到当月第一个目标星期几
-                    while (candidateDate.getDay() !== targetWeekday) {
-                        candidateDate.setDate(candidateDate.getDate() + 1);
-                    }
-                    
-                    // 设置时间
-                    candidateDate.setHours(startHour, startMinute, 0, 0);
-                    
-                    // 如果本月的目标日期已过，找下个月的
-                    if (candidateDate < now) {
-                        candidateDate.setMonth(candidateDate.getMonth() + 1);
-                        // 重新找到下个月的第一个目标星期几
-                        while (candidateDate.getDay() !== targetWeekday) {
-                            candidateDate.setDate(candidateDate.getDate() + 1);
-                        }
-                    }
-                    
-                    return candidateDate;
-                } 
-                // 按日期重复
-                else if (task.recurrence.days && task.recurrence.days.length > 0) {
-                    const targetDay = parseInt(task.recurrence.days[0]); // 取第一个目标日期
-                    let candidateDate = new Date(now.getFullYear(), now.getMonth(), targetDay, startHour, startMinute);
-                    
-                    // 如果本月的目标日期已过，找下个月的
-                    if (candidateDate < now) {
-                        candidateDate.setMonth(candidateDate.getMonth() + 1);
-                        // 处理月份天数不足的情况
-                        if (candidateDate.getDate() !== targetDay) {
-                            // 如果目标日期大于当月天数，取当月最后一天
-                            candidateDate.setDate(0);
-                        }
-                    }
-                    
-                    return candidateDate;
-                }
             }
             
             // 处理其他重复类型
@@ -1216,19 +1077,9 @@
                            (task.status === "ongoing" || task.status === "upcoming");
                 })
                 .sort((a, b) => {
-                    // 优先按优先级排序：高优先级在最上方，低优先级在最下方
-                    const priorityOrder = { high: 3, medium: 2, low: 1 };
-                    
-                    // 高优先级排在前面
-                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-                        return priorityOrder[b.priority] - priorityOrder[a.priority];
-                    }
-                    
-                    // 优先级相同的情况下，优先显示正在进行的事件
+                    // 优先显示正在进行的事件，然后按剩余时间排序
                     if (a.status === "ongoing" && b.status !== "ongoing") return -1;
                     if (a.status !== "ongoing" && b.status === "ongoing") return 1;
-                    
-                    // 最后按剩余时间排序
                     return a.minutes - b.minutes;
                 });
         }
@@ -1245,18 +1096,7 @@
                     };
                 })
                 .filter(task => task.status !== "completed")
-                .sort((a, b) => {
-                    // 按优先级排序：高优先级在最上方，低优先级在最下方
-                    const priorityOrder = { high: 3, medium: 2, low: 1 };
-                    
-                    // 高优先级排在前面
-                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-                        return priorityOrder[b.priority] - priorityOrder[a.priority];
-                    }
-                    
-                    // 优先级相同的情况下按开始时间排序
-                    return a.startTime - b.startTime;
-                });
+                .sort((a, b) => a.startTime - b.startTime);
         }
 
         // 创建事件元素 - 统一正在进行和即将开始的UI，优化排版
@@ -1282,23 +1122,12 @@
                     const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
                     recurrenceText = `每周${selectedDays}`;
                     break;
-                case "monthly":
-                    const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-                    if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
-                        const selectedWeekDays = task.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
-                        recurrenceText = `每月${selectedWeekDays}`;
-                    } else if (task.recurrence.days && task.recurrence.days.length > 0) {
-                        const selectedDays = task.recurrence.days?.join(', ') || "";
-                        recurrenceText = `每月${selectedDays}日`;
-                    }
-                    break;
                 case "custom":
                     const unitNames = {
                         "minute": "分钟",
                         "hour": "小时",
                         "day": "天",
-                        "week": "周",
-                        "month": "月"
+                        "week": "周"
                     };
                     recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
                     break;
@@ -1492,13 +1321,10 @@
         // 显示对应的重复选项面板
         function showRecurrenceOptions(type) {
             weeklyOptions.classList.add('hidden');
-            monthlyOptions.classList.add('hidden');
             customOptions.classList.add('hidden');
             
             if (type === 'weekly') {
                 weeklyOptions.classList.remove('hidden');
-            } else if (type === 'monthly') {
-                monthlyOptions.classList.remove('hidden');
             } else if (type === 'custom') {
                 customOptions.classList.remove('hidden');
             }
@@ -1512,13 +1338,6 @@
                     alert('请至少选择一个星期几');
                     return false;
                 }
-            } else if (recurrenceType === 'monthly') {
-                const checkedDays = Array.from(monthdayCheckboxes).filter(cb => cb.checked);
-                const checkedWeekDays = Array.from(monthweekdayCheckboxes).filter(cb => cb.checked);
-                if (checkedDays.length === 0 && checkedWeekDays.length === 0) {
-                    alert('请至少选择一个日期或星期几');
-                    return false;
-                }
             } else if (recurrenceType === 'custom') {
                 const count = parseInt(intervalCountInput.value) || 0;
                 if (count < 1) {
@@ -1526,7 +1345,6 @@
                     return false;
                 }
             }
-            // 对于"不重复"类型，不需要额外验证
             
             // 验证提前提醒时间
             const threshold = parseInt(displayThresholdInput.value) || 0;
@@ -1564,28 +1382,14 @@
                 }
             };
             
-            // 针对不同重复类型添加特定属性
             switch(taskData.recurrenceType) {
                 case "weekly":
                     newTask.recurrence.weekdays = taskData.weekdays ? 
                         taskData.weekdays.map(Number) : [1];
                     break;
-                case "monthly":
-                    if (taskData.monthweekdays && taskData.monthweekdays.length > 0) {
-                        newTask.recurrence.weekdays = taskData.monthweekdays.map(Number);
-                    } else if (taskData.monthdays && taskData.monthdays.length > 0) {
-                        newTask.recurrence.days = taskData.monthdays.map(Number);
-                    }
-                    break;
                 case "custom":
                     newTask.recurrence.count = parseInt(taskData.intervalCount) || 1;
                     newTask.recurrence.unit = taskData.intervalUnit || "day";
-                    break;
-                case "daily":
-                    // 对于每天重复，不需要额外属性
-                    break;
-                case "none":
-                    // 明确设置不重复，不添加额外属性
                     break;
             }
             
@@ -1619,34 +1423,18 @@
             tasks[taskIndex].recurrence.durationUnit = taskData.durationUnit || "minute";
             tasks[taskIndex].recurrence.type = taskData.recurrenceType;
             
-            // 清除所有可能的重复属性，然后根据当前类型重新设置
             delete tasks[taskIndex].recurrence.weekdays;
-            delete tasks[taskIndex].recurrence.days;
             delete tasks[taskIndex].recurrence.count;
             delete tasks[taskIndex].recurrence.unit;
             
-            // 根据当前重复类型设置属性
             switch(taskData.recurrenceType) {
                 case "weekly":
                     tasks[taskIndex].recurrence.weekdays = taskData.weekdays ? 
                         taskData.weekdays.map(Number) : [1];
                     break;
-                case "monthly":
-                    if (taskData.monthweekdays && taskData.monthweekdays.length > 0) {
-                        tasks[taskIndex].recurrence.weekdays = taskData.monthweekdays.map(Number);
-                    } else if (taskData.monthdays && taskData.monthdays.length > 0) {
-                        tasks[taskIndex].recurrence.days = taskData.monthdays.map(Number);
-                    }
-                    break;
                 case "custom":
                     tasks[taskIndex].recurrence.count = parseInt(taskData.intervalCount) || 1;
                     tasks[taskIndex].recurrence.unit = taskData.intervalUnit || "day";
-                    break;
-                case "daily":
-                    // 每天重复不需要额外属性
-                    break;
-                case "none":
-                    // 不重复也不需要额外属性
                     break;
             }
             
@@ -1729,11 +1517,7 @@
             selectedOption.classList.add('selected');
             recurrenceTypeInput.value = recurrenceType;
             
-            // 重置所有复选框
             weekdayCheckboxes.forEach(checkbox => checkbox.checked = false);
-            monthdayCheckboxes.forEach(checkbox => checkbox.checked = false);
-            monthweekdayCheckboxes.forEach(checkbox => checkbox.checked = false);
-            
             intervalCountInput.value = 1;
             intervalUnitInput.value = "day";
             
@@ -1742,18 +1526,6 @@
                     const checkbox = document.querySelector(`input[name="weekday"][value="${day}"]`);
                     if (checkbox) checkbox.checked = true;
                 });
-            } else if (recurrenceType === "monthly") {
-                if (task.recurrence.weekdays) {
-                    task.recurrence.weekdays.forEach(day => {
-                        const checkbox = document.querySelector(`input[name="monthweekday"][value="${day}"]`);
-                        if (checkbox) checkbox.checked = true;
-                    });
-                } else if (task.recurrence.days) {
-                    task.recurrence.days.forEach(day => {
-                        const checkbox = document.querySelector(`input[name="monthday"][value="${day}"]`);
-                        if (checkbox) checkbox.checked = true;
-                    });
-                }
             } else if (recurrenceType === "custom") {
                 intervalCountInput.value = task.recurrence.count || 1;
                 intervalUnitInput.value = task.recurrence.unit || "day";
@@ -1902,12 +1674,6 @@
                 intervalCount: document.getElementById('interval-count').value,
                 intervalUnit: document.getElementById('interval-unit').value,
                 weekdays: Array.from(weekdayCheckboxes)
-                    .filter(cb => cb.checked)
-                    .map(cb => cb.value),
-                monthdays: Array.from(monthdayCheckboxes)
-                    .filter(cb => cb.checked)
-                    .map(cb => cb.value),
-                monthweekdays: Array.from(monthweekdayCheckboxes)
                     .filter(cb => cb.checked)
                     .map(cb => cb.value)
             };
