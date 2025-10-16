@@ -2,9 +2,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sky 事件 时间</title>
+    <title>Sky 事件时间</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
     <!-- 配置Tailwind自定义颜色和字体 - 暗黑模式 -->
     <script>
@@ -15,8 +15,7 @@
                         priority: {
                             high: '#ef4444',    // 红色表示高优先级
                             medium: '#f59e0b',  // 黄色表示中优先级
-                            low: '#10b981',     // 绿色表示低优先级
-                            none: '#000000'     // 黑色表示无优先级
+                            low: '#10b981'      // 绿色表示低优先级
                         },
                         primary: '#60a5fa',   // 稍浅的蓝色，适合暗黑模式
                         secondary: '#94a3b8', // 稍浅的灰色，适合暗黑模式
@@ -100,7 +99,7 @@
                 @apply flex-1 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
             }
             .countdown {
-                @apply text-xs font-medium px-2 py-0.5 rounded-lg bg-primary/10 text-primary;
+                @apply text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary;
             }
             .download-btn {
                 @apply fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
@@ -277,7 +276,6 @@
                         <option value="high">高 (红色)</option>
                         <option value="medium" selected="">中 (黄色)</option>
                         <option value="low">低 (绿色)</option>
-                        <option value="none">无 (黑色)</option>
                     </select>
                 </div>
                 
@@ -745,7 +743,7 @@
                 name: "AURORA",
                 startDate: getTodayDate(),
                 startTime: "15:10",
-                displayThreshold: 2,
+                displayThreshold: 30,
                 displayThresholdUnit: "minute",
                 priority: "low",
                 recurrence: {
@@ -785,53 +783,6 @@
                     weekdays: [4], // 4表示周四
                     duration: 5,
                     durationUnit: "hour"
-                }
-            },
-            // 新增事件：迁徙季
-            {
-                id: 9,
-                name: "迁徙季",
-                startDate: "2025-10-20",
-                startTime: "15:00",
-                displayThreshold: 7,
-                displayThresholdUnit: "day",
-                priority: "none",
-                recurrence: {
-                    type: "none",
-                    duration: 76,
-                    durationUnit: "day"
-                }
-            },
-            // 新增事件：万圣节
-            {
-                id: 10,
-                name: "万圣节",
-                startDate: "2025-10-27",
-                startTime: "15:00",
-                displayThreshold: 7,
-                displayThresholdUnit: "day",
-                priority: "none",
-                recurrence: {
-                    type: "none",
-                    duration: 3,
-                    durationUnit: "week"
-                }
-            },
-            // 新增事件：复刻 预测
-            {
-                id: 11,
-                name: "复刻 预测",
-                startDate: "2025-10-09",
-                startTime: "15:00",
-                displayThreshold: 12,
-                displayThresholdUnit: "hour",
-                priority: "low",
-                recurrence: {
-                    type: "custom",
-                    count: 2,
-                    unit: "week",
-                    duration: 2,
-                    durationUnit: "day"
                 }
             }
         ];
@@ -1248,7 +1199,7 @@
             }
         }
 
-        // 过滤出需要显示的事件 - 添加无优先级过滤
+        // 过滤出需要显示的事件
         function getVisibleTasks() {
             const now = new Date();
             return tasks
@@ -1260,11 +1211,6 @@
                     };
                 })
                 .filter(task => {
-                    // 排除无优先级的任务，不参与显示规则
-                    if (task.priority === "none") {
-                        return false;
-                    }
-                    
                     // 显示正在进行和即将开始的事件（在显示时间范围内），排除已完成的
                     return task.status !== "completed" && 
                            (task.status === "ongoing" || task.status === "upcoming");
@@ -1287,7 +1233,7 @@
                 });
         }
 
-        // 获取所有事件（用于悬停显示）- 包含无优先级的任务
+        // 获取所有事件（用于悬停显示）
         function getAllTasksWithStatus() {
             const now = new Date();
             return tasks
@@ -1300,12 +1246,8 @@
                 })
                 .filter(task => task.status !== "completed")
                 .sort((a, b) => {
-                    // 优先处理无优先级的任务，放在最后
-                    if (a.priority === "none" && b.priority !== "none") return 1;
-                    if (a.priority !== "none" && b.priority === "none") return -1;
-                    
                     // 按优先级排序：高优先级在最上方，低优先级在最下方
-                    const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
+                    const priorityOrder = { high: 3, medium: 2, low: 1 };
                     
                     // 高优先级排在前面
                     if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
