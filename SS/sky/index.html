@@ -833,7 +833,6 @@
                     durationUnit: "minute"
                 }
             },
-
             // 新增事件：复刻 预测
             {
                 id: 12,
@@ -850,7 +849,23 @@
                     duration: 2,
                     durationUnit: "day"
                 }
-            }
+            },
+            // 新增事件：红石10-19
+            {
+                id: 13,
+                name: "红石",
+                startDate: "2025-10-19",
+                startTime: "22:48",
+                displayThreshold: 3,
+                displayThresholdUnit: "hour",
+                priority: "low",
+                recurrence: {
+                    type: "none",
+                    duration: 952,
+                    durationUnit: "minute"
+                }
+            },
+
         ];
 
         // 当前操作的事件ID
