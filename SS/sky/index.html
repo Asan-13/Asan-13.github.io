@@ -924,6 +924,24 @@
                     durationUnit: "minute"
                 }
             },
+           // 新增事件：家具
+            {
+                id: 18,
+                name: "家具 轮换",
+                startDate:"2025-10-14",
+                startTime: "15:00",
+                displayThreshold: 1,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "weekly",
+                    weekdays: [2], // 2表示周二
+                    duration: 5,
+                    durationUnit: "minute"
+                }
+            },
+
+
 
 
         ];
