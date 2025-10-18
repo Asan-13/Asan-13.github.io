@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -223,66 +222,6 @@
             .preview-smooth {
                 transition: transform 0.1s ease-out, opacity 0.2s ease-out;
             }
-            /* 手机端优化 */
-            @media (max-width: 640px) {
-                .app-expanded {
-                    padding: 1rem;
-                    max-width: 100%;
-                    margin: 0.5rem;
-                    min-height: auto !important;
-                }
-                .app-compact {
-                    padding: 1rem;
-                    max-width: 100%;
-                    margin: 0.5rem;
-                }
-                .preview-card {
-                    max-width: 85vw;
-                    min-width: 0;
-                    left: 7.5vw !important;
-                    right: 7.5vw;
-                    transform-origin: center;
-                }
-                .preview-card::before {
-                    display: none;
-                }
-                .task-meta {
-                    @apply flex flex-col gap-1;
-                }
-                .task-meta-item {
-                    @apply mr-0;
-                }
-                .time-input-group {
-                    @apply flex-col items-stretch;
-                }
-                .time-input, .time-select {
-                    @apply w-full;
-                }
-                .download-btn, .save-btn {
-                    @apply bottom-4 p-2.5;
-                }
-                .download-btn {
-                    @apply right-4;
-                }
-                .save-btn {
-                    @apply left-4;
-                }
-                .save-status {
-                    @apply bottom-4 left-16;
-                }
-                .modal-content {
-                    @apply max-h-[90vh] overflow-y-auto;
-                }
-                .task-item {
-                    @apply p-3;
-                }
-                .task-title {
-                    @apply text-sm;
-                }
-                .task-meta {
-                    @apply text-xs;
-                }
-            }
         }
     </style>
 </head>
@@ -380,7 +319,7 @@
     <!-- 确认删除模态框 -->
     <div id="confirm-delete-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
         <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
-        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700 modal-content">
+        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-dark-text">确认删除</h3>
                 <button id="close-delete-modal" class="text-dark-textSecondary hover:text-dark-text">
@@ -402,7 +341,7 @@
     <!-- 添加/编辑事件模态框 -->
     <div id="task-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
         <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
-        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700 modal-content">
+        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="modal-title" class="text-lg font-semibold text-dark-text">添加新事件</h3>
                 <button id="close-modal" class="text-dark-textSecondary hover:text-dark-text">
@@ -682,10 +621,6 @@
         let isPreviewVisible = false;
         let mouseX = 0;
         let mouseY = 0;
-        
-        // 存储当前显示的可见任务，用于预览卡片数据同步
-        let currentVisibleTasks = [];
-        let currentAllTasks = [];
         
         // 尝试从localStorage加载数据
         function loadFromLocalStorage() {
@@ -1229,9 +1164,9 @@
             });
             
             // 检查是否有外部数据并加载
-            const savedData = loadFromLocalStorage();
-            if (savedData && savedData.tasks) {
-                tasks = savedData.tasks;
+            if (externalData && externalData.tasks) {
+                tasks = externalData.tasks;
+                saveToLocalStorage(tasks);
             } else {
                 // 保存初始任务列表
                 saveToLocalStorage(tasks);
@@ -1270,7 +1205,7 @@
             
             // 点击其他地方隐藏预览卡片
             document.addEventListener('click', (e) => {
-                if (!previewCard.contains(e.target) && !e.target.closest('.task-item') && !e.target.closest('.future-task-item')) {
+                if (!previewCard.contains(e.target) && !e.target.closest('.future-task-item')) {
                     hidePreviewCard();
                 }
             });
@@ -1293,24 +1228,17 @@
             updateTasks();
         });
         
-        // 显示预览卡片 - 使用现有数据，无需重新计算
+        // 显示预览卡片
         function showPreviewCard(task, x, y) {
-            // 从当前显示的任务数据中获取信息
-            let currentTask = currentVisibleTasks.find(t => t.id === task.id);
-            
-            // 如果在轮播中没找到，尝试从所有任务中查找
-            if (!currentTask) {
-                currentTask = currentAllTasks.find(t => t.id === task.id);
-            }
-            
-            if (!currentTask) return;
+            const now = new Date();
+            const status = getTaskStatus(task, now);
             
             // 生成重复方式文本
             let recurrenceText = "";
-            if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dawn_redstone") {
+            if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
                 recurrenceText = "破晓红石特殊规则";
             } else {
-                switch(currentTask.recurrence.type) {
+                switch(task.recurrence.type) {
                     case "none":
                         recurrenceText = "不重复";
                         break;
@@ -1319,16 +1247,16 @@
                         break;
                     case "weekly":
                         const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-                        const selectedDays = currentTask.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
+                        const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
                         recurrenceText = `每周${selectedDays}`;
                         break;
                     case "monthly":
                         const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-                        if (currentTask.recurrence.weekdays && currentTask.recurrence.weekdays.length > 0) {
-                            const selectedWeekDays = currentTask.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
+                        if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                            const selectedWeekDays = task.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
                             recurrenceText = `每月${selectedWeekDays}`;
-                        } else if (currentTask.recurrence.days && currentTask.recurrence.days.length > 0) {
-                            const selectedDays = currentTask.recurrence.days?.join(', ') || "";
+                        } else if (task.recurrence.days && task.recurrence.days.length > 0) {
+                            const selectedDays = task.recurrence.days?.join(', ') || "";
                             recurrenceText = `每月${selectedDays}日`;
                         }
                         break;
@@ -1340,7 +1268,7 @@
                             "week": "周",
                             "month": "月"
                         };
-                        recurrenceText = `每${currentTask.recurrence.count}${unitNames[currentTask.recurrence.unit]}`;
+                        recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
                         break;
                 }
             }
@@ -1352,25 +1280,25 @@
                 "day": "天",
                 "week": "周"
             };
-            const durationText = `${currentTask.recurrence.duration}${durationUnitNames[currentTask.recurrence.durationUnit]}`;
+            const durationText = `${task.recurrence.duration}${durationUnitNames[task.recurrence.durationUnit]}`;
             
             // 生成时间范围文本
-            const isToday = currentTask.startTime && currentTask.startTime.toLocaleDateString() === new Date().toLocaleDateString();
-            const dateText = isToday ? '今天' : currentTask.startTime ? currentTask.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'}) : '';
-            const timeText = currentTask.startTime && currentTask.endTime ? 
-                `${currentTask.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${currentTask.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}` : '';
+            const isToday = status.startTime && status.startTime.toLocaleDateString() === new Date().toLocaleDateString();
+            const dateText = isToday ? '今天' : status.startTime ? status.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'}) : '';
+            const timeText = status.startTime && status.endTime ? 
+                `${status.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${status.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}` : '';
             
             // 生成提醒文本
-            const alertText = `提前${currentTask.displayThreshold} ${currentTask.displayThresholdUnit === 'minute' ? '分钟' : currentTask.displayThresholdUnit === 'hour' ? '小时' : currentTask.displayThresholdUnit === 'day' ? '天' : '周'}提醒`;
+            const alertText = `提前${task.displayThreshold} ${task.displayThresholdUnit === 'minute' ? '分钟' : task.displayThresholdUnit === 'hour' ? '小时' : task.displayThresholdUnit === 'day' ? '天' : '周'}提醒`;
             
             // 更新预览卡片内容
-            document.getElementById('preview-priority').className = `w-2 h-2 rounded-full mr-2 bg-priority-${currentTask.priority}`;
-            document.getElementById('preview-name').textContent = currentTask.name;
+            document.getElementById('preview-priority').className = `w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}`;
+            document.getElementById('preview-name').textContent = task.name;
             
-            const statusIndicator = currentTask.status === "ongoing" ? 
+            const statusIndicator = status.status === "ongoing" ? 
                 '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
-            const statusTextClass = currentTask.status === "ongoing" ? "ongoing-text" : "";
-            document.getElementById('preview-status').innerHTML = `${statusIndicator}<span class="${statusTextClass}">${currentTask.timeText}</span>`;
+            const statusTextClass = status.status === "ongoing" ? "ongoing-text" : "";
+            document.getElementById('preview-status').innerHTML = `${statusIndicator}<span class="${statusTextClass}">${status.timeText}</span>`;
             
             document.getElementById('preview-recurrence').textContent = recurrenceText;
             document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
@@ -1383,7 +1311,7 @@
             
             // 显示卡片并添加高亮动画
             previewCard.classList.add('show', 'preview-highlight');
-            currentPreviewTaskId = currentTask.id;
+            currentPreviewTaskId = task.id;
             isPreviewVisible = true;
         }
         
@@ -1936,9 +1864,6 @@
                 </div>
             `;
             
-            // 添加悬停预览功能
-            addPreviewInteractionToTask(taskEl, task);
-            
             taskEl.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 hideAllContextMenus();
@@ -1953,38 +1878,6 @@
             });
             
             return taskEl;
-        }
-
-        // 为轮播中的任务添加预览交互
-        function addPreviewInteractionToTask(element, task) {
-            let previewTimer = null;
-            
-            element.addEventListener('mouseenter', (e) => {
-                // 清除之前的定时器
-                if (previewTimer) {
-                    clearTimeout(previewTimer);
-                }
-                
-                // 设置新的预览显示定时器
-                previewTimer = setTimeout(() => {
-                    showPreviewCard(task, e.clientX, e.clientY);
-                }, 300);
-            });
-            
-            element.addEventListener('mouseleave', () => {
-                // 清除定时器
-                if (previewTimer) {
-                    clearTimeout(previewTimer);
-                    previewTimer = null;
-                }
-                hidePreviewCard();
-            });
-            
-            element.addEventListener('mousemove', (e) => {
-                if (isPreviewVisible && currentPreviewTaskId === task.id) {
-                    updatePreviewCardPosition(e.clientX, e.clientY);
-                }
-            });
         }
 
         // 创建缩略事件元素 - 修复版本
@@ -2055,7 +1948,7 @@
                 
                 // 设置新的预览显示定时器
                 previewTimer = setTimeout(() => {
-                    showPreviewCard(task, e.clientX, e.clientY);
+                    showPreviewCardForFutureTask(task, e.clientX, e.clientY);
                 }, 300);
             });
             
@@ -2075,22 +1968,138 @@
             });
         }
 
+        // 专门为未来事件显示预览卡片
+        function showPreviewCardForFutureTask(task, x, y) {
+            const now = new Date();
+            
+            // 重新计算任务状态以确保数据准确
+            let status;
+            try {
+                status = getTaskStatus(task, now);
+            } catch (e) {
+                console.error('预览卡片状态计算错误:', task.name, e);
+                // 使用默认状态
+                status = {
+                    status: "future",
+                    timeText: "时间计算中",
+                    startTime: new Date(),
+                    endTime: new Date(now.getTime() + 60 * 60 * 1000)
+                };
+            }
+            
+            // 生成重复方式文本
+            let recurrenceText = "不重复";
+            try {
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                    recurrenceText = "破晓红石特殊规则";
+                } else {
+                    switch(task.recurrence.type) {
+                        case "none":
+                            recurrenceText = "不重复";
+                            break;
+                        case "daily":
+                            recurrenceText = "每天";
+                            break;
+                        case "weekly":
+                            const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                            const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
+                            recurrenceText = `每周${selectedDays}`;
+                            break;
+                        case "monthly":
+                            const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                            if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                                const selectedWeekDays = task.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
+                                recurrenceText = `每月${selectedWeekDays}`;
+                            } else if (task.recurrence.days && task.recurrence.days.length > 0) {
+                                const selectedDays = task.recurrence.days?.join(', ') || "";
+                                recurrenceText = `每月${selectedDays}日`;
+                            }
+                            break;
+                        case "custom":
+                            const unitNames = {
+                                "minute": "分钟",
+                                "hour": "小时",
+                                "day": "天",
+                                "week": "周",
+                                "month": "月"
+                            };
+                            recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
+                            break;
+                    }
+                }
+            } catch (e) {
+                console.error('重复方式计算错误:', e);
+                recurrenceText = "不重复";
+            }
+            
+            // 生成持续时间文本
+            const durationUnitNames = {
+                "minute": "分钟",
+                "hour": "小时",
+                "day": "天",
+                "week": "周"
+            };
+            const durationText = `${task.recurrence.duration}${durationUnitNames[task.recurrence.durationUnit] || '分钟'}`;
+            
+            // 生成时间范围文本
+            let dateText = '日期计算中';
+            let timeText = '时间计算中';
+            
+            try {
+                if (status.startTime && status.endTime && 
+                    status.startTime instanceof Date && !isNaN(status.startTime) &&
+                    status.endTime instanceof Date && !isNaN(status.endTime)) {
+                    const isToday = status.startTime.toLocaleDateString() === new Date().toLocaleDateString();
+                    dateText = isToday ? '今天' : status.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'});
+                    timeText = `${status.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${status.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}`;
+                }
+            } catch (e) {
+                console.error('时间范围计算错误:', e);
+            }
+            
+            // 生成提醒文本
+            const alertText = `提前${task.displayThreshold} ${task.displayThresholdUnit === 'minute' ? '分钟' : task.displayThresholdUnit === 'hour' ? '小时' : task.displayThresholdUnit === 'day' ? '天' : '周'}提醒`;
+            
+            // 更新预览卡片内容
+            document.getElementById('preview-priority').className = `w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}`;
+            document.getElementById('preview-name').textContent = task.name;
+            
+            const statusIndicator = status.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            const statusTextClass = status.status === "ongoing" ? "ongoing-text" : "";
+            document.getElementById('preview-status').innerHTML = `${statusIndicator}<span class="${statusTextClass}">${status.timeText || '即将开始'}</span>`;
+            
+            document.getElementById('preview-recurrence').textContent = recurrenceText;
+            document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
+            document.getElementById('preview-date').textContent = dateText;
+            document.getElementById('preview-time').textContent = timeText;
+            document.getElementById('preview-alert').textContent = alertText;
+            
+            // 设置卡片位置
+            updatePreviewCardPosition(x, y);
+            
+            // 显示卡片并添加高亮动画
+            previewCard.classList.add('show', 'preview-highlight');
+            currentPreviewTaskId = task.id;
+            isPreviewVisible = true;
+        }
+
         // 更新事件显示
         function updateTasks() {
-            currentVisibleTasks = getVisibleTasks();
-            currentAllTasks = getAllTasksWithStatus();
-            const hasVisibleContent = currentVisibleTasks.length > 0 || currentAllTasks.length > 0;
+            visibleTasks = getVisibleTasks();
+            const allTasks = getAllTasksWithStatus();
+            const hasVisibleContent = visibleTasks.length > 0 || allTasks.length > 0;
             
             taskCarousel.innerHTML = '';
             
-            if (currentVisibleTasks.length === 0) {
+            if (visibleTasks.length === 0) {
                 taskCarousel.innerHTML = `
                     <div class="text-center py-4 text-dark-textSecondary">
                         目前没有即将开始的事件
                     </div>
                 `;
             } else {
-                currentVisibleTasks.forEach(task => {
+                visibleTasks.forEach(task => {
                     const taskEl = createTaskElement(task);
                     taskCarousel.appendChild(taskEl);
                 });
@@ -2130,8 +2139,8 @@
                 appContainer.classList.add('app-expanded');
                 controlsContainer.classList.remove('opacity-0', 'pointer-events-none', 'h-0');
                 
-                const height = currentVisibleTasks.length > 0 ? 
-                    120 + currentVisibleTasks.length * 100 : 120;
+                const height = visibleTasks.length > 0 ? 
+                    120 + visibleTasks.length * 100 : 120;
                 
                 appContainer.style.minHeight = `${height}px`;
             } else {
@@ -2144,7 +2153,7 @@
 
         // 更新轮播位置
         function updateCarouselPosition() {
-            if (currentVisibleTasks.length <= 1) return;
+            if (visibleTasks.length <= 1) return;
             
             const slideHeight = 100;
             taskCarousel.style.transform = `translateY(-${currentSlide * slideHeight}px)`;
