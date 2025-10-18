@@ -640,7 +640,7 @@
     <!-- 下载按钮 -->
     <div class="download-container relative">
         <button id="download-btn" class="download-btn">
-            <i class="fa fa-download"></i>
+            <i class="fa fa-download十三隐藏"></i>
         </button>
         <span class="download-tooltip">保存当前事件到HTML文件</span>
     </div>
@@ -648,7 +648,7 @@
     <!-- 保存按钮 -->
     <div class="save-container relative">
         <button id="manual-save-btn" class="save-btn">
-            <i class="fa fa-save"></i>
+            <i class="fa fa-save十三隐藏"></i>
         </button>
         <span class="save-tooltip">手动保存当前数据</span>
     </div>
@@ -816,10 +816,12 @@
             return pdtTime;
         }
 
-        // 新增辅助函数：获取指定PDT日期的所有有效时间段
-        function getDawnRedstoneTimeSlots(pdtDate) {
+        // 修复后的函数：检查破晓红石事件是否在活动时间段
+        function isDawnRedstoneActive(now) {
+            // 获取当前北京时间对应的PDT日期
+            const pdtDate = getPDTDateFromCST(now);
             const pdtDay = pdtDate.getDate();
-            const pdtWeekday = pdtDate.getDay();
+            const pdtWeekday = pdtDate.getDay(); // 0=周日, 1=周一, 2=周二, 3=周三, 4=周四, 5=周五, 6=周六
             
             // 第一组PDT日期：1,7,13,19,25,31日
             const group1 = [1, 7, 13, 19, 25, 31];
@@ -828,86 +830,98 @@
             // 第三组PDT日期：5,11,23,29日
             const group3 = [5, 11, 23, 29];
             
-            let timeSlots = [];
-            
             // 检查是否在第一组PDT日期
             if (group1.includes(pdtDay)) {
                 // 周一或周二取消（PDT时间）
-                if (pdtWeekday === 1 || pdtWeekday === 2) return [];
+                if (pdtWeekday === 1 || pdtWeekday === 2) return null;
                 
-                // 三个时间段（北京时间）- 按正确顺序
-                timeSlots = [
-                    { startHour: 22, startMinute: 48, endHour: 2, endMinute: 40, isOvernight: true },
-                    { startHour: 4, startMinute: 48, endHour: 8, endMinute: 40, isOvernight: false },
-                    { startHour: 10, startMinute: 48, endHour: 14, endMinute: 40, isOvernight: false }
+                // 三个时间段（北京时间）
+                const timeSlots = [
+                    { startHour: 22, startMinute: 48, endHour: 2, endMinute: 40, isOvernight: true },  // 22:48 ~ 次日02:40
+                    { startHour: 4, startMinute: 48, endHour: 8, endMinute: 40, isOvernight: false },  // 04:48 ~ 08:40
+                    { startHour: 10, startMinute: 48, endHour: 14, endMinute: 40, isOvernight: false } // 10:48 ~ 14:40
                 ];
+                
+                for (let slot of timeSlots) {
+                    let startTime, endTime;
+                    
+                    if (slot.isOvernight) {
+                        // 跨天时间段处理
+                        startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                           slot.startHour, slot.startMinute);
+                        endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 
+                                         slot.endHour, slot.endMinute);
+                    } else {
+                        // 普通时间段
+                        startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                           slot.startHour, slot.startMinute);
+                        endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                         slot.endHour, slot.endMinute);
+                    }
+                    
+                    if (now >= startTime && now < endTime) {
+                        return { startTime, endTime };
+                    }
+                }
             }
             // 检查是否在第二组PDT日期
             else if (group2.includes(pdtDay)) {
                 // 周二或周三取消（PDT时间）
-                if (pdtWeekday === 2 || pdtWeekday === 3) return [];
+                if (pdtWeekday === 2 || pdtWeekday === 3) return null;
                 
-                // 三个时间段（北京时间）- 按正确顺序
-                timeSlots = [
-                    { startHour: 17, startMinute: 28, endHour: 21, endMinute: 20, isOvernight: false },
-                    { startHour: 23, startMinute: 28, endHour: 3, endMinute: 20, isOvernight: true },
-                    { startHour: 5, startMinute: 28, endHour: 9, endMinute: 20, isOvernight: false }
+                // 三个时间段（北京时间）
+                const timeSlots = [
+                    { startHour: 17, startMinute: 28, endHour: 21, endMinute: 20, isOvernight: false }, // 17:28 ~ 21:20
+                    { startHour: 23, startMinute: 28, endHour: 3, endMinute: 20, isOvernight: true },   // 23:28 ~ 次日03:20
+                    { startHour: 5, startMinute: 28, endHour: 9, endMinute: 20, isOvernight: false }    // 05:28 ~ 09:20
                 ];
+                
+                for (let slot of timeSlots) {
+                    let startTime, endTime;
+                    
+                    if (slot.isOvernight) {
+                        // 跨天时间段处理
+                        startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                           slot.startHour, slot.startMinute);
+                        endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 
+                                         slot.endHour, slot.endMinute);
+                    } else {
+                        // 普通时间段
+                        startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                           slot.startHour, slot.startMinute);
+                        endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                         slot.endHour, slot.endMinute);
+                    }
+                    
+                    if (now >= startTime && now < endTime) {
+                        return { startTime, endTime };
+                    }
+                }
             }
             // 检查是否在第三组PDT日期
             else if (group3.includes(pdtDay)) {
                 // 周三或周四取消（PDT时间）
-                if (pdtWeekday === 3 || pdtWeekday === 4) return [];
+                if (pdtWeekday === 3 || pdtWeekday === 4) return null;
                 
-                // 三个时间段（北京时间）- 按正确顺序
-                timeSlots = [
-                    { startHour: 18, startMinute: 38, endHour: 22, endMinute: 30, isOvernight: false },
-                    { startHour: 0, startMinute: 38, endHour: 4, endMinute: 30, isOvernight: false },
-                    { startHour: 6, startMinute: 38, endHour: 10, endMinute: 30, isOvernight: false }
+                // 三个时间段（北京时间）
+                const timeSlots = [
+                    { startHour: 18, startMinute: 38, endHour: 22, endMinute: 30, isOvernight: false }, // 18:38 ~ 22:30
+                    { startHour: 0, startMinute: 38, endHour: 4, endMinute: 30, isOvernight: false },   // 00:38 ~ 04:30
+                    { startHour: 6, startMinute: 38, endHour: 10, endMinute: 30, isOvernight: false }   // 06:38 ~ 10:30
                 ];
-            }
-            
-            // 转换时间段为具体的Date对象
-            const result = [];
-            const cstYear = pdtDate.getFullYear();
-            const cstMonth = pdtDate.getMonth();
-            const cstDay = pdtDate.getDate();
-            
-            for (let slot of timeSlots) {
-                let startTime, endTime;
                 
-                if (slot.isOvernight) {
-                    // 跨天时间段：开始时间在当前CST日，结束时间在次日
-                    startTime = new Date(cstYear, cstMonth, cstDay, slot.startHour, slot.startMinute);
-                    endTime = new Date(cstYear, cstMonth, cstDay + 1, slot.endHour, slot.endMinute);
-                } else {
-                    // 普通时间段
-                    startTime = new Date(cstYear, cstMonth, cstDay, slot.startHour, slot.startMinute);
-                    endTime = new Date(cstYear, cstMonth, cstDay, slot.endHour, slot.endMinute);
+                for (let slot of timeSlots) {
+                    let startTime, endTime;
                     
-                    // 如果结束时间小于开始时间，说明跨天
-                    if (endTime < startTime) {
-                        endTime.setDate(endTime.getDate() + 1);
+                    // 普通时间段
+                    startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                       slot.startHour, slot.startMinute);
+                    endTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                     slot.endHour, slot.endMinute);
+                    
+                    if (now >= startTime && now < endTime) {
+                        return { startTime, endTime };
                     }
-                }
-                
-                result.push({
-                    startTime: startTime,
-                    endTime: endTime
-                });
-            }
-            
-            return result;
-        }
-
-        // 修复后的函数：检查破晓红石事件是否在活动时间段
-        function isDawnRedstoneActive(now) {
-            const pdtDate = getPDTDateFromCST(now);
-            const timeSlots = getDawnRedstoneTimeSlots(pdtDate);
-            
-            for (let slot of timeSlots) {
-                if (now >= slot.startTime && now < slot.endTime) {
-                    return slot;
                 }
             }
             
@@ -922,27 +936,21 @@
                 return currentActiveInfo.startTime;
             }
             
-            // 获取当前北京时间对应的PDT日期
-            const currentPDTDate = getPDTDateFromCST(now);
-            
-            // 检查当前PDT日内的所有时间段（按正确顺序）
-            const timeSlots = getDawnRedstoneTimeSlots(currentPDTDate);
-            
-            for (let slot of timeSlots) {
-                if (slot.startTime > now) {
-                    return slot.startTime;
-                }
-            }
-            
-            // 如果当前PDT日内没有找到，检查未来7天
-            let checkDate = new Date(currentPDTDate);
-            for (let i = 1; i <= 7; i++) {
+            // 检查未来7天内的事件
+            let checkDate = new Date(now);
+            for (let i = 0; i < 7; i++) {
                 checkDate.setDate(checkDate.getDate() + 1);
                 checkDate.setHours(0, 0, 0, 0);
                 
-                const nextSlots = getDawnRedstoneTimeSlots(checkDate);
-                if (nextSlots.length > 0) {
-                    return nextSlots[0].startTime; // 返回第一个时间段
+                // 检查这一天的所有时间段
+                for (let hour = 0; hour < 24; hour++) {
+                    const testTime = new Date(checkDate);
+                    testTime.setHours(hour, 0, 0, 0);
+                    
+                    const activeInfo = isDawnRedstoneActive(testTime);
+                    if (activeInfo && activeInfo.startTime > now) {
+                        return activeInfo.startTime;
+                    }
                 }
             }
             

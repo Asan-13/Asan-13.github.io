@@ -1,8 +1,9 @@
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>光 · 遇 事件时间</title>
+    <title>光·遇 事件 时间</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     
@@ -15,7 +16,8 @@
                         priority: {
                             high: '#ef4444',    // 红色表示高优先级
                             medium: '#f59e0b',  // 黄色表示中优先级
-                            low: '#10b981'      // 绿色表示低优先级
+                            low: '#10b981',     // 绿色表示低优先级
+                            none: '#64748b'     // 灰色表示无优先级
                         },
                         primary: '#60a5fa',   // 稍浅的蓝色，适合暗黑模式
                         secondary: '#94a3b8', // 稍浅的灰色，适合暗黑模式
@@ -176,6 +178,121 @@
                 background-color: theme('colors.primary');
                 border-radius: 3px;
             }
+            /* 预览卡片样式 - 紧凑优化版本 */
+            .preview-card {
+                @apply fixed bg-dark-card rounded-xl shadow-2xl border-2 border-primary/50 p-3 max-w-xs z-50 transform transition-all duration-200 scale-95 opacity-0 pointer-events-none;
+                backdrop-filter: blur(10px);
+                min-width: 260px;
+            }
+            .preview-card.show {
+                @apply scale-100 opacity-100 pointer-events-auto;
+            }
+            .preview-card::before {
+                content: '';
+                @apply absolute -top-2 left-4 w-4 h-4 bg-primary/50 transform rotate-45;
+            }
+            .preview-content {
+                @apply space-y-1.5;
+            }
+            .preview-header {
+                @apply flex justify-between items-center mb-2 pb-2 border-b border-gray-700;
+            }
+            .preview-name {
+                @apply font-medium text-dark-text flex items-center text-sm;
+            }
+            .preview-status {
+                @apply text-xs text-primary flex items-center;
+            }
+            .preview-details {
+                @apply text-xs text-dark-textSecondary space-y-1;
+            }
+            .preview-row {
+                @apply flex justify-between items-center;
+            }
+            .preview-icon {
+                @apply w-3 h-3 mr-1.5 opacity-70 flex items-center justify-center;
+            }
+            .preview-label {
+                @apply flex items-center mr-2;
+            }
+            .preview-value {
+                @apply text-dark-text text-right;
+            }
+            .preview-highlight {
+                animation: glow 2s ease-in-out infinite alternate;
+            }
+            @keyframes glow {
+                from {
+                    box-shadow: 0 0 5px theme('colors.primary'), 0 0 10px theme('colors.primary');
+                }
+                to {
+                    box-shadow: 0 0 10px theme('colors.primary'), 0 0 20px theme('colors.primary');
+                }
+            }
+            /* 丝滑跟随效果 */
+            .preview-smooth {
+                transition: transform 0.1s ease-out, opacity 0.2s ease-out;
+            }
+            /* 手机端优化 */
+            @media (max-width: 640px) {
+                .app-expanded {
+                    padding: 1rem;
+                    max-width: 100%;
+                    margin: 0.5rem;
+                    min-height: auto !important;
+                }
+                .app-compact {
+                    padding: 1rem;
+                    max-width: 100%;
+                    margin: 0.5rem;
+                }
+                .preview-card {
+                    max-width: 85vw;
+                    min-width: 0;
+                    left: 7.5vw !important;
+                    right: 7.5vw;
+                    transform-origin: center;
+                }
+                .preview-card::before {
+                    display: none;
+                }
+                .task-meta {
+                    @apply flex flex-col gap-1;
+                }
+                .task-meta-item {
+                    @apply mr-0;
+                }
+                .time-input-group {
+                    @apply flex-col items-stretch;
+                }
+                .time-input, .time-select {
+                    @apply w-full;
+                }
+                .download-btn, .save-btn {
+                    @apply bottom-4 p-2.5;
+                }
+                .download-btn {
+                    @apply right-4;
+                }
+                .save-btn {
+                    @apply left-4;
+                }
+                .save-status {
+                    @apply bottom-4 left-16;
+                }
+                .modal-content {
+                    @apply max-h-[90vh] overflow-y-auto;
+                }
+                .task-item {
+                    @apply p-3;
+                }
+                .task-title {
+                    @apply text-sm;
+                }
+                .task-meta {
+                    @apply text-xs;
+                }
+            }
         }
     </style>
 </head>
@@ -212,6 +329,56 @@
         </div>
     </div>
 
+    <!-- 预览卡片 - 紧凑优化排版 -->
+    <div id="preview-card" class="preview-card preview-smooth">
+        <div class="preview-content">
+            <div class="preview-header">
+                <div class="preview-name">
+                    <span id="preview-priority" class="w-2 h-2 rounded-full mr-2"></span>
+                    <span id="preview-name" class="truncate"></span>
+                </div>
+                <div id="preview-status" class="preview-status"></div>
+            </div>
+            <div class="preview-details">
+                <div class="preview-row">
+                    <span class="preview-label">
+                        <i class="fa fa-repeat preview-icon"></i>
+                        <span>重复</span>
+                    </span>
+                    <span id="preview-recurrence" class="preview-value"></span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">
+                        <i class="fa fa-clock-o preview-icon"></i>
+                        <span>时长</span>
+                    </span>
+                    <span id="preview-duration" class="preview-value"></span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">
+                        <i class="fa fa-calendar preview-icon"></i>
+                        <span>日期</span>
+                    </span>
+                    <span id="preview-date" class="preview-value"></span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">
+                        <i class="fa fa-hourglass-start preview-icon"></i>
+                        <span>时间</span>
+                    </span>
+                    <span id="preview-time" class="preview-value"></span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">
+                        <i class="fa fa-bell preview-icon"></i>
+                        <span>提醒</span>
+                    </span>
+                    <span id="preview-alert" class="preview-value"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 右键菜单 - 通用菜单 -->
     <div id="main-context-menu" class="context-menu hidden absolute bg-dark-card rounded-lg shadow-lg p-2 w-48 border border-gray-700">
         <div id="add-task-option" class="px-4 py-2 text-sm text-dark-text hover:bg-dark-hover rounded cursor-pointer">
@@ -232,7 +399,7 @@
     <!-- 确认删除模态框 -->
     <div id="confirm-delete-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
         <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
-        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700">
+        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700 modal-content">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-dark-text">确认删除</h3>
                 <button id="close-delete-modal" class="text-dark-textSecondary hover:text-dark-text">
@@ -254,7 +421,7 @@
     <!-- 添加/编辑任务模态框 -->
     <div id="task-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
         <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
-        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700">
+        <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700 modal-content">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="modal-title" class="text-lg font-semibold text-dark-text">添加新事件</h3>
                 <button id="close-modal" class="text-dark-textSecondary hover:text-dark-text">
@@ -276,6 +443,7 @@
                         <option value="high">高 (红色)</option>
                         <option value="medium" selected="">中 (黄色)</option>
                         <option value="low">低 (绿色)</option>
+                        <option value="none">无 (灰色) - 仅显示在任务列表</option>
                     </select>
                 </div>
                 
@@ -540,6 +708,17 @@
         // 任务列表锁定状态
         let isListLocked = false;
         
+        // 预览卡片状态
+        let previewTimeout = null;
+        let currentPreviewTaskId = null;
+        let isPreviewVisible = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        
+        // 存储当前显示的可见任务，用于预览卡片数据同步
+        let currentVisibleTasks = [];
+        let currentAllTasks = [];
+        
         // 尝试从localStorage加载数据
         function loadFromLocalStorage() {
             try {
@@ -671,6 +850,168 @@
             return `${year}-${month}-${day}`;
         }
         
+        // 修复：破晓红石事件特殊规则函数 - 完全重写
+        function isDawnRedstoneActive(now) {
+            const currentDate = now.getDate();
+            const currentDay = now.getDay(); // 0=周日, 1=周一, 2=周二, 3=周三, 4=周四, 5=周五, 6=周六
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTime = currentHour * 60 + currentMinute;
+            
+            // 当月的每个周日固定时间段循环事件
+            if (currentDay === 0) {
+                const timeSlots = [
+                    { start: 7*60+8, end: 8*60+0 },   // 07:08-08:00
+                    { start: 13*60+8, end: 14*60+0 }, // 13:08-14:00
+                    { start: 19*60+8, end: 20*60+0 }  // 19:08-20:00
+                ];
+                
+                for (let slot of timeSlots) {
+                    if (currentTime >= slot.start && currentTime < slot.end) {
+                        const startTime = new Date(now);
+                        startTime.setHours(Math.floor(slot.start/60), slot.start%60, 0, 0);
+                        const endTime = new Date(now);
+                        endTime.setHours(Math.floor(slot.end/60), slot.end%60, 0, 0);
+                        return { startTime, endTime };
+                    }
+                }
+            }
+            
+            // 当月的1号到15号内的每个周六固定时间段循环事件
+            if (currentDay === 6 && currentDate >= 1 && currentDate <= 15) {
+                const timeSlots = [
+                    { start: 10*60+8, end: 11*60+0 }, // 10:08-11:00
+                    { start: 14*60+8, end: 15*60+0 }, // 14:08-15:00
+                    { start: 22*60+8, end: 23*60+0 }  // 22:08-23:00
+                ];
+                
+                for (let slot of timeSlots) {
+                    if (currentTime >= slot.start && currentTime < slot.end) {
+                        const startTime = new Date(now);
+                        startTime.setHours(Math.floor(slot.start/60), slot.start%60, 0, 0);
+                        const endTime = new Date(now);
+                        endTime.setHours(Math.floor(slot.end/60), slot.end%60, 0, 0);
+                        return { startTime, endTime };
+                    }
+                }
+            }
+            
+            // 当月的16号到当月底内的每个周五固定时间段循环事件
+            if (currentDay === 5 && currentDate >= 16) {
+                const timeSlots = [
+                    { start: 11*60+8, end: 12*60+0 }, // 11:08-12:00
+                    { start: 17*60+8, end: 18*60+0 }, // 17:08-18:00
+                    { start: 23*60+8, end: 24*60+0 }  // 23:08-00:00 (跨天)
+                ];
+                
+                for (let slot of timeSlots) {
+                    let startTime, endTime;
+                    
+                    if (slot.end === 24*60) {
+                        // 跨天时间段处理
+                        startTime = new Date(now);
+                        startTime.setHours(Math.floor(slot.start/60), slot.start%60, 0, 0);
+                        endTime = new Date(now);
+                        endTime.setDate(endTime.getDate() + 1);
+                        endTime.setHours(0, 0, 0, 0);
+                    } else {
+                        // 普通时间段
+                        startTime = new Date(now);
+                        startTime.setHours(Math.floor(slot.start/60), slot.start%60, 0, 0);
+                        endTime = new Date(now);
+                        endTime.setHours(Math.floor(slot.end/60), slot.end%60, 0, 0);
+                    }
+                    
+                    if (now >= startTime && now < endTime) {
+                        return { startTime, endTime };
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        // 修复：计算破晓红石事件的下一次发生时间 - 完全重写
+        function getNextDawnRedstoneOccurrence(now) {
+            // 首先检查当前是否有正在进行的事件
+            const currentActiveInfo = isDawnRedstoneActive(now);
+            if (currentActiveInfo) {
+                return currentActiveInfo.startTime;
+            }
+            
+            // 检查今天剩余的时间段
+            const today = new Date(now);
+            today.setHours(0, 0, 0, 0);
+            
+            // 获取今天的日期和星期几
+            const currentDate = now.getDate();
+            const currentDay = now.getDay();
+            
+            // 检查今天剩余的时间段
+            const timeSlots = getDawnRedstoneTimeSlots(currentDate, currentDay);
+            for (let slot of timeSlots) {
+                const slotTime = new Date(today);
+                slotTime.setHours(Math.floor(slot.start/60), slot.start%60, 0, 0);
+                
+                if (slotTime > now) {
+                    return slotTime;
+                }
+            }
+            
+            // 如果今天没有剩余时间段，检查未来7天
+            for (let i = 1; i <= 7; i++) {
+                const checkDate = new Date(today);
+                checkDate.setDate(checkDate.getDate() + i);
+                const checkDay = checkDate.getDay();
+                const checkDateNum = checkDate.getDate();
+                
+                const daySlots = getDawnRedstoneTimeSlots(checkDateNum, checkDay);
+                if (daySlots.length > 0) {
+                    const firstSlot = daySlots[0];
+                    const firstSlotTime = new Date(checkDate);
+                    firstSlotTime.setHours(Math.floor(firstSlot.start/60), firstSlot.start%60, 0, 0);
+                    return firstSlotTime;
+                }
+            }
+            
+            // 如果7天内没找到，返回一个较远的未来时间
+            return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        }
+        
+        // 获取指定日期的破晓红石时间段
+        function getDawnRedstoneTimeSlots(date, day) {
+            const slots = [];
+            
+            // 当月的每个周日固定时间段循环事件
+            if (day === 0) {
+                slots.push(
+                    { start: 7*60+8, end: 8*60+0 },   // 07:08-08:00
+                    { start: 13*60+8, end: 14*60+0 }, // 13:08-14:00
+                    { start: 19*60+8, end: 20*60+0 }  // 19:08-20:00
+                );
+            }
+            
+            // 当月的1号到15号内的每个周六固定时间段循环事件
+            if (day === 6 && date >= 1 && date <= 15) {
+                slots.push(
+                    { start: 10*60+8, end: 11*60+0 }, // 10:08-11:00
+                    { start: 14*60+8, end: 15*60+0 }, // 14:08-15:00
+                    { start: 22*60+8, end: 23*60+0 }  // 22:08-23:00
+                );
+            }
+            
+            // 当月的16号到当月底内的每个周五固定时间段循环事件
+            if (day === 5 && date >= 16) {
+                slots.push(
+                    { start: 11*60+8, end: 12*60+0 }, // 11:08-12:00
+                    { start: 17*60+8, end: 18*60+0 }, // 17:08-18:00
+                    { start: 23*60+8, end: 24*60+0 }  // 23:08-00:00
+                );
+            }
+            
+            return slots;
+        }
+        
         // 事件数据 - 根据用户需求更新
         let tasks = [
             {
@@ -695,9 +1036,9 @@
                 name: "圣岛贝壳",
                 startDate: getTodayDate(),
                 startTime: "00:00",
-                displayThreshold: 10,
+                displayThreshold: 5,  // 修改为5分钟提前提醒
                 displayThresholdUnit: "minute",
-                priority: "low",
+                priority: "medium",
                 recurrence: {
                     type: "custom",
                     count: 30,
@@ -717,8 +1058,8 @@
                 recurrence: {
                     type: "weekly",
                     weekdays: [0], // 0表示周日
-                    duration: 5,
-                    durationUnit: "minute"
+                    duration: 1,
+                    durationUnit: "day"
                 }
             },
             {
@@ -781,7 +1122,38 @@
                     duration: 1,
                     durationUnit: "day"
                 }
-            }
+            },
+            {
+                id: 8,
+                name: "破晓 红石",
+                startDate: getTodayDate(),
+                startTime: "07:08",
+                displayThreshold: 30,
+                displayThresholdUnit: "minute",
+                priority: "high",
+                recurrence: {
+                    type: "custom_complex",
+                    pattern: "dawn_redstone",
+                    duration: 52,
+                    durationUnit: "minute"
+                }
+            },
+            {
+                id: 9,
+                name: "家具 轮换",
+                startDate: getTodayDate(),
+                startTime: "00:00",
+                displayThreshold: 1,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "weekly",
+                    weekdays: [4], // 4表示周四
+                    duration: 1,
+                    durationUnit: "day"
+                }
+            },
+
         ];
 
         // 当前操作的事件ID
@@ -829,6 +1201,7 @@
         const manualSaveBtn = document.getElementById('manual-save-btn');
         const lockIndicator = document.getElementById('lock-indicator');
         const emptyHoverArea = document.querySelector('.empty-hover-area');
+        const previewCard = document.getElementById('preview-card');
         
         // 初始化日期和时间为今天和当前时间
         document.addEventListener('DOMContentLoaded', () => {
@@ -851,9 +1224,9 @@
             });
             
             // 检查是否有外部数据并加载
-            if (externalData && externalData.tasks) {
-                tasks = externalData.tasks;
-                saveToLocalStorage(tasks); // 将外部数据同步到localStorage
+            const savedData = loadFromLocalStorage();
+            if (savedData && savedData.tasks) {
+                tasks = savedData.tasks;
             } else {
                 // 保存初始任务列表
                 saveToLocalStorage(tasks);
@@ -870,9 +1243,155 @@
             // 初始化悬停空白区域点击事件用于锁定
             emptyHoverArea.addEventListener('click', toggleListLock);
             
+            // 点击其他地方隐藏预览卡片
+            document.addEventListener('click', (e) => {
+                if (!previewCard.contains(e.target) && !e.target.closest('.future-task-item')) {
+                    hidePreviewCard();
+                }
+            });
+            
+            // 跟踪鼠标移动以实现丝滑跟随
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                if (isPreviewVisible) {
+                    updatePreviewCardPosition(mouseX, mouseY);
+                }
+            });
+            
             // 验证本地存储是否可用
             testLocalStorageAvailability();
+            
+            // 初始化显示
+            updateCurrentTime();
+            updateTasks();
         });
+        
+        // 显示预览卡片 - 使用现有数据，无需重新计算
+        function showPreviewCard(task, x, y) {
+            // 从当前显示的任务数据中获取信息
+            let currentTask = currentAllTasks.find(t => t.id === task.id);
+            
+            if (!currentTask) return;
+            
+            // 生成重复方式文本
+            let recurrenceText = "";
+            if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dawn_redstone") {
+                recurrenceText = "破晓红石特殊规则";
+            } else if (currentTask.name === "奶奶饭" && currentTask.recurrence.customTimes) {
+                recurrenceText = `每天 ${currentTask.recurrence.customTimes.join(', ')}`;
+            } else {
+                switch(currentTask.recurrence.type) {
+                    case "none":
+                        recurrenceText = "不重复";
+                        break;
+                    case "daily":
+                        recurrenceText = "每天";
+                        break;
+                    case "weekly":
+                        const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        const selectedDays = currentTask.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
+                        recurrenceText = `每周${selectedDays}`;
+                        break;
+                    case "monthly":
+                        const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        if (currentTask.recurrence.weekdays && currentTask.recurrence.weekdays.length > 0) {
+                            const selectedWeekDays = currentTask.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
+                            recurrenceText = `每月${selectedWeekDays}`;
+                        } else if (currentTask.recurrence.days && currentTask.recurrence.days.length > 0) {
+                            const selectedDays = currentTask.recurrence.days?.join(', ') || "";
+                            recurrenceText = `每月${selectedDays}日`;
+                        }
+                        break;
+                    case "custom":
+                        const unitNames = {
+                            "minute": "分钟",
+                            "hour": "小时",
+                            "day": "天",
+                            "week": "周",
+                            "month": "月"
+                        };
+                        recurrenceText = `每${currentTask.recurrence.count}${unitNames[currentTask.recurrence.unit]}`;
+                        break;
+                }
+            }
+            
+            // 生成持续时间文本
+            const durationUnitNames = {
+                "minute": "分钟",
+                "hour": "小时",
+                "day": "天",
+                "week": "周"
+            };
+            const durationText = `${currentTask.recurrence.duration}${durationUnitNames[currentTask.recurrence.durationUnit]}`;
+            
+            // 生成时间范围文本
+            const isToday = currentTask.startTime && currentTask.startTime.toLocaleDateString() === new Date().toLocaleDateString();
+            const dateText = isToday ? '今天' : currentTask.startTime ? currentTask.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'}) : '';
+            const timeText = currentTask.startTime && currentTask.endTime ? 
+                `${currentTask.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${currentTask.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}` : '';
+            
+            // 生成提醒文本
+            const alertText = `提前${currentTask.displayThreshold} ${currentTask.displayThresholdUnit === 'minute' ? '分钟' : currentTask.displayThresholdUnit === 'hour' ? '小时' : currentTask.displayThresholdUnit === 'day' ? '天' : '周'}提醒`;
+            
+            // 更新预览卡片内容
+            document.getElementById('preview-priority').className = `w-2 h-2 rounded-full mr-2 bg-priority-${currentTask.priority}`;
+            document.getElementById('preview-name').textContent = currentTask.name;
+            
+            const statusIndicator = currentTask.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            const statusTextClass = currentTask.status === "ongoing" ? "ongoing-text" : "";
+            document.getElementById('preview-status').innerHTML = `${statusIndicator}<span class="${statusTextClass}">${currentTask.timeText}</span>`;
+            
+            document.getElementById('preview-recurrence').textContent = recurrenceText;
+            document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
+            document.getElementById('preview-date').textContent = dateText;
+            document.getElementById('preview-time').textContent = timeText;
+            document.getElementById('preview-alert').textContent = alertText;
+            
+            // 设置卡片位置
+            updatePreviewCardPosition(x, y);
+            
+            // 显示卡片并添加高亮动画
+            previewCard.classList.add('show', 'preview-highlight');
+            currentPreviewTaskId = currentTask.id;
+            isPreviewVisible = true;
+        }
+        
+        // 更新预览卡片位置（丝滑跟随）
+        function updatePreviewCardPosition(x, y) {
+            const cardWidth = previewCard.offsetWidth;
+            const cardHeight = previewCard.offsetHeight;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let finalX = x + 15;
+            let finalY = y + 15;
+            
+            // 确保卡片不会超出视口
+            if (finalX + cardWidth > viewportWidth - 10) {
+                finalX = x - cardWidth - 15;
+            }
+            if (finalY + cardHeight > viewportHeight - 10) {
+                finalY = viewportHeight - cardHeight - 10;
+            }
+            
+            // 确保卡片不会超出视口顶部
+            if (finalY < 10) {
+                finalY = 10;
+            }
+            
+            previewCard.style.left = `${finalX}px`;
+            previewCard.style.top = `${finalY}px`;
+        }
+        
+        // 隐藏预览卡片
+        function hidePreviewCard() {
+            previewCard.classList.remove('show', 'preview-highlight');
+            currentPreviewTaskId = null;
+            isPreviewVisible = false;
+        }
         
         // 切换任务列表锁定状态
         function toggleListLock() {
@@ -883,7 +1402,7 @@
                 icon.classList.remove('fa-unlock');
                 icon.classList.add('fa-lock');
                 lockIndicator.classList.add('locked');
-                allTasksEl.style.maxHeight = '500px'; // 增加最大高度以容纳滚动列表
+                allTasksEl.style.maxHeight = '500px';
                 showNotification('任务列表已锁定显示');
             } else {
                 icon.classList.remove('fa-lock');
@@ -900,7 +1419,6 @@
                 const testKey = 'test_local_storage_availability_' + Math.random();
                 localStorage.setItem(testKey, testKey);
                 localStorage.removeItem(testKey);
-                // 不显示成功通知，避免干扰
             } catch (e) {
                 console.error('LocalStorage is not available:', e);
                 showNotification('本地存储不可用，建议使用下载功能保存数据', true);
@@ -968,284 +1486,325 @@
             });
         }
 
-        // 计算事件的下一次发生时间
+        // 计算事件的下一次发生时间 - 增强版本
         function getNextOccurrence(task, now) {
-            // 特殊处理奶奶饭的自定义时间重复
-            if (task.name === "奶奶饭" && task.recurrence.customTimes) {
-                const today = new Date(now);
-                today.setHours(0, 0, 0, 0);
-                
-                // 找到今天剩余的时间点中最近的一个
-                for (const timeStr of task.recurrence.customTimes) {
-                    const [hours, minutes] = timeStr.split(':').map(Number);
-                    const candidate = new Date(today);
-                    candidate.setHours(hours, minutes, 0, 0);
-                    
-                    if (candidate >= now) {
-                        return candidate;
-                    }
+            try {
+                // 处理破晓红石复杂事件
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                    const nextTime = getNextDawnRedstoneOccurrence(now);
+                    return nextTime;
                 }
                 
-                // 如果今天的时间点都过了，取明天的第一个时间点
-                const firstTime = task.recurrence.customTimes[0];
-                const [firstHours, firstMinutes] = firstTime.split(':').map(Number);
-                const nextDay = new Date(today);
-                nextDay.setDate(nextDay.getDate() + 1);
-                nextDay.setHours(firstHours, firstMinutes, 0, 0);
-                return nextDay;
-            }
-            
-            // 解析事件的开始时间（忽略日期，只关注时间部分）
-            const [startHour, startMinute] = task.startTime.split(':').map(Number);
-            
-            // 克隆当前时间，用于计算
-            let nextTime = new Date(now);
-            nextTime.setHours(startHour, startMinute, 0, 0);
-            
-            // 处理每周重复的特殊情况
-            if (task.recurrence.type === "weekly") {
-                const todayWeekday = now.getDay();
-                let daysToAdd = 0;
-                let found = false;
-                
-                // 查找下一个符合条件的星期几（包括今天）
-                for (let i = 0; i < 7; i++) {
-                    const checkDay = (todayWeekday + i) % 7;
-                    if (task.recurrence.weekdays.includes(checkDay)) {
-                        daysToAdd = i;
-                        found = true;
-                        break;
-                    }
-                }
-                
-                // 如果没有找到（理论上不会发生），默认一周后
-                if (!found && task.recurrence.weekdays.length > 0) {
-                    daysToAdd = 7;
-                }
-                
-                // 设置到下一个符合条件的星期几
-                nextTime.setDate(nextTime.getDate() + daysToAdd);
-                
-                // 计算事件持续时间
-                const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                
-                // 检查是否在本周的同一天但时间已过但仍在持续时间内
-                const sameDay = nextTime.toDateString() === now.toDateString();
-                if (sameDay && nextTime <= now && now < nextTime.getTime() + durationMs) {
-                    // 如果在持续时间内，返回原始开始时间
-                    return new Date(nextTime);
-                }
-                
-                // 如果计算出的时间仍在当前时间之前且不在持续时间内，再加一周
-                if (nextTime <= now) {
-                    nextTime.setDate(nextTime.getDate() + 7);
-                }
-                
-                return nextTime;
-            }
-            
-            // 处理每月重复的情况
-            if (task.recurrence.type === "monthly") {
-                // 按日期重复
-                if (task.recurrence.days && task.recurrence.days.length > 0) {
+                // 特殊处理奶奶饭的自定义时间重复
+                if (task.name === "奶奶饭" && task.recurrence.customTimes) {
                     const today = new Date(now);
-                    const currentMonth = today.getMonth();
-                    const currentYear = today.getFullYear();
+                    today.setHours(0, 0, 0, 0);
                     
-                    // 尝试在本月找到符合条件的日期
-                    let candidates = [];
-                    for (const day of task.recurrence.days) {
-                        const candidate = new Date(currentYear, currentMonth, day, startHour, startMinute);
-                        // 检查日期是否有效（有些月份没有31天等）
-                        if (candidate.getMonth() === currentMonth) {
-                            candidates.push(candidate);
+                    // 找到今天剩余的时间点中最近的一个
+                    for (const timeStr of task.recurrence.customTimes) {
+                        const [hours, minutes] = timeStr.split(':').map(Number);
+                        const candidate = new Date(today);
+                        candidate.setHours(hours, minutes, 0, 0);
+                        
+                        if (candidate >= now) {
+                            return candidate;
                         }
                     }
                     
-                    // 找到本月剩余的符合条件的日期
-                    const validCandidates = candidates.filter(c => c >= now);
-                    
-                    if (validCandidates.length > 0) {
-                        // 返回最近的一个
-                        return new Date(Math.min(...validCandidates.map(c => c.getTime())));
-                    }
-                    
-                    // 如果本月没有符合条件的日期了，找下个月的
-                    const nextMonth = currentMonth + 1;
-                    const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
-                    const adjustedMonth = nextMonth > 11 ? 0 : nextMonth;
-                    
-                    candidates = [];
-                    for (const day of task.recurrence.days) {
-                        const candidate = new Date(nextYear, adjustedMonth, day, startHour, startMinute);
-                        if (candidate.getMonth() === adjustedMonth) {
-                            candidates.push(candidate);
-                        }
-                    }
-                    
-                    if (candidates.length > 0) {
-                        return new Date(Math.min(...candidates.map(c => c.getTime())));
-                    }
+                    // 如果今天的时间点都过了，取明天的第一个时间点
+                    const firstTime = task.recurrence.customTimes[0];
+                    const [firstHours, firstMinutes] = firstTime.split(':').map(Number);
+                    const nextDay = new Date(today);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    nextDay.setHours(firstHours, firstMinutes, 0, 0);
+                    return nextDay;
                 }
-                // 按星期几重复
-                else if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
-                    const targetWeekday = task.recurrence.weekdays[0]; // 取第一个目标星期几
-                    let currentMonth = now.getMonth();
-                    let currentYear = now.getFullYear();
-                    let candidateDate = new Date(currentYear, currentMonth, 1);
+                
+                // 解析事件的开始时间（忽略日期，只关注时间部分）
+                const [startHour, startMinute] = task.startTime.split(':').map(Number);
+                
+                // 克隆当前时间，用于计算
+                let nextTime = new Date(now);
+                nextTime.setHours(startHour, startMinute, 0, 0);
+                
+                // 处理每周重复的特殊情况
+                if (task.recurrence.type === "weekly") {
+                    const todayWeekday = now.getDay();
+                    let daysToAdd = 0;
+                    let found = false;
                     
-                    // 找到当月第一个目标星期几
-                    while (candidateDate.getDay() !== targetWeekday) {
-                        candidateDate.setDate(candidateDate.getDate() + 1);
+                    // 查找下一个符合条件的星期几（包括今天）
+                    for (let i = 0; i < 7; i++) {
+                        const checkDay = (todayWeekday + i) % 7;
+                        if (task.recurrence.weekdays.includes(checkDay)) {
+                            daysToAdd = i;
+                            found = true;
+                            break;
+                        }
                     }
                     
-                    // 设置时间
-                    candidateDate.setHours(startHour, startMinute, 0, 0);
+                    // 如果没有找到（理论上不会发生），默认一周后
+                    if (!found && task.recurrence.weekdays.length > 0) {
+                        daysToAdd = 7;
+                    }
                     
-                    // 如果本月的目标日期已过，找下个月的
-                    if (candidateDate < now) {
-                        candidateDate.setMonth(candidateDate.getMonth() + 1);
-                        // 重新找到下个月的第一个目标星期几
+                    // 设置到下一个符合条件的星期几
+                    nextTime.setDate(nextTime.getDate() + daysToAdd);
+                    
+                    // 计算事件持续时间
+                    const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    
+                    // 检查是否在本周的同一天但时间已过但仍在持续时间内
+                    const sameDay = nextTime.toDateString() === now.toDateString();
+                    if (sameDay && nextTime <= now && now < nextTime.getTime() + durationMs) {
+                        // 如果在持续时间内，返回原始开始时间
+                        return new Date(nextTime);
+                    }
+                    
+                    // 如果计算出的时间仍在当前时间之前且不在持续时间内，再加一周
+                    if (nextTime <= now) {
+                        nextTime.setDate(nextTime.getDate() + 7);
+                    }
+                    
+                    return nextTime;
+                }
+                
+                // 处理每月重复的情况
+                if (task.recurrence.type === "monthly") {
+                    // 按日期重复
+                    if (task.recurrence.days && task.recurrence.days.length > 0) {
+                        const today = new Date(now);
+                        const currentMonth = today.getMonth();
+                        const currentYear = today.getFullYear();
+                        
+                        // 尝试在本月找到符合条件的日期
+                        let candidates = [];
+                        for (const day of task.recurrence.days) {
+                            const candidate = new Date(currentYear, currentMonth, day, startHour, startMinute);
+                            // 检查日期是否有效（有些月份没有31天等）
+                            if (candidate.getMonth() === currentMonth) {
+                                candidates.push(candidate);
+                            }
+                        }
+                        
+                        // 找到本月剩余的符合条件的日期
+                        const validCandidates = candidates.filter(c => c >= now);
+                        
+                        if (validCandidates.length > 0) {
+                            // 返回最近的一个
+                            return new Date(Math.min(...validCandidates.map(c => c.getTime())));
+                        }
+                        
+                        // 如果本月没有符合条件的日期了，找下个月的
+                        const nextMonth = currentMonth + 1;
+                        const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
+                        const adjustedMonth = nextMonth > 11 ? 0 : nextMonth;
+                        
+                        candidates = [];
+                        for (const day of task.recurrence.days) {
+                            const candidate = new Date(nextYear, adjustedMonth, day, startHour, startMinute);
+                            if (candidate.getMonth() === adjustedMonth) {
+                                candidates.push(candidate);
+                            }
+                        }
+                        
+                        if (candidates.length > 0) {
+                            return new Date(Math.min(...candidates.map(c => c.getTime())));
+                        }
+                    }
+                    // 按星期几重复
+                    else if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                        const targetWeekday = task.recurrence.weekdays[0]; // 取第一个目标星期几
+                        let currentMonth = now.getMonth();
+                        let currentYear = now.getFullYear();
+                        let candidateDate = new Date(currentYear, currentMonth, 1);
+                        
+                        // 找到当月第一个目标星期几
                         while (candidateDate.getDay() !== targetWeekday) {
                             candidateDate.setDate(candidateDate.getDate() + 1);
                         }
+                        
+                        // 设置时间
+                        candidateDate.setHours(startHour, startMinute, 0, 0);
+                        
+                        // 如果本月的目标日期已过，找下个月的
+                        if (candidateDate < now) {
+                            candidateDate.setMonth(candidateDate.getMonth() + 1);
+                            // 重新找到下个月的第一个目标星期几
+                            while (candidateDate.getDay() !== targetWeekday) {
+                                candidateDate.setDate(candidateDate.getDate() + 1);
+                            }
+                        }
+                        
+                        return candidateDate;
+                    }
+                }
+                
+                // 解析开始日期
+                const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
+                const initialStart = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
+                
+                // 对于重复事件，计算最近的一次发生时间（可能在过去但仍在持续时间内）
+                if (task.recurrence.type !== "none") {
+                    // 计算间隔毫秒数
+                    let intervalMs;
+                    switch(task.recurrence.type) {
+                        case "daily":
+                            intervalMs = 24 * 60 * 60 * 1000; // 一天的毫秒数
+                            break;
+                        case "custom":
+                            intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
+                            break;
+                        default:
+                            intervalMs = 24 * 60 * 60 * 1000; // 默认一天
                     }
                     
-                    return candidateDate;
-                }
-            }
-            
-            // 处理其他重复类型
-            const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
-            const initialStart = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
-            
-            // 对于重复事件，计算最近的一次发生时间（可能在过去但仍在持续时间内）
-            if (task.recurrence.type !== "none") {
-                // 计算间隔毫秒数
-                let intervalMs;
-                switch(task.recurrence.type) {
-                    case "daily":
-                        intervalMs = 24 * 60 * 60 * 1000; // 一天的毫秒数
-                        break;
-                    case "custom":
-                        intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
-                        break;
-                    default:
-                        intervalMs = 24 * 60 * 60 * 1000; // 默认一天
+                    // 计算从初始时间到现在的总间隔数
+                    const timeDiff = now - initialStart;
+                    const intervals = Math.floor(timeDiff / intervalMs);
+                    
+                    // 计算最近一次发生时间（可能在过去）
+                    const lastOccurrence = new Date(initialStart.getTime() + intervals * intervalMs);
+                    
+                    // 计算事件持续时间
+                    const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    
+                    // 如果当前时间仍在最近一次事件的持续时间内，返回该时间
+                    if (now <= lastOccurrence.getTime() + durationMs) {
+                        return lastOccurrence;
+                    }
+                    
+                    // 否则返回下一次发生时间
+                    return new Date(lastOccurrence.getTime() + intervalMs);
                 }
                 
-                // 计算从初始时间到现在的总间隔数
-                const timeDiff = now - initialStart;
-                const intervals = Math.floor(timeDiff / intervalMs);
-                
-                // 计算最近一次发生时间（可能在过去）
-                const lastOccurrence = new Date(initialStart.getTime() + intervals * intervalMs);
-                
-                // 计算事件持续时间
-                const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                
-                // 如果当前时间仍在最近一次事件的持续时间内，返回该时间
-                if (now <= lastOccurrence.getTime() + durationMs) {
-                    return lastOccurrence;
+                // 非重复事件的处理
+                if (initialStart > now) {
+                    return new Date(initialStart);
                 }
                 
-                // 否则返回下一次发生时间
-                return new Date(lastOccurrence.getTime() + intervalMs);
-            }
-            
-            // 非重复事件的处理
-            if (initialStart > now) {
                 return new Date(initialStart);
+            } catch (e) {
+                console.error('计算下次发生时间出错:', task.name, e);
+                // 返回一个安全的默认时间（1小时后）
+                return new Date(now.getTime() + 60 * 60 * 1000);
             }
-            
-            return new Date(initialStart);
         }
 
-        // 获取事件状态信息 - 修改为显示距离开始时间
+        // 获取事件状态信息 - 增强版本
         function getTaskStatus(task, now) {
-            const nextStart = getNextOccurrence(task, now);
-            
-            // 计算事件结束时间（基于持续时间）
-            const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-            const endTime = new Date(nextStart.getTime() + durationMs);
-            
-            // 计算事件的显示开始时间（开始时间 - 提前提醒时间）
-            const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
-            const displayStartTime = new Date(nextStart.getTime() - thresholdMs);
-            
-            // 计算事件的显示结束时间（结束时间）
-            const displayEndTime = new Date(endTime);
-            
-            // 判断是否在显示时间范围内（提前提醒时间到结束时间）
-            const isInDisplayRange = now >= displayStartTime && now <= displayEndTime;
-            
-            // 判断是否正在进行中（当前时间在开始时间和结束时间之间）
-            const isOngoing = now >= nextStart && now < endTime;
-            
-            // 计算距离开始时间的毫秒数（核心修改：不再使用显示时间）
-            const timeUntilStart = nextStart - now;
-            
-            // 对于重复事件，不标记为已完成
-            if (task.recurrence.type === "none" && now > displayEndTime) {
-                return {
-                    status: "completed",
-                    timeText: "已完成",
-                    countdownMs: 0,
-                    countdownText: "已完成",
-                    minutes: Infinity,
-                    startTime: null,
-                    endTime: null,
-                    displayStartTime: displayStartTime,
-                    displayEndTime: displayEndTime
-                };
-            }
-            
-            if (isOngoing) {
-                const timeLeft = endTime - now;
-                const converted = convertFromMilliseconds(timeLeft);
-                return {
-                    status: "ongoing",
-                    timeText: `正在进行`, // 修改：仅保留"正在进行"文本
-                    countdownMs: timeLeft,
-                    countdownText: formatCountdown(timeLeft),
-                    minutes: Math.ceil(timeLeft / (1000 * 60)),
-                    startTime: nextStart,
-                    endTime: endTime,
-                    displayStartTime: displayStartTime,
-                    displayEndTime: displayEndTime
-                };
-            } else if (isInDisplayRange) {
-                // 还未开始但在提前提醒范围内 - 显示距离开始时间
-                const converted = convertFromMilliseconds(timeUntilStart);
-                return {
-                    status: "upcoming",
-                    timeText: `${converted.value}${converted.text}后开始`,
-                    countdownMs: timeUntilStart,
-                    countdownText: formatCountdown(timeUntilStart),
-                    minutes: Math.ceil(timeUntilStart / (1000 * 60)),
-                    startTime: nextStart,
-                    endTime: endTime,
-                    displayStartTime: displayStartTime,
-                    displayEndTime: displayEndTime
-                };
-            } else {
-                // 不在显示范围内 - 显示距离开始时间
-                const converted = convertFromMilliseconds(timeUntilStart);
+            try {
+                const nextStart = getNextOccurrence(task, now);
+                
+                let durationMs, endTime;
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                    const activeInfo = isDawnRedstoneActive(now);
+                    if (activeInfo) {
+                        endTime = activeInfo.endTime;
+                        durationMs = endTime - activeInfo.startTime;
+                    } else {
+                        durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                        endTime = new Date(nextStart.getTime() + durationMs);
+                    }
+                } else {
+                    durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    endTime = new Date(nextStart.getTime() + durationMs);
+                }
+                
+                // 计算事件的显示开始时间（开始时间 - 提前提醒时间）
+                const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+                const displayStartTime = new Date(nextStart.getTime() - thresholdMs);
+                
+                // 计算事件的显示结束时间（结束时间）
+                const displayEndTime = new Date(endTime);
+                
+                // 判断是否在显示时间范围内（提前提醒时间到结束时间）
+                const isInDisplayRange = now >= displayStartTime && now <= displayEndTime;
+                
+                // 判断是否正在进行中（当前时间在开始时间和结束时间之间）
+                const isOngoing = now >= nextStart && now < endTime;
+                
+                // 计算距离开始时间的毫秒数
+                const timeUntilStart = nextStart - now;
+                
+                // 对于重复事件，不标记为已完成
+                if (task.recurrence.type === "none" && now > displayEndTime) {
+                    return {
+                        status: "completed",
+                        timeText: "已完成",
+                        countdownMs: 0,
+                        countdownText: "已完成",
+                        minutes: Infinity,
+                        startTime: null,
+                        endTime: null,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                }
+                
+                // 修复：确保奶奶饭等特定时间事件在显示范围内能被正确识别
+                if (isOngoing) {
+                    const timeLeft = endTime - now;
+                    const converted = convertFromMilliseconds(timeLeft);
+                    return {
+                        status: "ongoing",
+                        timeText: `正在进行`,
+                        countdownMs: timeLeft,
+                        countdownText: formatCountdown(timeLeft),
+                        minutes: Math.ceil(timeLeft / (1000 * 60)),
+                        startTime: nextStart,
+                        endTime: endTime,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                } else if (isInDisplayRange) {
+                    // 还未开始但在提前提醒范围内 - 显示距离开始时间
+                    const converted = convertFromMilliseconds(timeUntilStart);
+                    return {
+                        status: "upcoming",
+                        timeText: `${converted.value}${converted.text}后开始`,
+                        countdownMs: timeUntilStart,
+                        countdownText: formatCountdown(timeUntilStart),
+                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                        startTime: nextStart,
+                        endTime: endTime,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                } else {
+                    // 不在显示范围内 - 显示距离开始时间
+                    const converted = convertFromMilliseconds(timeUntilStart);
+                    return {
+                        status: "future",
+                        timeText: `${converted.value}${converted.text}后开始`,
+                        countdownMs: timeUntilStart,
+                        countdownText: formatCountdown(timeUntilStart),
+                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                        startTime: nextStart,
+                        endTime: endTime,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                }
+            } catch (e) {
+                console.error('计算任务状态出错:', task.name, e);
+                // 返回一个安全的默认状态
+                const defaultTime = new Date();
                 return {
                     status: "future",
-                    timeText: `${converted.value}${converted.text}后开始`,
-                    countdownMs: timeUntilStart,
-                    countdownText: formatCountdown(timeUntilStart),
-                    minutes: Math.ceil(timeUntilStart / (1000 * 60)),
-                    startTime: nextStart,
-                    endTime: endTime,
-                    displayStartTime: displayStartTime,
-                    displayEndTime: displayEndTime
+                    timeText: "时间计算中",
+                    countdownMs: 0,
+                    countdownText: "--",
+                    minutes: Infinity,
+                    startTime: defaultTime,
+                    endTime: new Date(defaultTime.getTime() + 60 * 60 * 1000), // 1小时后
+                    displayStartTime: defaultTime,
+                    displayEndTime: new Date(defaultTime.getTime() + 60 * 60 * 1000)
                 };
             }
         }
 
-        // 过滤出需要显示的事件
+        // 过滤出需要显示的事件 - 排除优先级为"无"的事件
         function getVisibleTasks() {
             const now = new Date();
             return tasks
@@ -1257,6 +1816,11 @@
                     };
                 })
                 .filter(task => {
+                    // 排除优先级为"无"的事件
+                    if (task.priority === "none") {
+                        return false;
+                    }
+                    
                     // 显示正在进行和即将开始的事件（在显示时间范围内），排除已完成的
                     return task.status !== "completed" && 
                            (task.status === "ongoing" || task.status === "upcoming");
@@ -1279,21 +1843,38 @@
                 });
         }
 
-        // 获取所有事件（用于悬停显示）
+        // 获取所有事件（用于悬停显示）- 修复版本
         function getAllTasksWithStatus() {
             const now = new Date();
             return tasks
                 .map(task => {
-                    const status = getTaskStatus(task, now);
-                    return {
-                        ...task,
-                        ...status
-                    };
+                    try {
+                        const status = getTaskStatus(task, now);
+                        return {
+                            ...task,
+                            ...status
+                        };
+                    } catch (e) {
+                        console.error('计算任务状态出错:', task.name, e);
+                        // 返回一个基本状态，避免预览功能失效
+                        return {
+                            ...task,
+                            status: "future",
+                            timeText: "时间计算中",
+                            countdownMs: 0,
+                            countdownText: "--",
+                            minutes: Infinity,
+                            startTime: new Date(),
+                            endTime: new Date(),
+                            displayStartTime: new Date(),
+                            displayEndTime: new Date()
+                        };
+                    }
                 })
                 .filter(task => task.status !== "completed")
                 .sort((a, b) => {
-                    // 按优先级排序：高优先级在最上方，低优先级在最下方
-                    const priorityOrder = { high: 3, medium: 2, low: 1 };
+                    // 按优先级排序：高优先级在最上方，低优先级在最下方，"无"优先级排在最后
+                    const priorityOrder = { high: 4, medium: 3, low: 2, none: 1 };
                     
                     // 高优先级排在前面
                     if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
@@ -1319,6 +1900,8 @@
             // 特殊处理奶奶饭的自定义时间重复
             if (task.name === "奶奶饭" && task.recurrence.customTimes) {
                 recurrenceText = `每天 ${task.recurrence.customTimes.join(', ')}`;
+            } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                recurrenceText = "破晓红石特殊规则";
             } else {
                 switch(task.recurrence.type) {
                     case "none":
@@ -1414,11 +1997,11 @@
             return taskEl;
         }
 
-        // 创建缩略事件元素（用于悬停显示）
+        // 创建缩略事件元素（用于悬停显示）- 修复版本
         function createMiniTaskElement(task) {
             const taskEl = document.createElement('div');
             // 统一缩略事件的样式
-            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover";
+            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover future-task-item";
             
             taskEl.className = baseClass;
             taskEl.dataset.taskId = task.id;
@@ -1428,10 +2011,17 @@
                 '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
             
             // 倒计时徽章
-            const countdownBadge = `<span class="countdown ml-2">${task.countdownText}</span>`;
+            const countdownBadge = task.countdownText ? `<span class="countdown ml-2">${task.countdownText}</span>` : '';
             
             // 确定时间文本样式 - 正在进行的文本使用红色
             const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
+            
+            // 安全地处理时间显示
+            let timeDisplay = '时间计算中';
+            if (task.startTime && task.startTime instanceof Date && !isNaN(task.startTime)) {
+                timeDisplay = task.status === 'ongoing' ? '进行中' : 
+                             task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+            }
             
             taskEl.innerHTML = `
                 <div class="flex items-center flex-1 min-w-0">
@@ -1439,14 +2029,17 @@
                     <div class="flex-1 min-w-0">
                         <div class="text-sm truncate">${task.name}</div>
                         <div class="text-xs text-primary flex items-center">
-                            ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText}</span>${countdownBadge}
+                            ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText || '即将开始'}</span>${countdownBadge}
                         </div>
                     </div>
                 </div>
                 <div class="text-xs text-dark-textSecondary whitespace-nowrap ml-2">
-                    ${task.status === 'ongoing' ? '进行中' : task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}
+                    ${timeDisplay}
                 </div>
             `;
+            
+            // 为未来事件列表中的任务添加预览交互
+            addPreviewInteractionToFutureTask(taskEl, task);
             
             // 为缩略事件项添加右键菜单事件
             taskEl.addEventListener('contextmenu', (e) => {
@@ -1465,16 +2058,48 @@
             return taskEl;
         }
 
+        // 专门为未来事件列表添加预览交互
+        function addPreviewInteractionToFutureTask(element, task) {
+            let previewTimer = null;
+            
+            element.addEventListener('mouseenter', (e) => {
+                // 清除之前的定时器
+                if (previewTimer) {
+                    clearTimeout(previewTimer);
+                }
+                
+                // 设置新的预览显示定时器
+                previewTimer = setTimeout(() => {
+                    showPreviewCard(task, e.clientX, e.clientY);
+                }, 300);
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                // 清除定时器
+                if (previewTimer) {
+                    clearTimeout(previewTimer);
+                    previewTimer = null;
+                }
+                hidePreviewCard();
+            });
+            
+            element.addEventListener('mousemove', (e) => {
+                if (isPreviewVisible && currentPreviewTaskId === task.id) {
+                    updatePreviewCardPosition(e.clientX, e.clientY);
+                }
+            });
+        }
+
         // 更新事件显示
         function updateTasks() {
-            visibleTasks = getVisibleTasks();
-            const allTasks = getAllTasksWithStatus();
-            const hasVisibleContent = visibleTasks.length > 0 || allTasks.length > 0;
+            currentVisibleTasks = getVisibleTasks();
+            currentAllTasks = getAllTasksWithStatus();
+            const hasVisibleContent = currentVisibleTasks.length > 0 || currentAllTasks.length > 0;
             
             // 清空轮播容器
             taskCarousel.innerHTML = '';
             
-            if (visibleTasks.length === 0) {
+            if (currentVisibleTasks.length === 0) {
                 // 没有可见事件时显示提示
                 taskCarousel.innerHTML = `
                     <div class="text-center py-4 text-dark-textSecondary">
@@ -1483,7 +2108,7 @@
                 `;
             } else {
                 // 添加所有可见事件到轮播
-                visibleTasks.forEach(task => {
+                currentVisibleTasks.forEach(task => {
                     const taskEl = createTaskElement(task);
                     taskCarousel.appendChild(taskEl);
                 });
@@ -1500,10 +2125,19 @@
             adjustContainerSize(hasVisibleContent);
         }
 
-        // 更新所有事件列表
+        // 更新所有事件列表 - 修复版本
         function updateAllTasksList() {
             const allTasks = getAllTasksWithStatus();
             allTasksListEl.innerHTML = '';
+            
+            if (allTasks.length === 0) {
+                allTasksListEl.innerHTML = `
+                    <div class="text-center py-4 text-dark-textSecondary text-sm">
+                        暂无未来事件
+                    </div>
+                `;
+                return;
+            }
             
             allTasks.forEach(task => {
                 const taskEl = createMiniTaskElement(task);
@@ -1519,8 +2153,8 @@
                 controlsContainer.classList.remove('opacity-0', 'pointer-events-none', 'h-0');
                 
                 // 优化高度计算，减少额外空间
-                const height = visibleTasks.length > 0 ? 
-                    120 + visibleTasks.length * 100 : 120; // 减少基础高度和每个项目的高度
+                const height = currentVisibleTasks.length > 0 ? 
+                    120 + currentVisibleTasks.length * 100 : 120; // 减少基础高度和每个项目的高度
                 
                 appContainer.style.minHeight = `${height}px`;
             } else {
@@ -1533,7 +2167,7 @@
 
         // 更新轮播位置
         function updateCarouselPosition() {
-            if (visibleTasks.length <= 1) return;
+            if (currentVisibleTasks.length <= 1) return;
             
             const slideHeight = 100; // 减少轮播高度
             taskCarousel.style.transform = `translateY(-${currentSlide * slideHeight}px)`;
@@ -1630,6 +2264,10 @@
                 case "custom":
                     newTask.recurrence.count = parseInt(taskData.intervalCount) || 1;
                     newTask.recurrence.unit = taskData.intervalUnit || "day";
+                    // 允许添加自定义时间列表
+                    if (taskData.customTimes) {
+                        newTask.recurrence.customTimes = taskData.customTimes;
+                    }
                     break;
                 case "daily":
                     // 对于每天重复，不需要额外属性
@@ -1692,6 +2330,10 @@
                 case "custom":
                     tasks[taskIndex].recurrence.count = parseInt(taskData.intervalCount) || 1;
                     tasks[taskIndex].recurrence.unit = taskData.intervalUnit || "day";
+                    // 允许添加自定义时间列表
+                    if (taskData.customTimes) {
+                        tasks[taskIndex].recurrence.customTimes = taskData.customTimes;
+                    }
                     break;
                 case "daily":
                     // 每天重复不需要额外属性
@@ -2040,7 +2682,7 @@
                 // 生成包含当前日期的文件名
                 const now = new Date();
                 const dateStr = now.toISOString().split('T')[0];
-                a.download = `时间项目提醒_${dateStr}.html`;
+                a.download = `光·遇事件时间_${dateStr}.html`;
                 
                 a.href = url;
                 document.body.appendChild(a);
