@@ -168,11 +168,11 @@
                 background-color: theme('colors.primary');
                 border-radius: 3px;
             }
-            /* 预览卡片样式 - 紧凑优化版本 */
+            /* 预览卡片样式 - 优化版本 */
             .preview-card {
-                @apply fixed bg-dark-card rounded-xl shadow-2xl border-2 border-primary/50 p-3 max-w-xs z-50 transform transition-all duration-200 scale-95 opacity-0 pointer-events-none;
+                @apply fixed bg-dark-card rounded-xl shadow-2xl border-2 border-primary/50 p-4 max-w-xs z-50 transform transition-all duration-200 scale-95 opacity-0 pointer-events-none;
                 backdrop-filter: blur(10px);
-                min-width: 260px;
+                min-width: 280px;
             }
             .preview-card.show {
                 @apply scale-100 opacity-100 pointer-events-auto;
@@ -182,10 +182,10 @@
                 @apply absolute -top-2 left-4 w-4 h-4 bg-primary/50 transform rotate-45;
             }
             .preview-content {
-                @apply space-y-1.5;
+                @apply space-y-2;
             }
             .preview-header {
-                @apply flex justify-between items-center mb-2 pb-2 border-b border-gray-700;
+                @apply flex justify-between items-center mb-3 pb-2 border-b border-gray-700;
             }
             .preview-name {
                 @apply font-medium text-dark-text flex items-center text-sm;
@@ -194,7 +194,7 @@
                 @apply text-xs text-primary flex items-center;
             }
             .preview-details {
-                @apply text-xs text-dark-textSecondary space-y-1;
+                @apply text-xs text-dark-textSecondary space-y-1.5;
             }
             .preview-row {
                 @apply flex justify-between items-center;
@@ -206,7 +206,7 @@
                 @apply flex items-center mr-2;
             }
             .preview-value {
-                @apply text-dark-text text-right;
+                @apply text-dark-text;
             }
             .preview-highlight {
                 animation: glow 2s ease-in-out infinite alternate;
@@ -311,7 +311,7 @@
         </div>
     </div>
 
-    <!-- 预览卡片 - 紧凑优化排版 -->
+    <!-- 预览卡片 - 优化排版 -->
     <div id="preview-card" class="preview-card preview-smooth">
         <div class="preview-content">
             <div class="preview-header">
@@ -327,7 +327,7 @@
                         <i class="fa fa-repeat preview-icon"></i>
                         <span>重复</span>
                     </span>
-                    <span id="preview-recurrence" class="preview-value"></span>
+                    <span id="preview-recurrence" class="preview-value text-right flex-1"></span>
                 </div>
                 <div class="preview-row">
                     <span class="preview-label">
@@ -348,9 +348,9 @@
                         <i class="fa fa-hourglass-start preview-icon"></i>
                         <span>时间</span>
                     </span>
-                    <span id="preview-time" class="preview-value"></span>
+                    <span id="preview-time" class="preview-value text-right"></span>
                 </div>
-                <div class="preview-row">
+                <div class="preview-row pt-1 border-t border-gray-700">
                     <span class="preview-label">
                         <i class="fa fa-bell preview-icon"></i>
                         <span>提醒</span>
@@ -1028,7 +1028,7 @@
                 name: "每日 重置",
                 startDate: getTodayDate(),
                 startTime: "15:00",
-                displayThreshold: 60,
+                displayThreshold: 30,
                 displayThresholdUnit: "minute",
                 priority: "high",
                 recurrence: {
@@ -1042,7 +1042,7 @@
                 name: "AURORA",
                 startDate: getTodayDate(),
                 startTime: "15:10",
-                displayThreshold: 30,
+                displayThreshold: 2,
                 displayThresholdUnit: "minute",
                 priority: "low",
                 recurrence: {
@@ -1149,8 +1149,8 @@
                 name: "破晓 红石",
                 startDate: getTodayDate(),
                 startTime: "22:48",
-                displayThreshold: 8,
-                displayThresholdUnit: "hour",
+                displayThreshold: 30,
+                displayThresholdUnit: "minute",
                 priority: "high",
                 recurrence: {
                     type: "custom_complex",
@@ -1270,7 +1270,7 @@
             
             // 点击其他地方隐藏预览卡片
             document.addEventListener('click', (e) => {
-                if (!previewCard.contains(e.target) && !e.target.closest('.future-task-item')) {
+                if (!previewCard.contains(e.target) && !e.target.closest('.task-item') && !e.target.closest('.future-task-item')) {
                     hidePreviewCard();
                 }
             });
@@ -1296,7 +1296,12 @@
         // 显示预览卡片 - 使用现有数据，无需重新计算
         function showPreviewCard(task, x, y) {
             // 从当前显示的任务数据中获取信息
-            let currentTask = currentAllTasks.find(t => t.id === task.id);
+            let currentTask = currentVisibleTasks.find(t => t.id === task.id);
+            
+            // 如果在轮播中没找到，尝试从所有任务中查找
+            if (!currentTask) {
+                currentTask = currentAllTasks.find(t => t.id === task.id);
+            }
             
             if (!currentTask) return;
             
@@ -1931,7 +1936,8 @@
                 </div>
             `;
             
-            // 移除了轮播事件的预览交互
+            // 添加悬停预览功能
+            addPreviewInteractionToTask(taskEl, task);
             
             taskEl.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -1947,6 +1953,38 @@
             });
             
             return taskEl;
+        }
+
+        // 为轮播中的任务添加预览交互
+        function addPreviewInteractionToTask(element, task) {
+            let previewTimer = null;
+            
+            element.addEventListener('mouseenter', (e) => {
+                // 清除之前的定时器
+                if (previewTimer) {
+                    clearTimeout(previewTimer);
+                }
+                
+                // 设置新的预览显示定时器
+                previewTimer = setTimeout(() => {
+                    showPreviewCard(task, e.clientX, e.clientY);
+                }, 300);
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                // 清除定时器
+                if (previewTimer) {
+                    clearTimeout(previewTimer);
+                    previewTimer = null;
+                }
+                hidePreviewCard();
+            });
+            
+            element.addEventListener('mousemove', (e) => {
+                if (isPreviewVisible && currentPreviewTaskId === task.id) {
+                    updatePreviewCardPosition(e.clientX, e.clientY);
+                }
+            });
         }
 
         // 创建缩略事件元素 - 修复版本
