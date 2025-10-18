@@ -169,7 +169,7 @@
             }
             /* 预览卡片样式 */
             .preview-card {
-                @apply fixed bg-dark-card rounded-xl shadow-2xl border-2 border-primary/50 p-4 max-w-xs z-50 transform transition-all duration-200 scale-95 opacity-0 pointer-events-none;
+                @apply fixed bg-dark-card rounded-xl shadow-2xl border-2 border-primary/50 p-4 max-w-xs z-50 transform transition-all duration-300 scale-95 opacity-0 pointer-events-none;
                 backdrop-filter: blur(10px);
             }
             .preview-card.show {
@@ -189,10 +189,6 @@
                 to {
                     box-shadow: 0 0 10px theme('colors.primary'), 0 0 20px theme('colors.primary');
                 }
-            }
-            /* 丝滑跟随效果 */
-            .preview-smooth {
-                transition: transform 0.1s ease-out, opacity 0.2s ease-out;
             }
         }
     </style>
@@ -223,7 +219,7 @@
     </div>
 
     <!-- 预览卡片 -->
-    <div id="preview-card" class="preview-card preview-smooth">
+    <div id="preview-card" class="preview-card">
         <div class="flex justify-between items-center mb-3">
             <div class="font-medium text-dark-text flex items-center">
                 <span id="preview-priority" class="w-2 h-2 rounded-full mr-2"></span>
@@ -564,9 +560,6 @@
         // 预览卡片状态
         let previewTimeout = null;
         let currentPreviewTaskId = null;
-        let isPreviewVisible = false;
-        let mouseX = 0;
-        let mouseY = 0;
         
         // 尝试从localStorage加载数据
         function loadFromLocalStorage() {
@@ -1235,27 +1228,13 @@
             
             // 点击其他地方隐藏预览卡片
             document.addEventListener('click', (e) => {
-                if (!previewCard.contains(e.target) && !e.target.closest('.future-task-item')) {
+                if (!previewCard.contains(e.target) && !e.target.closest('[data-task-id]')) {
                     hidePreviewCard();
-                }
-            });
-            
-            // 跟踪鼠标移动以实现丝滑跟随
-            document.addEventListener('mousemove', (e) => {
-                mouseX = e.clientX;
-                mouseY = e.clientY;
-                
-                if (isPreviewVisible) {
-                    updatePreviewCardPosition(mouseX, mouseY);
                 }
             });
             
             // 验证本地存储是否可用
             testLocalStorageAvailability();
-            
-            // 初始化显示
-            updateCurrentTime();
-            updateTasks();
         });
         
         // 显示预览卡片
@@ -1337,46 +1316,34 @@
             document.getElementById('preview-alert').textContent = alertText;
             
             // 设置卡片位置
-            updatePreviewCardPosition(x, y);
-            
-            // 显示卡片并添加高亮动画
-            previewCard.classList.add('show', 'preview-highlight');
-            currentPreviewTaskId = task.id;
-            isPreviewVisible = true;
-        }
-        
-        // 更新预览卡片位置（丝滑跟随）
-        function updatePreviewCardPosition(x, y) {
             const cardWidth = previewCard.offsetWidth;
             const cardHeight = previewCard.offsetHeight;
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             
-            let finalX = x + 15;
-            let finalY = y + 15;
+            let finalX = x + 10;
+            let finalY = y + 10;
             
             // 确保卡片不会超出视口
             if (finalX + cardWidth > viewportWidth - 10) {
-                finalX = x - cardWidth - 15;
+                finalX = x - cardWidth - 10;
             }
             if (finalY + cardHeight > viewportHeight - 10) {
                 finalY = viewportHeight - cardHeight - 10;
             }
             
-            // 确保卡片不会超出视口顶部
-            if (finalY < 10) {
-                finalY = 10;
-            }
-            
             previewCard.style.left = `${finalX}px`;
             previewCard.style.top = `${finalY}px`;
+            
+            // 显示卡片并添加高亮动画
+            previewCard.classList.add('show', 'preview-highlight');
+            currentPreviewTaskId = task.id;
         }
         
         // 隐藏预览卡片
         function hidePreviewCard() {
             previewCard.classList.remove('show', 'preview-highlight');
             currentPreviewTaskId = null;
-            isPreviewVisible = false;
         }
         
         // 切换任务列表锁定状态
@@ -1710,33 +1677,16 @@
                 });
         }
 
-        // 获取所有事件（用于悬停显示）- 修复版本
+        // 获取所有事件（用于悬停显示）
         function getAllTasksWithStatus() {
             const now = new Date();
             return tasks
                 .map(task => {
-                    try {
-                        const status = getTaskStatus(task, now);
-                        return {
-                            ...task,
-                            ...status
-                        };
-                    } catch (e) {
-                        console.error('计算任务状态出错:', task.name, e);
-                        // 返回一个基本状态，避免预览功能失效
-                        return {
-                            ...task,
-                            status: "future",
-                            timeText: "时间计算中",
-                            countdownMs: 0,
-                            countdownText: "--",
-                            minutes: Infinity,
-                            startTime: new Date(),
-                            endTime: new Date(),
-                            displayStartTime: new Date(),
-                            displayEndTime: new Date()
-                        };
-                    }
+                    const status = getTaskStatus(task, now);
+                    return {
+                        ...task,
+                        ...status
+                    };
                 })
                 .filter(task => task.status !== "completed")
                 .sort((a, b) => {
@@ -1749,7 +1699,7 @@
                         return priorityOrder[b.priority] - priorityOrder[a.priority];
                     }
                     
-                    return (a.startTime || new Date()) - (b.startTime || new Date());
+                    return a.startTime - b.startTime;
                 });
         }
 
@@ -1853,10 +1803,10 @@
             return taskEl;
         }
 
-        // 创建缩略事件元素 - 修复版本
+        // 创建缩略事件元素
         function createMiniTaskElement(task) {
             const taskEl = document.createElement('div');
-            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover future-task-item";
+            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover";
             
             taskEl.className = baseClass;
             taskEl.dataset.taskId = task.id;
@@ -1864,16 +1814,9 @@
             const ongoingIndicator = task.status === "ongoing" ? 
                 '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
             
-            const countdownBadge = task.countdownText ? `<span class="countdown ml-2">${task.countdownText}</span>` : '';
+            const countdownBadge = `<span class="countdown ml-2">${task.countdownText}</span>`;
             
             const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
-            
-            // 安全地处理时间显示
-            let timeDisplay = '时间计算中';
-            if (task.startTime && task.startTime instanceof Date && !isNaN(task.startTime)) {
-                timeDisplay = task.status === 'ongoing' ? '进行中' : 
-                             task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
-            }
             
             taskEl.innerHTML = `
                 <div class="flex items-center flex-1 min-w-0">
@@ -1881,17 +1824,31 @@
                     <div class="flex-1 min-w-0">
                         <div class="text-sm truncate">${task.name}</div>
                         <div class="text-xs text-primary flex items-center">
-                            ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText || '即将开始'}</span>${countdownBadge}
+                            ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText}</span>${countdownBadge}
                         </div>
                     </div>
                 </div>
                 <div class="text-xs text-dark-textSecondary whitespace-nowrap ml-2">
-                    ${timeDisplay}
+                    ${task.status === 'ongoing' ? '进行中' : task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}
                 </div>
             `;
             
-            // 为未来事件列表中的任务添加预览交互
-            addPreviewInteractionToFutureTask(taskEl, task);
+            // 添加鼠标悬停预览事件
+            taskEl.addEventListener('mouseenter', (e) => {
+                if (previewTimeout) {
+                    clearTimeout(previewTimeout);
+                }
+                previewTimeout = setTimeout(() => {
+                    showPreviewCard(task, e.clientX, e.clientY);
+                }, 500);
+            });
+            
+            taskEl.addEventListener('mouseleave', () => {
+                if (previewTimeout) {
+                    clearTimeout(previewTimeout);
+                }
+                hidePreviewCard();
+            });
             
             taskEl.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -1907,152 +1864,6 @@
             });
             
             return taskEl;
-        }
-
-        // 专门为未来事件列表添加预览交互
-        function addPreviewInteractionToFutureTask(element, task) {
-            let previewTimer = null;
-            
-            element.addEventListener('mouseenter', (e) => {
-                // 清除之前的定时器
-                if (previewTimer) {
-                    clearTimeout(previewTimer);
-                }
-                
-                // 设置新的预览显示定时器
-                previewTimer = setTimeout(() => {
-                    showPreviewCardForFutureTask(task, e.clientX, e.clientY);
-                }, 300);
-            });
-            
-            element.addEventListener('mouseleave', () => {
-                // 清除定时器
-                if (previewTimer) {
-                    clearTimeout(previewTimer);
-                    previewTimer = null;
-                }
-                hidePreviewCard();
-            });
-            
-            element.addEventListener('mousemove', (e) => {
-                if (isPreviewVisible && currentPreviewTaskId === task.id) {
-                    updatePreviewCardPosition(e.clientX, e.clientY);
-                }
-            });
-        }
-
-        // 专门为未来事件显示预览卡片
-        function showPreviewCardForFutureTask(task, x, y) {
-            const now = new Date();
-            
-            // 重新计算任务状态以确保数据准确
-            let status;
-            try {
-                status = getTaskStatus(task, now);
-            } catch (e) {
-                console.error('预览卡片状态计算错误:', task.name, e);
-                // 使用默认状态
-                status = {
-                    status: "future",
-                    timeText: "时间计算中",
-                    startTime: new Date(),
-                    endTime: new Date()
-                };
-            }
-            
-            // 生成重复方式文本
-            let recurrenceText = "不重复";
-            try {
-                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
-                    recurrenceText = "破晓红石特殊规则";
-                } else {
-                    switch(task.recurrence.type) {
-                        case "none":
-                            recurrenceText = "不重复";
-                            break;
-                        case "daily":
-                            recurrenceText = "每天";
-                            break;
-                        case "weekly":
-                            const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-                            const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
-                            recurrenceText = `每周${selectedDays}`;
-                            break;
-                        case "monthly":
-                            const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-                            if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
-                                const selectedWeekDays = task.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
-                                recurrenceText = `每月${selectedWeekDays}`;
-                            } else if (task.recurrence.days && task.recurrence.days.length > 0) {
-                                const selectedDays = task.recurrence.days?.join(', ') || "";
-                                recurrenceText = `每月${selectedDays}日`;
-                            }
-                            break;
-                        case "custom":
-                            const unitNames = {
-                                "minute": "分钟",
-                                "hour": "小时",
-                                "day": "天",
-                                "week": "周",
-                                "month": "月"
-                            };
-                            recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
-                            break;
-                    }
-                }
-            } catch (e) {
-                console.error('重复方式计算错误:', e);
-                recurrenceText = "不重复";
-            }
-            
-            // 生成持续时间文本
-            const durationUnitNames = {
-                "minute": "分钟",
-                "hour": "小时",
-                "day": "天",
-                "week": "周"
-            };
-            const durationText = `${task.recurrence.duration}${durationUnitNames[task.recurrence.durationUnit] || '分钟'}`;
-            
-            // 生成时间范围文本
-            let dateText = '日期计算中';
-            let timeText = '时间计算中';
-            
-            try {
-                if (status.startTime && status.endTime) {
-                    const isToday = status.startTime.toLocaleDateString() === new Date().toLocaleDateString();
-                    dateText = isToday ? '今天' : status.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'});
-                    timeText = `${status.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${status.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}`;
-                }
-            } catch (e) {
-                console.error('时间范围计算错误:', e);
-            }
-            
-            // 生成提醒文本
-            const alertText = `提前${task.displayThreshold} ${task.displayThresholdUnit === 'minute' ? '分钟' : task.displayThresholdUnit === 'hour' ? '小时' : task.displayThresholdUnit === 'day' ? '天' : '周'}提醒`;
-            
-            // 更新预览卡片内容
-            document.getElementById('preview-priority').className = `w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}`;
-            document.getElementById('preview-name').textContent = task.name;
-            
-            const statusIndicator = status.status === "ongoing" ? 
-                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
-            const statusTextClass = status.status === "ongoing" ? "ongoing-text" : "";
-            document.getElementById('preview-status').innerHTML = `${statusIndicator}<span class="${statusTextClass}">${status.timeText || '即将开始'}</span>`;
-            
-            document.getElementById('preview-recurrence').textContent = recurrenceText;
-            document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
-            document.getElementById('preview-date').textContent = dateText;
-            document.getElementById('preview-time').textContent = timeText;
-            document.getElementById('preview-alert').textContent = alertText;
-            
-            // 设置卡片位置
-            updatePreviewCardPosition(x, y);
-            
-            // 显示卡片并添加高亮动画
-            previewCard.classList.add('show', 'preview-highlight');
-            currentPreviewTaskId = task.id;
-            isPreviewVisible = true;
         }
 
         // 更新事件显示
@@ -2083,19 +1894,10 @@
             adjustContainerSize(hasVisibleContent);
         }
 
-        // 更新所有事件列表 - 修复版本
+        // 更新所有事件列表
         function updateAllTasksList() {
             const allTasks = getAllTasksWithStatus();
             allTasksListEl.innerHTML = '';
-            
-            if (allTasks.length === 0) {
-                allTasksListEl.innerHTML = `
-                    <div class="text-center py-4 text-dark-textSecondary text-sm">
-                        暂无未来事件
-                    </div>
-                `;
-                return;
-            }
             
             allTasks.forEach(task => {
                 const taskEl = createMiniTaskElement(task);
@@ -2587,6 +2389,10 @@
             }
         }
 
+        // 初始化并定时更新
+        updateCurrentTime();
+        updateTasks();
+        
         // 每秒更新时间
         setInterval(updateCurrentTime, 1000);
         
