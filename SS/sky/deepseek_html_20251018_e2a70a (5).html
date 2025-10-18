@@ -246,61 +246,41 @@
                 .preview-card::before {
                     display: none;
                 }
-                /* 新增：轮播模块下方信息改为2行显示 */
                 .task-meta {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 0.25rem 1rem;
-                    margin-top: 0.75rem;
+                    @apply flex flex-col gap-1;
                 }
                 .task-meta-item {
-                    margin-right: 0;
-                    display: flex;
-                    align-items: center;
-                }
-                /* 重复方式和日期在第一行 */
-                .task-meta-item:nth-child(1),
-                .task-meta-item:nth-child(3) {
-                    grid-column: span 1;
-                }
-                /* 持续时间和时间范围在第二行 */
-                .task-meta-item:nth-child(2),
-                .task-meta-item:nth-child(4) {
-                    grid-column: span 1;
+                    @apply mr-0;
                 }
                 .time-input-group {
-                    flex-direction: column;
-                    align-items: stretch;
+                    @apply flex-col items-stretch;
                 }
                 .time-input, .time-select {
-                    width: 100%;
+                    @apply w-full;
                 }
                 .download-btn, .save-btn {
-                    bottom: 1rem;
-                    padding: 0.625rem;
+                    @apply bottom-4 p-2.5;
                 }
                 .download-btn {
-                    right: 1rem;
+                    @apply right-4;
                 }
                 .save-btn {
-                    left: 1rem;
+                    @apply left-4;
                 }
                 .save-status {
-                    bottom: 1rem;
-                    left: 4rem;
+                    @apply bottom-4 left-16;
                 }
                 .modal-content {
-                    max-height: 90vh;
-                    overflow-y: auto;
+                    @apply max-h-[90vh] overflow-y-auto;
                 }
                 .task-item {
-                    padding: 0.75rem;
+                    @apply p-3;
                 }
                 .task-title {
-                    font-size: 0.875rem;
+                    @apply text-sm;
                 }
                 .task-meta {
-                    font-size: 0.75rem;
+                    @apply text-xs;
                 }
             }
         }
@@ -1934,11 +1914,12 @@
                         ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText}</span>${countdownBadge}
                     </div>
                 </div>
-                <div class="text-xs text-dark-textSecondary task-meta">
+                <div class="text-xs text-dark-textSecondary task-meta flex flex-col sm:flex-row sm:justify-between gap-1">
                     <span class="task-meta-item"><i class="fa fa-repeat mr-1 opacity-70"></i>${recurrenceText}</span>
                     <span class="task-meta-item"><i class="fa fa-clock-o mr-1 opacity-70"></i>持续 ${durationText}</span>
                     <span class="task-meta-item"><i class="fa fa-calendar mr-1 opacity-70"></i>${dateText}</span>
-                    <span class="task-meta-item"><i class="fa fa-hourglass-start mr-1 opacity-70"></i>${task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${task.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}</span>
+                    <span class="task-meta-item"><i class="fa fa-hourglass-start mr-1 opacity-70"></i>${task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - 
+                    ${task.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}</span>
                 </div>
             `;
             
