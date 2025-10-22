@@ -879,143 +879,6 @@
             }
         };
 
-        // ==================== 圆梦滑冰事件规则 ====================
-        const DreamSkatingRules = {
-            // 检查圆梦滑冰事件是否在活动时间段
-            isActive(nowCST) {
-                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
-                const weekday = nowPDT.getDay(); // 0=周日, 1=周一, ..., 6=周六
-                const hour = nowPDT.getHours();
-                const minute = nowPDT.getMinutes();
-                
-                // 周二、三、四无事件
-                if (weekday === 2 || weekday === 3 || weekday === 4) {
-                    return null;
-                }
-                
-                // 计算当前时间是否在活动时间段内
-                let baseHour;
-                if (weekday === 5) { // 周五
-                    baseHour = 0; // 太平洋时间00:00 = 北京时间15:00/16:00
-                } else { // 周六、日、一
-                    baseHour = 10; // 太平洋时间10:00 = 北京时间次日01:00/02:00
-                }
-                
-                // 每2小时进行一次，持续15分钟
-                const totalMinutes = hour * 60 + minute;
-                const baseMinutes = baseHour * 60;
-                const intervalMinutes = 2 * 60; // 2小时间隔
-                
-                // 计算当前时间相对于基点的间隔数
-                const intervals = Math.floor((totalMinutes - baseMinutes) / intervalMinutes);
-                
-                if (intervals < 0) {
-                    return null; // 还没到第一个时间段
-                }
-                
-                const slotStartMinutes = baseMinutes + intervals * intervalMinutes;
-                const slotEndMinutes = slotStartMinutes + 15; // 持续15分钟
-                
-                if (totalMinutes >= slotStartMinutes && totalMinutes < slotEndMinutes) {
-                    const slotStartPDT = new Date(nowPDT);
-                    slotStartPDT.setHours(Math.floor(slotStartMinutes / 60), slotStartMinutes % 60, 0, 0);
-                    const slotEndPDT = new Date(nowPDT);
-                    slotEndPDT.setHours(Math.floor(slotEndMinutes / 60), slotEndMinutes % 60, 0, 0);
-                    
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(slotStartPDT),
-                        endTime: TimeZoneUtils.PDTtoCST(slotEndPDT)
-                    };
-                }
-                
-                return null;
-            },
-            
-            // 计算圆梦滑冰事件的下一次发生时间
-            getNextOccurrence(nowCST) {
-                // 首先检查当前是否有正在进行的事件
-                const currentActive = this.isActive(nowCST);
-                if (currentActive) {
-                    return currentActive.startTime;
-                }
-                
-                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
-                const weekday = nowPDT.getDay();
-                const hour = nowPDT.getHours();
-                const minute = nowPDT.getMinutes();
-                const totalMinutes = hour * 60 + minute;
-                
-                // 周二、三、四无事件，跳到下一个有效日期
-                if (weekday === 2 || weekday === 3 || weekday === 4) {
-                    let nextDate = new Date(nowPDT);
-                    let daysToAdd = 1;
-                    
-                    // 找到下一个有效日期（周五、周六、周日或周一）
-                    while (true) {
-                        nextDate.setDate(nextDate.getDate() + daysToAdd);
-                        const nextWeekday = nextDate.getDay();
-                        if (nextWeekday === 5 || nextWeekday === 6 || nextWeekday === 0 || nextWeekday === 1) {
-                            break;
-                        }
-                        daysToAdd++;
-                    }
-                    
-                    const nextWeekday = nextDate.getDay();
-                    const baseHour = nextWeekday === 5 ? 0 : 10; // 周五00:00，其他10:00
-                    
-                    nextDate.setHours(baseHour, 0, 0, 0);
-                    return TimeZoneUtils.PDTtoCST(nextDate);
-                }
-                
-                // 当前是有效日期，计算下一个时间段
-                let baseHour;
-                if (weekday === 5) { // 周五
-                    baseHour = 0;
-                } else { // 周六、日、一
-                    baseHour = 10;
-                }
-                
-                const baseMinutes = baseHour * 60;
-                const intervalMinutes = 2 * 60; // 2小时间隔
-                
-                // 计算下一个时间段
-                let nextSlotMinutes;
-                if (totalMinutes < baseMinutes) {
-                    nextSlotMinutes = baseMinutes; // 还没到第一个时间段
-                } else {
-                    const intervals = Math.floor((totalMinutes - baseMinutes) / intervalMinutes);
-                    nextSlotMinutes = baseMinutes + (intervals + 1) * intervalMinutes;
-                }
-                
-                // 检查下一个时间段是否在同一天
-                const nextHour = Math.floor(nextSlotMinutes / 60);
-                const nextMinute = nextSlotMinutes % 60;
-                
-                if (nextHour < 24) {
-                    const nextTimePDT = new Date(nowPDT);
-                    nextTimePDT.setHours(nextHour, nextMinute, 0, 0);
-                    return TimeZoneUtils.PDTtoCST(nextTimePDT);
-                } else {
-                    // 跳到下一天
-                    let nextDate = new Date(nowPDT);
-                    nextDate.setDate(nextDate.getDate() + 1);
-                    const nextWeekday = nextDate.getDay();
-                    
-                    // 如果下一天是无效日期，继续找
-                    let daysToAdd = 1;
-                    while (nextWeekday === 2 || nextWeekday === 3 || nextWeekday === 4) {
-                        daysToAdd++;
-                        nextDate.setDate(nextDate.getDate() + 1);
-                    }
-                    
-                    const validWeekday = nextDate.getDay();
-                    const nextBaseHour = validWeekday === 5 ? 0 : 10;
-                    nextDate.setHours(nextBaseHour, 0, 0, 0);
-                    return TimeZoneUtils.PDTtoCST(nextDate);
-                }
-            }
-        };
-
         // ==================== 核心逻辑 ====================
         
         // 用于存储外部数据的变量
@@ -1257,21 +1120,6 @@
                     duration: 232,
                     durationUnit: "minute"
                 }
-            },
-            {
-                id: 21,
-                name: "圆梦 滑冰",
-                startDate: getTodayDate(),
-                startTime: "10:00", // 太平洋时间 10:00 = 北京时间 次日01:00/02:00
-                displayThreshold: 15,
-                displayThresholdUnit: "minute",
-                priority: "medium",
-                recurrence: {
-                    type: "custom_complex",
-                    pattern: "dream_skating",
-                    duration: 15,
-                    durationUnit: "minute"
-                }
             }
         ];
 
@@ -1498,12 +1346,6 @@
                     return nextTimeCST;
                 }
                 
-                // 圆梦滑冰特殊处理
-                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
-                    const nextTimeCST = DreamSkatingRules.getNextOccurrence(nowCST);
-                    return nextTimeCST;
-                }
-                
                 // 将当前时间转换为太平洋时间进行计算
                 const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
                 
@@ -1604,15 +1446,6 @@
                 
                 if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
                     const activeInfo = DawnRedstoneRules.isActive(nowCST);
-                    if (activeInfo) {
-                        endTimeCST = activeInfo.endTime;
-                        durationMs = endTimeCST - activeInfo.startTime;
-                    } else {
-                        durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                        endTimeCST = new Date(nextStartCST.getTime() + durationMs);
-                    }
-                } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
-                    const activeInfo = DreamSkatingRules.isActive(nowCST);
                     if (activeInfo) {
                         endTimeCST = activeInfo.endTime;
                         durationMs = endTimeCST - activeInfo.startTime;
@@ -1791,8 +1624,6 @@
             let recurrenceText = "";
             if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
                 recurrenceText = "破晓红石特殊规则";
-            } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
-                recurrenceText = "圆梦滑冰特殊规则";
             } else {
                 switch(task.recurrence.type) {
                     case "none":
@@ -1947,7 +1778,7 @@
                 
                 previewTimer = setTimeout(() => {
                     showPreviewCard(task, e.clientX, e.clientY);
-                }, 2300);
+                }, 300);
             });
             
             element.addEventListener('mouseleave', () => {
@@ -1975,8 +1806,6 @@
             let recurrenceText = "";
             if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dawn_redstone") {
                 recurrenceText = "破晓红石特殊规则";
-            } else if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dream_skating") {
-                recurrenceText = "圆梦滑冰特殊规则";
             } else {
                 switch(currentTask.recurrence.type) {
                     case "none":
