@@ -1,4 +1,6 @@
-<html lang="zh-CN"><head>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>十三 | 快捷复制</title>
@@ -84,12 +86,14 @@
     <h1 class="title">快捷复制</h1>
     
     <div class="category-bar" id="categoryBar">
-        <div class="category-btn" data-category="all">全部</div>
+        <div class="category-btn active" data-category="all">全部</div>
         <!-- 分类按钮将通过JavaScript动态生成 -->
-        <div class="category-btn" data-category="默认" draggable="true">默认</div><div class="category-btn" data-category="分类2" draggable="true">分类2</div><div class="category-btn" data-category="分类3" draggable="true">分类3</div><div class="category-btn" data-category="分类4" draggable="true">分类4</div><div class="category-btn" data-category="分类5" draggable="true">分类5</div><div class="category-btn active" data-category="晚安" draggable="true">晚安</div><div class="category-btn" data-category="づ♡ど" draggable="true">づ♡ど</div><button class="add-category-btn" id="addCategoryBtn">+</button>
+        <button class="add-category-btn" id="addCategoryBtn">+</button>
     </div>
     
-    <div class="grid-container" id="gridContainer"><div class="grid-item" contenteditable="false" data-grid-id="grid_1761837840492_376" data-grid-category="晚安" draggable="true">晚安 玛卡巴卡</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761837841752_786" data-grid-category="晚安" draggable="true">晚安 依古比古</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761837842179_414" data-grid-category="晚安" draggable="true">晚安 唔西迪西</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761838126391_227" data-grid-category="晚安" draggable="true">晚安&nbsp;汤姆布利柏</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761837842828_647" data-grid-category="晚安" draggable="true">晚安 小点点</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761837843123_853" data-grid-category="晚安" draggable="true">晚安 叮叮车</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761838126215_5" data-grid-category="晚安" draggable="true">晚安 飞飞鱼</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761838295590_638" data-grid-category="晚安" draggable="true">晚安 哈呼呼</div><div class="grid-item" contenteditable="false" data-grid-id="grid_1761838311517_348" data-grid-category="晚安" draggable="true">晚安 小朋友们</div></div>
+    <div class="grid-container" id="gridContainer">
+        <!-- 格子内容将通过JavaScript动态生成 -->
+    </div>
     
     <div class="btn-group">
         <button class="func-btn add-grid-btn" id="addGridBtn">+</button>
@@ -111,308 +115,12 @@
 
         // 核心数据 - 初始数据
         let appData = {
-  "grids": [
-    {
-      "id": "grid_1",
-      "content": "示例文本1",
-      "category": "默认"
-    },
-    {
-      "id": "grid_2",
-      "content": "示例文本2",
-      "category": "默认"
-    },
-    {
-      "id": "grid_1761837505336_633",
-      "content": "(ง๑ •̀_•́)ง",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837505769_428",
-      "content": "٩(•ิ˓̭ •ิ )ง",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837506029_391",
-      "content": "╭∩╮(ㆆᴗㆆ)╭∩╮",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837506242_76",
-      "content": "ก็ʕ•͡ᴥ•ʔ ก้",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837506440_182",
-      "content": "ʕ´• ᴥ•̥`ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837506694_295",
-      "content": "ʕ·ᴥ·ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837506932_663",
-      "content": "ˁ˙˟˙ˀ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837507163_803",
-      "content": "ʕ　·ᴥʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837507364_342",
-      "content": "ʕᴥ·　ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837507553_706",
-      "content": "ʕ￫ᴥ￩ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837507742_708",
-      "content": "ʢᵕᴗᵕʡ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837507952_627",
-      "content": "ʕ◉ᴥ◉ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837508211_375",
-      "content": "ʕ•㉨•ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837508415_11",
-      "content": "ʕʽɞʼʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837508611_987",
-      "content": "ʕ∙ჲ∙ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837508808_449",
-      "content": "ʕ•̮͡•ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837509018_304",
-      "content": "ᶘ ᵒᴥᵒᶅ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837509204_818",
-      "content": "ʕ•̠͡•ʔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837509400_795",
-      "content": "(っ●ω●)っ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837509597_467",
-      "content": "(⸝⸝•̀֊•́⸝⸝)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837509815_679",
-      "content": "(っ﹏-) .｡o",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837510028_91",
-      "content": "ㅇㅅㅇ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837510229_137",
-      "content": "(๑•ั็ω•็ั๑)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837510439_871",
-      "content": "( ´･･)ﾉ(._.`)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837510714_588",
-      "content": "╭∩╮ʕ´• ᴥ•̥`ʔ╭∩╮",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837515110_378",
-      "content": "(╥﹏╥)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837515482_444",
-      "content": "(〒︿〒)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837515732_143",
-      "content": ":;(∩´﹏`∩);:",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837515934_814",
-      "content": "( ´•̥̥̥ω•̥̥̥` )",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837516161_567",
-      "content": "●_●",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837516413_884",
-      "content": "ᵔᴥᵔ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837516618_939",
-      "content": "( •́ _ •̀)？",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837516821_38",
-      "content": "ʕっ•ᴥ•ʔっ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837517029_219",
-      "content": "⊂(・﹏・⊂)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837517263_36",
-      "content": "(っ⇀⑃↼)っ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837517478_38",
-      "content": "•᷄ࡇ•᷅..",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837517687_769",
-      "content": "(´･_･`)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837517920_38",
-      "content": "▼・ᴥ・▼",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837518151_720",
-      "content": "⌓‿⌓",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837518441_156",
-      "content": "(っ⇀⑃↼)っ",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837518696_397",
-      "content": "(๑•́ ₃ •̀๑)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837518949_122",
-      "content": "つ﹏⊂",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837519237_0",
-      "content": "m( =•ω•= )o.",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837519463_487",
-      "content": "づ♡ど",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837519676_328",
-      "content": "っ ̫ ⊂",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837519898_366",
-      "content": "(っ`ᵕ´c)",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837520127_556",
-      "content": "🕯️",
-      "category": "づ♡ど"
-    },
-    {
-      "id": "grid_1761837840492_376",
-      "content": "晚安 玛卡巴卡",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761837841752_786",
-      "content": "晚安 依古比古",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761837842179_414",
-      "content": "晚安 唔西迪西",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761838126391_227",
-      "content": "晚安 汤姆布利柏",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761837842828_647",
-      "content": "晚安 小点点",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761837843123_853",
-      "content": "晚安 叮叮车",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761838126215_5",
-      "content": "晚安 飞飞鱼",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761838295590_638",
-      "content": "晚安 哈呼呼",
-      "category": "晚安"
-    },
-    {
-      "id": "grid_1761838311517_348",
-      "content": "晚安 小朋友们",
-      "category": "晚安"
-    }
-  ],
-  "categories": [
-    "默认",
-    "分类2",
-    "分类3",
-    "分类4",
-    "分类5",
-    "晚安",
-    "づ♡ど"
-  ]
-};
+            grids: [
+                { id: "grid_1", content: "示例文本1", category: "默认" },
+                { id: "grid_2", content: "示例文本2", category: "默认" }
+            ],
+            categories: ["默认"]
+        };
 
         let activeCategory = 'all';
         let dragSource = null; // 当前拖动的元素
@@ -966,5 +674,5 @@
         // 页面加载初始化
         window.addEventListener('load', init);
     </script>
-
-</body></html>
+</body>
+</html>
