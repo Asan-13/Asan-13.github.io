@@ -19,21 +19,19 @@
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 3px;
+            gap: 4px;
         }
         
         .calendar-day {
             background-color: #ffffff;
-            aspect-ratio: 1 / 1;
+            min-height: 110px;
             transition: all 0.2s ease;
-            border-radius: 6px;
-            padding: 4px;
+            border-radius: 8px;
+            padding: 6px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            position: relative;
         }
         
         .calendar-day:hover {
@@ -42,10 +40,10 @@
         }
         
         .event-item {
-            padding: 3px;
-            margin-bottom: 2px;
-            border-radius: 3px;
-            font-size: 0.6rem;
+            padding: 4px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 0.65rem;
             transition: all 0.2s ease;
             width: 100%;
             text-align: center;
@@ -81,16 +79,12 @@
         
         .weekday-header {
             background: rgba(255, 255, 255, 0.8);
-            padding: 6px 2px;
+            padding: 8px 4px;
             text-align: center;
             font-weight: 600;
             border-radius: 6px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            font-size: 0.75rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            font-size: 0.8rem;
         }
         
         .today {
@@ -102,10 +96,10 @@
         .today::after {
             content: '';
             position: absolute;
-            top: 3px;
-            right: 3px;
-            width: 5px;
-            height: 5px;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
             background-color: #60a5fa;
             border-radius: 50%;
         }
@@ -124,19 +118,19 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 1px;
-            line-height: 1.1;
+            margin-bottom: 2px;
+            line-height: 1.2;
         }
         
         .location-area {
             font-weight: 600;
-            font-size: 0.6rem;
+            font-size: 0.65rem;
             word-break: keep-all;
         }
         
         .location-name {
             font-weight: 500;
-            font-size: 0.55rem;
+            font-size: 0.6rem;
             color: #64748b;
             word-break: keep-all;
             display: flex;
@@ -150,42 +144,35 @@
         }
         
         .compact-date {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 600;
-            padding: 2px;
+            padding: 4px;
             text-align: center;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
         
         .weekday-time-info {
-            margin-top: 3px;
+            margin-top: 4px;
             display: flex;
             flex-direction: column;
-            align-items: center;
             gap: 2px;
-            width: 100%;
         }
         
         .time-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 2px;
-            width: 100%;
+            gap: 4px;
         }
         
         .time-badge {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            padding: 1px 3px;
-            border-radius: 2px;
-            font-size: 0.5rem;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 0.55rem;
             font-weight: 500;
             white-space: nowrap;
-            flex: 1;
-            min-width: 0;
-            max-width: 100%;
         }
         
         .redstone-time {
@@ -200,11 +187,10 @@
         
         .type-indicator {
             display: inline-block;
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            margin-right: 2px;
-            flex-shrink: 0;
+            margin-right: 3px;
         }
         
         .red-indicator {
@@ -217,116 +203,26 @@
         
         /* 平板和桌面样式 */
         @media (min-width: 768px) {
-            .calendar-grid {
-                gap: 4px;
-            }
-            
             .calendar-day {
-                padding: 6px;
-                border-radius: 8px;
-            }
-            
-            .event-item {
-                padding: 4px;
-                margin-bottom: 3px;
-                font-size: 0.65rem;
-            }
-            
-            .weekday-header {
-                padding: 8px 4px;
-                font-size: 0.8rem;
-            }
-            
-            .compact-date {
-                font-size: 0.85rem;
-                padding: 4px;
-                margin-bottom: 4px;
-            }
-            
-            .location-area {
-                font-size: 0.65rem;
-            }
-            
-            .location-name {
-                font-size: 0.6rem;
-            }
-            
-            .time-badge {
-                font-size: 0.55rem;
-                padding: 2px 4px;
-            }
-            
-            .weekday-time-info {
-                margin-top: 4px;
-                gap: 3px;
-            }
-            
-            .type-indicator {
-                width: 7px;
-                height: 7px;
-            }
-        }
-        
-        /* 电脑端优化 */
-        @media (min-width: 1024px) {
-            .calendar-day {
-                padding: 8px;
-            }
-            
-            .event-item {
-                padding: 5px;
-                font-size: 0.7rem;
-            }
-            
-            .weekday-header {
-                padding: 10px 6px;
-                font-size: 0.85rem;
-            }
-            
-            .compact-date {
-                font-size: 0.9rem;
-            }
-            
-            .location-area {
-                font-size: 0.7rem;
-            }
-            
-            .location-name {
-                font-size: 0.65rem;
-            }
-            
-            .time-badge {
-                font-size: 0.6rem;
-                padding: 2px 5px;
-            }
-            
-            .type-indicator {
-                width: 8px;
-                height: 8px;
-            }
-        }
-        
-        /* 超大屏幕优化 */
-        @media (min-width: 1280px) {
-            .calendar-grid {
-                gap: 6px;
-            }
-            
-            .calendar-day {
+                min-height: 140px;
                 padding: 10px;
             }
             
             .event-item {
                 padding: 6px;
+                margin-bottom: 6px;
                 font-size: 0.75rem;
             }
             
             .weekday-header {
                 padding: 12px 8px;
+                font-size: 0.9rem;
             }
             
             .compact-date {
                 font-size: 1rem;
+                padding: 8px 6px;
+                margin-bottom: 8px;
             }
             
             .location-area {
@@ -340,6 +236,30 @@
             .time-badge {
                 font-size: 0.65rem;
                 padding: 3px 6px;
+            }
+            
+            .weekday-time-info {
+                margin-top: 6px;
+                gap: 4px;
+            }
+            
+            .type-indicator {
+                width: 10px;
+                height: 10px;
+            }
+        }
+        
+        /* 电脑端优化 */
+        @media (min-width: 1024px) {
+            .weekday-time-info {
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .time-row {
+                flex-direction: column;
+                gap: 2px;
             }
         }
     </style>
