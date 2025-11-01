@@ -169,26 +169,45 @@
             font-weight: 500;
             font-size: 0.6rem;
             color: #64748b;
-            /* 双字换行优化 - 针对4字文本 */
-            word-break: break-all;
-            word-wrap: break-word;
             line-height: 1.2;
             text-align: center;
             width: 100%;
-            /* 强制4字文本对半换行 */
-            display: -webkit-box;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
-            overflow: hidden;
         }
         
-        /* 专门针对4字文本的优化 */
-        .four-char-text {
-            letter-spacing: -0.5px;
+        /* 专门针对4字文本的优化 - 强制对半换行 */
+        .four-char {
             word-break: break-all;
-            display: inline-block;
-            max-width: 100%;
+            word-wrap: break-word;
+            display: block;
             line-height: 1.1;
+            letter-spacing: -0.5px;
+        }
+        
+        /* 为每个4字地点名称单独设置 */
+        .location-黑水港湾,
+        .location-巨兽荒原,
+        .location-失落方舟,
+        .location-星漠海滩,
+        .location-云顶浮石,
+        .location-幽光山洞,
+        .location-大树屋,
+        .location-雨林神庙,
+        .location-秘密花园,
+        .location-圆梦村,
+        .location-雪隐峰,
+        .location-边陲荒漠,
+        .location-远古战场,
+        .location-星光沙漠,
+        .location-蝴蝶平原,
+        .location-云野仙乡,
+        .location-荧光森林,
+        .location-密林遗迹,
+        .location-滑冰场 {
+            word-break: break-all;
+            word-wrap: break-word;
+            display: block;
+            line-height: 1.1;
+            letter-spacing: -0.5px;
         }
         
         .compact-date {
@@ -328,8 +347,33 @@
             
             .location-name {
                 font-size: 0.7rem;
-                -webkit-line-clamp: unset;
-                overflow: visible;
+            }
+            
+            /* 在桌面端取消4字换行 */
+            .four-char,
+            .location-黑水港湾,
+            .location-巨兽荒原,
+            .location-失落方舟,
+            .location-星漠海滩,
+            .location-云顶浮石,
+            .location-幽光山洞,
+            .location-大树屋,
+            .location-雨林神庙,
+            .location-秘密花园,
+            .location-圆梦村,
+            .location-雪隐峰,
+            .location-边陲荒漠,
+            .location-远古战场,
+            .location-星光沙漠,
+            .location-蝴蝶平原,
+            .location-云野仙乡,
+            .location-荧光森林,
+            .location-密林遗迹,
+            .location-滑冰场 {
+                word-break: normal;
+                word-wrap: normal;
+                display: inline;
+                letter-spacing: normal;
             }
             
             .time-slot {
@@ -467,14 +511,32 @@
             .month-title {
                 font-size: 0.85rem;
             }
-        }
-        
-        /* 针对4字文本的特殊处理 */
-        @media (max-width: 340px) {
-            .location-name.four-char {
+            
+            /* 在超窄屏幕上进一步优化4字文本 */
+            .four-char,
+            .location-黑水港湾,
+            .location-巨兽荒原,
+            .location-失落方舟,
+            .location-星漠海滩,
+            .location-云顶浮石,
+            .location-幽光山洞,
+            .location-大树屋,
+            .location-雨林神庙,
+            .location-秘密花园,
+            .location-圆梦村,
+            .location-雪隐峰,
+            .location-边陲荒漠,
+            .location-远古战场,
+            .location-星光沙漠,
+            .location-蝴蝶平原,
+            .location-云野仙乡,
+            .location-荧光森林,
+            .location-密林遗迹,
+            .location-滑冰场 {
                 font-size: 0.5rem;
                 letter-spacing: -0.5px;
                 word-break: break-all;
+                word-wrap: break-word;
                 display: block;
                 line-height: 1;
             }
@@ -853,9 +915,9 @@
                         locationContainer.appendChild(areaElement);
                         
                         const nameElement = document.createElement('div');
-                        nameElement.className = 'location-name';
+                        nameElement.className = `location-name location-${event.location.name}`;
                         
-                        // 检查是否为4字文本并添加特殊类
+                        // 为4字文本添加特殊类
                         if (event.location.name.length === 4) {
                             nameElement.classList.add('four-char');
                         }
@@ -878,7 +940,7 @@
             }
         }
         
-        // 显示事件详情 - 修改为独立显示事件信息和时间
+        // 显示事件详情
         function showEventDetails(event) {
             const detailsContainer = document.getElementById('event-details');
             
