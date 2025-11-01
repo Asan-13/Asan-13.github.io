@@ -47,6 +47,7 @@
             transition: all 0.2s ease;
             width: 100%;
             text-align: center;
+            cursor: pointer;
         }
         
         .redstone-event {
@@ -156,17 +157,22 @@
             margin-bottom: 2px;
             border-radius: 6px; /* 地点容器圆角与日期容器一致 */
             padding: 2px;
+            width: 100%;
         }
         
         .location-area {
             font-weight: 600;
             font-size: 0.65rem;
+            word-break: keep-all; /* 防止单字换行 */
+            white-space: nowrap; /* 防止换行 */
         }
         
         .location-name {
             font-weight: 500;
             font-size: 0.6rem;
             color: #64748b;
+            word-break: keep-all; /* 防止单字换行 */
+            white-space: nowrap; /* 防止换行 */
         }
         
         .compact-date {
@@ -247,6 +253,11 @@
         /* 事件详情面板圆角 */
         #event-details {
             border-radius: 8px; /* 事件详情面板圆角与日期容器一致 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
         }
         
         /* 平板和桌面样式 */
@@ -408,7 +419,7 @@
                 <h3 class="text-base md:text-lg font-bold text-slate-800">事件详情</h3>
                 <div class="current-time" id="current-time"></div>
             </div>
-            <div id="event-details" class="text-slate-600 text-center">
+            <div id="event-details" class="text-slate-600">
                 <p class="text-center py-2 text-sm">点击日历中的事件查看详情</p>
             </div>
         </div>
@@ -788,8 +799,8 @@
             const eventColor = event.type === 'redstone' ? 'text-red-600' : 'text-slate-600';
             
             detailsContainer.innerHTML = `
-                <div class="mb-3">
-                    <h4 class="text-base font-semibold mb-1 text-slate-800">${dateStr}</h4>
+                <div class="mb-3 w-full flex flex-col items-center">
+                    <h4 class="text-base font-semibold mb-1 text-slate-800 text-center">${dateStr}</h4>
                     <div class="flex items-center justify-center mb-1">
                         <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'} mr-2">${eventType}</span>
                         <i class="fa fa-map-marker mr-2 ${eventColor}"></i>
@@ -800,7 +811,7 @@
                         <span class="text-slate-700 text-sm">${timeSlotsText}</span>
                     </div>
                 </div>
-                <div class="text-xs text-slate-600">
+                <div class="text-xs text-slate-600 text-center">
                     <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
                     <ul class="mt-1 list-disc list-inside text-left max-w-md mx-auto">
                         ${event.type === 'redstone' ? 
