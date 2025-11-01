@@ -13,22 +13,21 @@
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             color: #334155;
-            padding: 10px;
         }
         
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
+            gap: 6px;
         }
         
         .calendar-day {
             background-color: #ffffff;
-            min-height: 110px;
+            min-height: 140px;
             transition: all 0.2s ease;
-            border-radius: 8px;
-            padding: 6px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -36,14 +35,14 @@
         
         .calendar-day:hover {
             background-color: #f8fafc;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         
         .event-item {
-            padding: 4px;
-            margin-bottom: 4px;
-            border-radius: 4px;
-            font-size: 0.65rem;
+            padding: 8px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            font-size: 0.75rem;
             transition: all 0.2s ease;
             width: 100%;
             text-align: center;
@@ -60,31 +59,29 @@
         }
         
         .event-item:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.07);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
         }
         
         .current-time {
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(96, 165, 250, 0.3);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            margin: 0 auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
         .month-navigation {
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(100, 116, 139, 0.2);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
         .weekday-header {
             background: rgba(255, 255, 255, 0.8);
-            padding: 8px 4px;
+            padding: 12px 8px;
             text-align: center;
             font-weight: 600;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            font-size: 0.8rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
         
         .today {
@@ -96,10 +93,10 @@
         .today::after {
             content: '';
             position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 6px;
-            height: 6px;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
             background-color: #60a5fa;
             border-radius: 50%;
         }
@@ -116,10 +113,10 @@
         
         .time-slot {
             display: inline-block;
-            padding: 2px 4px;
-            margin: 1px;
-            border-radius: 3px;
-            font-size: 0.6rem;
+            padding: 3px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 0.7rem;
             font-weight: 500;
         }
         
@@ -137,35 +134,35 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
         
         .location-area {
             font-weight: 600;
-            font-size: 0.65rem;
+            font-size: 0.75rem;
         }
         
         .location-name {
             font-weight: 500;
-            font-size: 0.6rem;
+            font-size: 0.7rem;
             color: #64748b;
         }
         
         .compact-date {
-            font-size: 0.85rem;
+            font-size: 1rem;
             font-weight: 600;
-            padding: 4px;
+            padding: 8px 6px;
             text-align: center;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
         
         .event-type-badge {
             display: inline-block;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 0.55rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.65rem;
             font-weight: 600;
-            margin-bottom: 3px;
+            margin-bottom: 6px;
         }
         
         .redstone-badge {
@@ -178,82 +175,94 @@
             color: #475569;
         }
         
-        .weekday-time-info {
-            font-size: 0.55rem;
-            color: #64748b;
-            margin-top: 2px;
-            text-align: center;
-        }
-        
-        /* 平板和桌面样式 */
-        @media (min-width: 768px) {
-            .calendar-day {
-                min-height: 140px;
-                padding: 10px;
+        /* 手机端特定样式 */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                gap: 4px;
             }
             
-            .event-item {
-                padding: 6px;
-                margin-bottom: 6px;
-                font-size: 0.75rem;
+            .calendar-day {
+                min-height: 120px;
+                padding: 8px;
             }
             
             .weekday-header {
-                padding: 12px 8px;
+                padding: 10px 6px;
                 font-size: 0.9rem;
             }
             
             .compact-date {
-                font-size: 1rem;
-                padding: 8px 6px;
-                margin-bottom: 8px;
+                font-size: 0.9rem;
+                padding: 6px 4px;
+            }
+            
+            .event-item {
+                padding: 6px;
+                margin-bottom: 4px;
+            }
+            
+            .month-navigation {
+                padding: 12px 8px;
+            }
+            
+            .month-navigation button {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* 小屏幕手机优化 */
+        @media (max-width: 480px) {
+            .calendar-day {
+                min-height: 110px;
+                padding: 6px;
+            }
+            
+            .weekday-header {
+                padding: 8px 4px;
+                font-size: 0.8rem;
+            }
+            
+            .compact-date {
+                font-size: 0.85rem;
+                padding: 4px 2px;
+            }
+            
+            .event-item {
+                padding: 5px;
             }
             
             .location-area {
-                font-size: 0.75rem;
-            }
-            
-            .location-name {
                 font-size: 0.7rem;
             }
             
+            .location-name {
+                font-size: 0.65rem;
+            }
+            
             .time-slot {
-                padding: 3px 6px;
-                margin: 2px;
                 font-size: 0.65rem;
-            }
-            
-            .event-type-badge {
-                font-size: 0.65rem;
-                padding: 3px 8px;
-            }
-            
-            .weekday-time-info {
-                font-size: 0.65rem;
-                margin-top: 4px;
+                padding: 2px 6px;
             }
         }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen p-4 md:p-6">
     <div class="max-w-7xl mx-auto">
-        <!-- 页面标题 -->
-        <h1 class="text-2xl md:text-3xl font-bold text-center text-slate-800 mb-4">破晓红石与黑石事件日历</h1>
-        
         <!-- 月份导航 -->
-        <div class="month-navigation rounded-xl p-3 mb-4 flex justify-between items-center">
-            <button id="prev-month" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-slate-700 text-sm md:text-base">
-                <i class="fa fa-chevron-left mr-1 md:mr-2"></i><span id="prev-month-text"></span>
+        <div class="month-navigation rounded-xl p-4 mb-6 flex justify-between items-center">
+            <button id="prev-month" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-slate-700">
+                <i class="fa fa-chevron-left mr-2"></i><span id="prev-month-text"></span>
             </button>
-            <h2 class="text-lg md:text-2xl font-bold text-slate-800" id="month-title"></h2>
-            <button id="next-month" class="px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-slate-700 text-sm md:text-base">
-                <span id="next-month-text"></span><i class="fa fa-chevron-right ml-1 md:ml-2"></i>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800" id="month-title"></h2>
+            <button id="next-month" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-slate-700">
+                <span id="next-month-text"></span><i class="fa fa-chevron-right ml-2"></i>
             </button>
         </div>
         
         <!-- 当前时间 -->
-        <div class="current-time inline-block px-4 py-2 rounded-lg mb-4 text-center">
-            <span id="current-time" class="text-lg md:text-xl font-semibold text-slate-800"></span>
+        <div class="current-time inline-block px-6 py-3 rounded-xl mb-6 mx-auto block text-center">
+            <span id="current-time" class="text-xl md:text-2xl font-semibold text-slate-800"></span>
         </div>
         
         <!-- 星期标题 -->
@@ -262,15 +271,15 @@
         </div>
         
         <!-- 日历网格 -->
-        <div class="calendar-grid mb-4" id="calendar">
+        <div class="calendar-grid mb-6" id="calendar">
             <!-- 日历日期将通过JavaScript动态生成 -->
         </div>
         
         <!-- 事件详情面板 -->
-        <div class="mt-4 bg-white/80 rounded-xl p-3 border border-slate-200 shadow-sm">
-            <h3 class="text-base md:text-lg font-bold mb-3 text-slate-800 text-center">事件详情</h3>
+        <div class="mt-6 bg-white/80 rounded-xl p-4 md:p-6 border border-slate-200 shadow-sm">
+            <h3 class="text-lg md:text-xl font-bold mb-4 text-slate-800 text-center">事件详情</h3>
             <div id="event-details" class="text-slate-600 text-center">
-                <p class="text-center py-2 text-sm">点击日历中的事件查看详情</p>
+                <p class="text-center py-4">点击日历中的事件查看详情</p>
             </div>
         </div>
     </div>
@@ -279,25 +288,6 @@
         // 当前显示的月份和年份
         let currentYear = 2025;
         let currentMonth = 10; // 0=一月, 10=十一月
-        
-        // 星期几对应的时间段信息
-        const weekdayTimeInfo = {
-            0: { // 周日
-                redstone: ["07:08", "13:08", "19:08"]
-            },
-            5: { // 周五
-                redstone: ["11:08", "17:08", "23:08"]
-            },
-            6: { // 周六
-                redstone: ["10:08", "14:08", "22:08"]
-            },
-            2: { // 周二
-                blackstone: ["08:08", "16:08", "20:08"]
-            },
-            3: { // 周三
-                blackstone: ["09:08", "15:08", "21:08"]
-            }
-        };
         
         // 破晓红石地点推算函数
         function getDawnRedstoneLocation(date, dayOfWeek) {
@@ -519,28 +509,7 @@
             for (let i = 0; i < 7; i++) {
                 const weekdayHeader = document.createElement('div');
                 weekdayHeader.className = 'weekday-header';
-                
-                const weekdayName = document.createElement('div');
-                weekdayName.textContent = weekdayNames[i];
-                weekdayHeader.appendChild(weekdayName);
-                
-                // 添加星期几对应的时间信息
-                if (weekdayTimeInfo[i]) {
-                    const timeInfo = document.createElement('div');
-                    timeInfo.className = 'weekday-time-info';
-                    
-                    if (weekdayTimeInfo[i].redstone) {
-                        timeInfo.innerHTML += `<span class="redstone-badge" style="padding:1px 3px;margin-right:2px;">红</span>${weekdayTimeInfo[i].redstone.join(' ')}`;
-                    }
-                    
-                    if (weekdayTimeInfo[i].blackstone) {
-                        if (weekdayTimeInfo[i].redstone) timeInfo.innerHTML += '<br>';
-                        timeInfo.innerHTML += `<span class="blackstone-badge" style="padding:1px 3px;margin-right:2px;">黑</span>${weekdayTimeInfo[i].blackstone.join(' ')}`;
-                    }
-                    
-                    weekdayHeader.appendChild(timeInfo);
-                }
-                
+                weekdayHeader.textContent = weekdayNames[i];
                 weekdayHeadersContainer.appendChild(weekdayHeader);
             }
             
@@ -616,6 +585,19 @@
                         
                         eventElement.appendChild(locationContainer);
                         
+                        // 显示时间段
+                        const timeContainer = document.createElement('div');
+                        timeContainer.className = 'flex flex-wrap justify-center';
+                        
+                        event.timeSlots.forEach(slot => {
+                            const timeSlot = document.createElement('span');
+                            timeSlot.className = `time-slot ${event.type === 'redstone' ? 'redstone-time' : 'blackstone-time'}`;
+                            timeSlot.textContent = slot.start;
+                            timeContainer.appendChild(timeSlot);
+                        });
+                        
+                        eventElement.appendChild(timeContainer);
+                        
                         // 添加点击事件
                         eventElement.addEventListener('click', () => {
                             showEventDetails(event);
@@ -650,21 +632,21 @@
             const eventColor = event.type === 'redstone' ? 'text-red-600' : 'text-slate-600';
             
             detailsContainer.innerHTML = `
-                <div class="mb-3">
-                    <h4 class="text-base font-semibold mb-1 text-slate-800">${dateStr}</h4>
-                    <div class="flex items-center justify-center mb-1">
+                <div class="mb-4">
+                    <h4 class="text-lg font-semibold mb-2 text-slate-800">${dateStr}</h4>
+                    <div class="flex items-center justify-center mb-2">
                         <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'} mr-2">${eventType}</span>
                         <i class="fa fa-map-marker mr-2 ${eventColor}"></i>
-                        <span class="text-slate-700 text-sm">${event.location.area} - ${event.location.name}</span>
+                        <span class="text-slate-700">${event.location.area} - ${event.location.name}</span>
                     </div>
                     <div class="flex items-center justify-center">
                         <i class="fa fa-clock-o mr-2 ${eventColor}"></i>
-                        <span class="text-slate-700 text-sm">${timeSlotsText}</span>
+                        <span class="text-slate-700">${timeSlotsText}</span>
                     </div>
                 </div>
-                <div class="text-xs text-slate-600">
+                <div class="text-sm text-slate-600">
                     <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
-                    <ul class="mt-1 list-disc list-inside text-left max-w-md mx-auto">
+                    <ul class="mt-2 list-disc list-inside text-left max-w-md mx-auto">
                         ${event.type === 'redstone' ? 
                             `<li>周日：每月每个周日固定时间段循环事件</li>
                              <li>周六：每月1-15号内的每个周六固定时间段循环事件</li>
