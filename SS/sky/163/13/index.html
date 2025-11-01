@@ -168,8 +168,12 @@
             font-weight: 500;
             font-size: 0.6rem;
             color: #64748b;
-            word-break: keep-all;
+            /* 双字换行优化 */
+            word-break: break-all;
+            word-wrap: break-word;
             line-height: 1.2;
+            text-align: center;
+            width: 100%;
         }
         
         .compact-date {
@@ -247,7 +251,7 @@
             color: #1e293b;
         }
         
-        /* 事件详情面板居中 */
+        /* 事件详情面板样式 */
         #event-details {
             border-radius: 8px;
             text-align: center;
@@ -259,6 +263,21 @@
             align-items: center;
             text-align: center;
             width: 100%;
+        }
+        
+        .event-info-section {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.5);
+        }
+        
+        .event-time-section {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(248, 250, 252, 0.5);
         }
         
         /* 平板和桌面样式 */
@@ -335,6 +354,11 @@
             .month-title {
                 font-size: 1.4rem;
             }
+            
+            .event-info-section,
+            .event-time-section {
+                padding: 12px;
+            }
         }
         
         /* 手机端优化 */
@@ -393,6 +417,7 @@
         
         <!-- 月份导航 -->
         <div class="month-navigation rounded-xl mb-4">
+            <div class="current-time" id="current-time"></div>
             <div class="month-navigation-inner">
                 <button id="prev-month" class="nav-button">
                     <i class="fa fa-chevron-left"></i>
@@ -416,10 +441,7 @@
         
         <!-- 事件详情面板 -->
         <div class="mt-4 bg-white/80 rounded-xl p-3 border border-slate-200 shadow-sm">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-base md:text-lg font-bold text-slate-800">事件详情</h3>
-                <div class="current-time" id="current-time"></div>
-            </div>
+            <h3 class="text-base md:text-lg font-bold text-slate-800 text-center mb-3">事件详情</h3>
             <div id="event-details" class="text-slate-600">
                 <p class="text-center py-2 text-sm">点击日历中的事件查看详情</p>
             </div>
@@ -750,7 +772,7 @@
                         const eventElement = document.createElement('div');
                         eventElement.className = `event-item ${event.type === 'redstone' ? 'redstone-event' : 'blackstone-event'} ${isActive ? 'active-event' : ''}`;
                         
-                        // 显示地点 - 优化地点名称显示
+                        // 显示地点 - 使用CSS自动处理双字换行
                         const locationContainer = document.createElement('div');
                         locationContainer.className = 'location-container';
                         
@@ -761,14 +783,7 @@
                         
                         const nameElement = document.createElement('div');
                         nameElement.className = 'location-name';
-                        
-                        // 处理地点名称换行 - 4字名称分成2+2
-                        let locationName = event.location.name;
-                        if (locationName.length === 4) {
-                            locationName = locationName.substring(0, 2) + '<br>' + locationName.substring(2);
-                        }
-                        nameElement.innerHTML = locationName;
-                        
+                        nameElement.textContent = event.location.name;
                         locationContainer.appendChild(nameElement);
                         
                         eventElement.appendChild(locationContainer);
@@ -786,7 +801,7 @@
             }
         }
         
-        // 显示事件详情 - 修改为居中显示
+        // 显示事件详情 - 修改为独立显示事件信息和时间
         function showEventDetails(event) {
             const detailsContainer = document.getElementById('event-details');
             
@@ -808,19 +823,21 @@
             
             detailsContainer.innerHTML = `
                 <div class="event-details-container">
-                    <div class="mb-3">
-                        <h4 class="text-base font-semibold mb-1 text-slate-800">${dateStr}</h4>
+                    <div class="event-info-section">
+                        <h4 class="text-base font-semibold mb-2 text-slate-800">${dateStr}</h4>
                         <div class="flex items-center justify-center mb-1">
                             <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'} mr-2">${eventType}</span>
                             <i class="fa fa-map-marker mr-2 ${eventColor}"></i>
                             <span class="text-slate-700 text-sm">${event.location.area} - ${event.location.name}</span>
                         </div>
+                    </div>
+                    <div class="event-time-section">
                         <div class="flex items-center justify-center">
                             <i class="fa fa-clock-o mr-2 ${eventColor}"></i>
                             <span class="text-slate-700 text-sm">${timeSlotsText}</span>
                         </div>
                     </div>
-                    <div class="text-xs text-slate-600">
+                    <div class="text-xs text-slate-600 mt-3">
                         <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
                         <ul class="mt-1 list-disc list-inside text-left max-w-md mx-auto">
                             ${event.type === 'redstone' ? 
