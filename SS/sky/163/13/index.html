@@ -24,7 +24,7 @@
         
         .calendar-day {
             background-color: #ffffff;
-            min-height: 85px; /* 手机版日期模块高度优化 */
+            min-height: 75px; /* 手机版日期模块高度缩小 */
             transition: all 0.2s ease;
             border-radius: 8px;
             padding: 6px;
@@ -68,9 +68,9 @@
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(100, 116, 139, 0.2);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            padding: 12px 16px;
+            padding: 12px 16px; /* 还原月份导航模块高度 */
             position: relative;
-            min-height: 80px;
+            min-height: 80px; /* 调整月份导航模块外框高度 */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -81,7 +81,7 @@
             justify-content: space-between;
             align-items: center;
             position: relative;
-            padding-top: 24px;
+            padding-top: 24px; /* 为时间显示留出空间 */
         }
         
         .current-time {
@@ -316,17 +316,48 @@
         /* 手机端优化 */
         @media (max-width: 767px) {
             .calendar-day {
-                min-height: 85px; /* 手机端日期容器高度优化 */
-                padding: 4px; /* 减少内边距 */
+                min-height: 70px; /* 进一步缩小手机端日期容器高度 */
+                padding: 4px 2px; /* 减少内边距 */
             }
             
             .event-item {
-                padding: 3px; /* 减少事件内边距 */
-                margin-bottom: 3px; /* 减少事件间距 */
+                padding: 2px; /* 减少事件内边距 */
+                margin-bottom: 2px; /* 减少事件间距 */
             }
             
             .location-container {
                 margin-bottom: 1px; /* 减少地点容器间距 */
+            }
+            
+            .compact-date {
+                padding: 2px; /* 减少日期数字内边距 */
+                margin-bottom: 2px; /* 减少日期数字间距 */
+            }
+        }
+        
+        /* 超窄手机屏幕优化 */
+        @media (max-width: 380px) {
+            .calendar-day {
+                min-height: 65px; /* 超窄屏幕进一步缩小高度 */
+                padding: 3px 1px; /* 进一步减少内边距 */
+            }
+            
+            .event-item {
+                padding: 1px; /* 进一步减少事件内边距 */
+                margin-bottom: 1px; /* 进一步减少事件间距 */
+            }
+            
+            .location-area {
+                font-size: 0.6rem; /* 超窄屏幕微调地点区域字体 */
+            }
+            
+            .location-name {
+                font-size: 0.55rem; /* 超窄屏幕微调地点名称字体 */
+            }
+            
+            .compact-date {
+                font-size: 0.8rem; /* 超窄屏幕微调日期数字大小 */
+                padding: 1px; /* 进一步减少日期数字内边距 */
             }
         }
     </style>
