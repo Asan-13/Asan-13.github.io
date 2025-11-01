@@ -24,9 +24,9 @@
         
         .calendar-day {
             background-color: #ffffff;
-            min-height: 75px;
+            min-height: 75px; /* 手机版日期模块高度缩小 */
             transition: all 0.2s ease;
-            border-radius: 8px;
+            border-radius: 8px; /* 日期容器圆角 */
             padding: 6px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             display: flex;
@@ -42,7 +42,7 @@
         .event-item {
             padding: 4px;
             margin-bottom: 4px;
-            border-radius: 8px;
+            border-radius: 8px; /* 事件项圆角与日期容器一致 */
             font-size: 0.65rem;
             transition: all 0.2s ease;
             width: 100%;
@@ -68,13 +68,13 @@
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(100, 116, 139, 0.2);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            padding: 6px 12px; /* 进一步减少高度 */
+            padding: 8px 16px; /* 减少月份导航模块高度 */
             position: relative;
-            min-height: 50px; /* 进一步降低高度 */
+            min-height: 60px; /* 调整月份导航模块外框高度 */
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-radius: 8px;
+            border-radius: 8px; /* 月份导航圆角与日期容器一致 */
         }
         
         .month-navigation-inner {
@@ -98,7 +98,7 @@
             padding: 8px 4px;
             text-align: center;
             font-weight: 600;
-            border-radius: 8px;
+            border-radius: 8px; /* 星期标题圆角与日期容器一致 */
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             font-size: 0.8rem;
         }
@@ -134,7 +134,7 @@
             display: inline-block;
             padding: 2px 4px;
             margin: 1px;
-            border-radius: 8px;
+            border-radius: 8px; /* 时间槽圆角与日期容器一致 */
             font-size: 0.6rem;
             font-weight: 500;
         }
@@ -154,21 +154,19 @@
             flex-direction: column;
             align-items: center;
             margin-bottom: 2px;
-            border-radius: 6px;
+            border-radius: 6px; /* 地点容器圆角与日期容器一致 */
             padding: 2px;
         }
         
         .location-area {
             font-weight: 600;
             font-size: 0.65rem;
-            word-break: keep-all; /* 防止地点名称换行 */
         }
         
         .location-name {
             font-weight: 500;
             font-size: 0.6rem;
             color: #64748b;
-            word-break: keep-all; /* 防止地点名称换行 */
         }
         
         .compact-date {
@@ -177,7 +175,7 @@
             padding: 4px;
             text-align: center;
             margin-bottom: 4px;
-            border-radius: 6px;
+            border-radius: 6px; /* 日期数字圆角与日期容器一致 */
             background: rgba(248, 250, 252, 0.5);
             width: 24px;
             height: 24px;
@@ -189,7 +187,7 @@
         .event-type-badge {
             display: inline-block;
             padding: 2px 6px;
-            border-radius: 8px;
+            border-radius: 8px; /* 事件类型徽章圆角与日期容器一致 */
             font-size: 0.55rem;
             font-weight: 600;
             margin-bottom: 3px;
@@ -215,15 +213,15 @@
         .weekday-event-badge {
             display: inline-block;
             padding: 2px 6px;
-            border-radius: 8px;
+            border-radius: 8px; /* 星期事件徽章圆角与日期容器一致 */
             font-size: 0.55rem;
             font-weight: 600;
             margin: 2px;
         }
         
         .nav-button {
-            padding: 8px 10px; /* 调整按钮内边距 */
-            border-radius: 8px;
+            padding: 8px 12px; /* 调整按钮大小 */
+            border-radius: 8px; /* 导航按钮圆角与日期容器一致 */
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
             font-size: 0.75rem;
@@ -232,8 +230,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 36px; /* 固定按钮宽度 */
-            height: 36px; /* 固定按钮高度 */
+            width: 40px; /* 固定按钮宽度 */
+            height: 40px; /* 固定按钮高度 */
         }
         
         .nav-button:hover {
@@ -246,146 +244,15 @@
             color: #1e293b;
         }
         
-        /* 事件详情面板样式优化 */
-        .event-details-container {
-            border-radius: 8px;
-        }
-        
-        .event-details-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .event-details-title {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-        
-        .event-details-content {
-            text-align: left;
-        }
-        
-        .event-date {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            text-align: center;
-        }
-        
-        .event-info-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 6px;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-        
-        .event-location {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        
-        .event-times {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 4px;
-        }
-        
-        .event-description {
-            font-size: 0.75rem;
-            margin-top: 10px;
-        }
-        
-        .event-description ul {
-            margin-top: 4px;
-        }
-        
-        .event-description li {
-            margin-bottom: 2px;
-            word-break: break-word;
-        }
-        
-        /* 窄屏优化 */
-        @media (max-width: 480px) {
-            .event-details-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .event-info-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            .event-location, .event-times {
-                justify-content: flex-start;
-            }
-            
-            /* 四字换行优化 */
-            .location-area, .location-name {
-                word-break: keep-all;
-                white-space: nowrap;
-            }
-            
-            /* 事件类型徽章优化 */
-            .event-type-badge {
-                white-space: nowrap;
-            }
-        }
-        
-        /* 超窄屏优化 */
-        @media (max-width: 380px) {
-            .month-navigation {
-                padding: 4px 8px;
-                min-height: 44px;
-            }
-            
-            .nav-button {
-                width: 32px;
-                height: 32px;
-                padding: 6px 8px;
-            }
-            
-            .month-title {
-                font-size: 1rem;
-            }
-            
-            .calendar-day {
-                min-height: 65px;
-                padding: 3px 1px;
-            }
-            
-            .event-item {
-                padding: 1px;
-                margin-bottom: 1px;
-            }
-            
-            .location-area {
-                font-size: 0.6rem;
-            }
-            
-            .location-name {
-                font-size: 0.55rem;
-            }
-            
-            .compact-date {
-                font-size: 0.8rem;
-                padding: 1px;
-            }
+        /* 事件详情面板圆角 */
+        #event-details {
+            border-radius: 8px; /* 事件详情面板圆角与日期容器一致 */
         }
         
         /* 平板和桌面样式 */
         @media (min-width: 768px) {
             .calendar-day {
-                min-height: 120px;
+                min-height: 120px; /* 桌面端保持原有高度 */
                 padding: 10px;
             }
             
@@ -438,8 +305,8 @@
             }
             
             .month-navigation {
-                padding: 8px 16px;
-                min-height: 60px;
+                padding: 12px 20px;
+                min-height: 70px;
             }
             
             .current-time {
@@ -447,14 +314,62 @@
             }
             
             .nav-button {
-                padding: 10px 12px;
+                padding: 10px 14px;
                 font-size: 0.85rem;
-                width: 40px;
-                height: 40px;
+                width: 44px;
+                height: 44px;
             }
             
             .month-title {
                 font-size: 1.4rem;
+            }
+        }
+        
+        /* 手机端优化 */
+        @media (max-width: 767px) {
+            .calendar-day {
+                min-height: 70px; /* 进一步缩小手机端日期容器高度 */
+                padding: 4px 2px; /* 减少内边距 */
+            }
+            
+            .event-item {
+                padding: 2px; /* 减少事件内边距 */
+                margin-bottom: 2px; /* 减少事件间距 */
+            }
+            
+            .location-container {
+                margin-bottom: 1px; /* 减少地点容器间距 */
+            }
+            
+            .compact-date {
+                padding: 2px; /* 减少日期数字内边距 */
+                margin-bottom: 2px; /* 减少日期数字间距 */
+            }
+        }
+        
+        /* 超窄手机屏幕优化 */
+        @media (max-width: 380px) {
+            .calendar-day {
+                min-height: 65px; /* 超窄屏幕进一步缩小高度 */
+                padding: 3px 1px; /* 进一步减少内边距 */
+            }
+            
+            .event-item {
+                padding: 1px; /* 进一步减少事件内边距 */
+                margin-bottom: 1px; /* 进一步减少事件间距 */
+            }
+            
+            .location-area {
+                font-size: 0.6rem; /* 超窄屏幕微调地点区域字体 */
+            }
+            
+            .location-name {
+                font-size: 0.55rem; /* 超窄屏幕微调地点名称字体 */
+            }
+            
+            .compact-date {
+                font-size: 0.8rem; /* 超窄屏幕微调日期数字大小 */
+                padding: 1px; /* 进一步减少日期数字内边距 */
             }
         }
     </style>
@@ -488,12 +403,12 @@
         </div>
         
         <!-- 事件详情面板 -->
-        <div class="mt-4 bg-white/80 rounded-xl p-4 border border-slate-200 shadow-sm event-details-container">
-            <div class="event-details-header">
-                <h3 class="event-details-title">事件详情</h3>
+        <div class="mt-4 bg-white/80 rounded-xl p-3 border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-base md:text-lg font-bold text-slate-800">事件详情</h3>
                 <div class="current-time" id="current-time"></div>
             </div>
-            <div id="event-details" class="event-details-content text-slate-600">
+            <div id="event-details" class="text-slate-600 text-center">
                 <p class="text-center py-2 text-sm">点击日历中的事件查看详情</p>
             </div>
         </div>
@@ -873,23 +788,21 @@
             const eventColor = event.type === 'redstone' ? 'text-red-600' : 'text-slate-600';
             
             detailsContainer.innerHTML = `
-                <div class="event-date">${dateStr}</div>
-                <div class="event-info-row">
-                    <div class="event-location">
-                        <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'}">${eventType}</span>
-                        <i class="fa fa-map-marker ${eventColor}"></i>
+                <div class="mb-3">
+                    <h4 class="text-base font-semibold mb-1 text-slate-800">${dateStr}</h4>
+                    <div class="flex items-center justify-center mb-1">
+                        <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'} mr-2">${eventType}</span>
+                        <i class="fa fa-map-marker mr-2 ${eventColor}"></i>
                         <span class="text-slate-700 text-sm">${event.location.area} - ${event.location.name}</span>
                     </div>
-                </div>
-                <div class="event-info-row">
-                    <div class="event-times">
-                        <i class="fa fa-clock-o ${eventColor}"></i>
+                    <div class="flex items-center justify-center">
+                        <i class="fa fa-clock-o mr-2 ${eventColor}"></i>
                         <span class="text-slate-700 text-sm">${timeSlotsText}</span>
                     </div>
                 </div>
-                <div class="event-description">
+                <div class="text-xs text-slate-600">
                     <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
-                    <ul>
+                    <ul class="mt-1 list-disc list-inside text-left max-w-md mx-auto">
                         ${event.type === 'redstone' ? 
                             `<li>周日：每月每个周日固定时间段循环事件</li>
                              <li>周六：每月1-15号内的每个周六固定时间段循环事件</li>
