@@ -19,19 +19,21 @@
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
+            gap: 3px;
         }
         
         .calendar-day {
             background-color: #ffffff;
-            min-height: 90px; /* 减少日期模块高度 */
+            aspect-ratio: 1 / 1;
             transition: all 0.2s ease;
-            border-radius: 8px;
-            padding: 6px;
+            border-radius: 6px;
+            padding: 4px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: flex-start;
+            position: relative;
         }
         
         .calendar-day:hover {
@@ -40,10 +42,10 @@
         }
         
         .event-item {
-            padding: 4px;
-            margin-bottom: 4px;
-            border-radius: 4px;
-            font-size: 0.65rem;
+            padding: 3px;
+            margin-bottom: 2px;
+            border-radius: 3px;
+            font-size: 0.6rem;
             transition: all 0.2s ease;
             width: 100%;
             text-align: center;
@@ -79,12 +81,16 @@
         
         .weekday-header {
             background: rgba(255, 255, 255, 0.8);
-            padding: 8px 4px;
+            padding: 6px 2px;
             text-align: center;
             font-weight: 600;
             border-radius: 6px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
         .today {
@@ -96,10 +102,10 @@
         .today::after {
             content: '';
             position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 6px;
-            height: 6px;
+            top: 3px;
+            right: 3px;
+            width: 5px;
+            height: 5px;
             background-color: #60a5fa;
             border-radius: 50%;
         }
@@ -114,13 +120,72 @@
             100% { opacity: 0.9; }
         }
         
-        .time-slot {
-            display: inline-block;
-            padding: 2px 4px;
-            margin: 1px;
-            border-radius: 3px;
+        .location-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1px;
+            line-height: 1.1;
+        }
+        
+        .location-area {
+            font-weight: 600;
             font-size: 0.6rem;
+            word-break: keep-all;
+        }
+        
+        .location-name {
             font-weight: 500;
+            font-size: 0.55rem;
+            color: #64748b;
+            word-break: keep-all;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0;
+        }
+        
+        .location-name span {
+            display: inline-block;
+        }
+        
+        .compact-date {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px;
+            text-align: center;
+            margin-bottom: 2px;
+        }
+        
+        .weekday-time-info {
+            margin-top: 3px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            width: 100%;
+        }
+        
+        .time-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            width: 100%;
+        }
+        
+        .time-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 0.5rem;
+            font-weight: 500;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+            max-width: 100%;
         }
         
         .redstone-time {
@@ -133,90 +198,135 @@
             color: #475569;
         }
         
-        .location-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 2px;
-        }
-        
-        .location-area {
-            font-weight: 600;
-            font-size: 0.65rem;
-        }
-        
-        .location-name {
-            font-weight: 500;
-            font-size: 0.6rem;
-            color: #64748b;
-        }
-        
-        .compact-date {
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 4px;
-            text-align: center;
-            margin-bottom: 4px;
-        }
-        
-        .event-type-badge {
+        .type-indicator {
             display: inline-block;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 0.55rem;
-            font-weight: 600;
-            margin-bottom: 3px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-right: 2px;
+            flex-shrink: 0;
         }
         
-        .redstone-badge {
-            background: rgba(239, 68, 68, 0.15);
-            color: #dc2626;
+        .red-indicator {
+            background-color: #dc2626;
         }
         
-        .blackstone-badge {
-            background: rgba(30, 41, 59, 0.15);
-            color: #475569;
-        }
-        
-        .weekday-time-info {
-            font-size: 0.55rem;
-            color: #64748b;
-            margin-top: 2px;
-            text-align: center;
-        }
-        
-        /* 星期模块中的红黑石标签样式 */
-        .weekday-event-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 0.55rem;
-            font-weight: 600;
-            margin: 2px;
+        .black-indicator {
+            background-color: #475569;
         }
         
         /* 平板和桌面样式 */
         @media (min-width: 768px) {
+            .calendar-grid {
+                gap: 4px;
+            }
+            
             .calendar-day {
-                min-height: 120px; /* 调整桌面端的日期模块高度 */
+                padding: 6px;
+                border-radius: 8px;
+            }
+            
+            .event-item {
+                padding: 4px;
+                margin-bottom: 3px;
+                font-size: 0.65rem;
+            }
+            
+            .weekday-header {
+                padding: 8px 4px;
+                font-size: 0.8rem;
+            }
+            
+            .compact-date {
+                font-size: 0.85rem;
+                padding: 4px;
+                margin-bottom: 4px;
+            }
+            
+            .location-area {
+                font-size: 0.65rem;
+            }
+            
+            .location-name {
+                font-size: 0.6rem;
+            }
+            
+            .time-badge {
+                font-size: 0.55rem;
+                padding: 2px 4px;
+            }
+            
+            .weekday-time-info {
+                margin-top: 4px;
+                gap: 3px;
+            }
+            
+            .type-indicator {
+                width: 7px;
+                height: 7px;
+            }
+        }
+        
+        /* 电脑端优化 */
+        @media (min-width: 1024px) {
+            .calendar-day {
+                padding: 8px;
+            }
+            
+            .event-item {
+                padding: 5px;
+                font-size: 0.7rem;
+            }
+            
+            .weekday-header {
+                padding: 10px 6px;
+                font-size: 0.85rem;
+            }
+            
+            .compact-date {
+                font-size: 0.9rem;
+            }
+            
+            .location-area {
+                font-size: 0.7rem;
+            }
+            
+            .location-name {
+                font-size: 0.65rem;
+            }
+            
+            .time-badge {
+                font-size: 0.6rem;
+                padding: 2px 5px;
+            }
+            
+            .type-indicator {
+                width: 8px;
+                height: 8px;
+            }
+        }
+        
+        /* 超大屏幕优化 */
+        @media (min-width: 1280px) {
+            .calendar-grid {
+                gap: 6px;
+            }
+            
+            .calendar-day {
                 padding: 10px;
             }
             
             .event-item {
                 padding: 6px;
-                margin-bottom: 6px;
                 font-size: 0.75rem;
             }
             
             .weekday-header {
                 padding: 12px 8px;
-                font-size: 0.9rem;
             }
             
             .compact-date {
                 font-size: 1rem;
-                padding: 8px 6px;
-                margin-bottom: 8px;
             }
             
             .location-area {
@@ -227,25 +337,9 @@
                 font-size: 0.7rem;
             }
             
-            .time-slot {
+            .time-badge {
+                font-size: 0.65rem;
                 padding: 3px 6px;
-                margin: 2px;
-                font-size: 0.65rem;
-            }
-            
-            .event-type-badge {
-                font-size: 0.65rem;
-                padding: 3px 8px;
-            }
-            
-            .weekday-time-info {
-                font-size: 0.65rem;
-                margin-top: 4px;
-            }
-            
-            .weekday-event-badge {
-                font-size: 0.65rem;
-                padding: 3px 8px;
             }
         }
     </style>
@@ -313,6 +407,23 @@
                 blackstone: ["09:08", "15:08", "21:08"]
             }
         };
+        
+        // 处理地点名称，确保两字换行
+        function formatLocationName(name) {
+            // 如果是两字名称，直接返回
+            if (name.length === 2) return name;
+            
+            // 如果是四字名称，分成两个两字
+            if (name.length === 4) {
+                return [
+                    `<span>${name.substring(0, 2)}</span>`,
+                    `<span>${name.substring(2)}</span>`
+                ].join('');
+            }
+            
+            // 如果是三字名称，保持原样（这种情况较少）
+            return name;
+        }
         
         // 破晓红石地点推算函数
         function getDawnRedstoneLocation(date, dayOfWeek) {
@@ -544,27 +655,48 @@
                     const timeInfo = document.createElement('div');
                     timeInfo.className = 'weekday-time-info';
                     
-                    // 添加红黑石标签到星期模块
                     if (weekdayTimeInfo[i].redstone) {
-                        const redstoneBadge = document.createElement('span');
-                        redstoneBadge.className = 'weekday-event-badge redstone-badge';
-                        redstoneBadge.textContent = '红石';
-                        timeInfo.appendChild(redstoneBadge);
+                        const redstoneRow = document.createElement('div');
+                        redstoneRow.className = 'time-row';
                         
-                        const timeText = document.createElement('div');
-                        timeText.textContent = weekdayTimeInfo[i].redstone.join(' ');
-                        timeInfo.appendChild(timeText);
+                        weekdayTimeInfo[i].redstone.forEach(time => {
+                            const timeBadge = document.createElement('div');
+                            timeBadge.className = 'time-badge redstone-time';
+                            
+                            const indicator = document.createElement('span');
+                            indicator.className = 'type-indicator red-indicator';
+                            timeBadge.appendChild(indicator);
+                            
+                            const timeText = document.createElement('span');
+                            timeText.textContent = time;
+                            timeBadge.appendChild(timeText);
+                            
+                            redstoneRow.appendChild(timeBadge);
+                        });
+                        
+                        timeInfo.appendChild(redstoneRow);
                     }
                     
                     if (weekdayTimeInfo[i].blackstone) {
-                        const blackstoneBadge = document.createElement('span');
-                        blackstoneBadge.className = 'weekday-event-badge blackstone-badge';
-                        blackstoneBadge.textContent = '黑石';
-                        timeInfo.appendChild(blackstoneBadge);
+                        const blackstoneRow = document.createElement('div');
+                        blackstoneRow.className = 'time-row';
                         
-                        const timeText = document.createElement('div');
-                        timeText.textContent = weekdayTimeInfo[i].blackstone.join(' ');
-                        timeInfo.appendChild(timeText);
+                        weekdayTimeInfo[i].blackstone.forEach(time => {
+                            const timeBadge = document.createElement('div');
+                            timeBadge.className = 'time-badge blackstone-time';
+                            
+                            const indicator = document.createElement('span');
+                            indicator.className = 'type-indicator black-indicator';
+                            timeBadge.appendChild(indicator);
+                            
+                            const timeText = document.createElement('span');
+                            timeText.textContent = time;
+                            timeBadge.appendChild(timeText);
+                            
+                            blackstoneRow.appendChild(timeBadge);
+                        });
+                        
+                        timeInfo.appendChild(blackstoneRow);
                     }
                     
                     weekdayHeader.appendChild(timeInfo);
@@ -634,7 +766,7 @@
                         
                         const nameElement = document.createElement('div');
                         nameElement.className = 'location-name';
-                        nameElement.textContent = event.location.name;
+                        nameElement.innerHTML = formatLocationName(event.location.name);
                         locationContainer.appendChild(nameElement);
                         
                         eventElement.appendChild(locationContainer);
