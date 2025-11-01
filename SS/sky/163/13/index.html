@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>破晓红石与黑石事件日历</title>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #334155;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+        
+        .calendar-day {
+            background-color: #ffffff;
+            min-height: 140px;
+            transition: all 0.2s ease;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .calendar-day:hover {
+            background-color: #f8fafc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .event-item {
+            padding: 8px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .redstone-event {
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        
+        .blackstone-event {
+            background: rgba(30, 41, 59, 0.08);
+            border: 1px solid rgba(30, 41, 59, 0.2);
+        }
+        
+        .event-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        }
+        
+        .current-time {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .month-navigation {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .weekday-header {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .today {
+            background-color: rgba(96, 165, 250, 0.1);
+            position: relative;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
+        
+        .today::after {
+            content: '';
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 8px;
+            height: 8px;
+            background-color: #60a5fa;
+            border-radius: 50%;
+        }
+        
+        .active-event {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.9; }
+            50% { opacity: 1; }
+            100% { opacity: 0.9; }
+        }
+        
+        .time-slot {
+            display: inline-block;
+            padding: 3px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+        
+        .redstone-time {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+        
+        .blackstone-time {
+            background: rgba(30, 41, 59, 0.15);
+            color: #475569;
+        }
+        
+        .location-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .location-area {
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+        
+        .location-name {
+            font-weight: 500;
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+        
+        .compact-date {
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 8px 6px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .event-type-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .redstone-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+        
+        .blackstone-badge {
+            background: rgba(30, 41, 59, 0.15);
+            color: #475569;
+        }
+        
+        /* 手机端特定样式 */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                gap: 4px;
+            }
+            
+            .calendar-day {
+                min-height: 120px;
+                padding: 8px;
+            }
+            
+            .weekday-header {
+                padding: 10px 6px;
+                font-size: 0.9rem;
+            }
+            
+            .compact-date {
+                font-size: 0.9rem;
+                padding: 6px 4px;
+            }
+            
+            .event-item {
+                padding: 6px;
+                margin-bottom: 4px;
+            }
+            
+            .month-navigation {
+                padding: 12px 8px;
+            }
+            
+            .month-navigation button {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* 小屏幕手机优化 */
+        @media (max-width: 480px) {
+            .calendar-day {
+                min-height: 110px;
+                padding: 6px;
+            }
+            
+            .weekday-header {
+                padding: 8px 4px;
+                font-size: 0.8rem;
+            }
+            
+            .compact-date {
+                font-size: 0.85rem;
+                padding: 4px 2px;
+            }
+            
+            .event-item {
+                padding: 5px;
+            }
+            
+            .location-area {
+                font-size: 0.7rem;
+            }
+            
+            .location-name {
+                font-size: 0.65rem;
+            }
+            
+            .time-slot {
+                font-size: 0.65rem;
+                padding: 2px 6px;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- 月份导航 -->
+        <div class="month-navigation rounded-xl p-4 mb-6 flex justify-between items-center">
+            <button id="prev-month" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-slate-700">
+                <i class="fa fa-chevron-left mr-2"></i><span id="prev-month-text"></span>
+            </button>
+            <h2 class="text-xl md:text-2xl font-bold text-slate-800" id="month-title"></h2>
+            <button id="next-month" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors text-slate-700">
+                <span id="next-month-text"></span><i class="fa fa-chevron-right ml-2"></i>
+            </button>
+        </div>
+        
+        <!-- 当前时间 -->
+        <div class="current-time inline-block px-6 py-3 rounded-xl mb-6 mx-auto block text-center">
+            <span id="current-time" class="text-xl md:text-2xl font-semibold text-slate-800"></span>
+        </div>
+        
+        <!-- 星期标题 -->
+        <div class="calendar-grid mb-2" id="weekday-headers">
+            <!-- 星期标题将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 日历网格 -->
+        <div class="calendar-grid mb-6" id="calendar">
+            <!-- 日历日期将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 事件详情面板 -->
+        <div class="mt-6 bg-white/80 rounded-xl p-4 md:p-6 border border-slate-200 shadow-sm">
+            <h3 class="text-lg md:text-xl font-bold mb-4 text-slate-800 text-center">事件详情</h3>
+            <div id="event-details" class="text-slate-600 text-center">
+                <p class="text-center py-4">点击日历中的事件查看详情</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 当前显示的月份和年份
+        let currentYear = 2025;
+        let currentMonth = 10; // 0=一月, 10=十一月
+        
+        // 破晓红石地点推算函数
+        function getDawnRedstoneLocation(date, dayOfWeek) {
+            const dayOfMonth = date.getDate();
+            
+            // 暮土系 (日期: 1,6,11,16,21,26,31)
+            if ([1, 6, 11, 16, 21, 26, 31].includes(dayOfMonth)) {
+                if (dayOfWeek === 5) return { area: "暮土", name: "黑水港湾" };
+                if (dayOfWeek === 6) return { area: "暮土", name: "巨兽荒原" };
+                if (dayOfWeek === 0) return { area: "暮土", name: "失落方舟" };
+            }
+            
+            // 禁阁系 (日期: 2,7,12,17,22,27)
+            if ([2, 7, 12, 17, 22, 27].includes(dayOfMonth)) {
+                if ([5, 6, 0].includes(dayOfWeek)) return { area: "禁阁", name: "星漠海滩" };
+            }
+            
+            // 云野系 (日期: 3,8,13,18,23,28)
+            if ([3, 8, 13, 18, 23, 28].includes(dayOfMonth)) {
+                if (dayOfWeek === 5) return { area: "云野", name: "云顶浮石" };
+                if (dayOfWeek === 6) return { area: "云野", name: "幽光山洞" };
+                if (dayOfWeek === 0) return { area: "云野", name: "圣岛" };
+            }
+            
+            // 雨林系 (日期: 4,9,14,19,24,29)
+            if ([4, 9, 14, 19, 24, 29].includes(dayOfMonth)) {
+                if (dayOfWeek === 5) return { area: "雨林", name: "大树屋" };
+                if (dayOfWeek === 6) return { area: "雨林", name: "雨林神庙" };
+                if (dayOfWeek === 0) return { area: "雨林", name: "秘密花园" };
+            }
+            
+            // 霞谷系 (日期: 5,10,15,20,25,30)
+            if ([5, 10, 15, 20, 25, 30].includes(dayOfMonth)) {
+                if ([5, 6].includes(dayOfWeek)) return { area: "霞谷", name: "圆梦村" };
+                if (dayOfWeek === 0) return { area: "霞谷", name: "雪隐峰" };
+            }
+            
+            return null;
+        }
+        
+        // 破晓黑石地点推算函数
+        function getDawnBlackstoneLocation(date, dayOfWeek) {
+            const dayOfMonth = date.getDate();
+            
+            // 暮土系 (日期: 1,6,11,16,21,26,31)
+            if ([1, 6, 11, 16, 21, 26, 31].includes(dayOfMonth)) {
+                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "暮土", name: "边陲荒漠" };
+                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "暮土", name: "远古战场" };
+            }
+            
+            // 禁阁系 (日期: 2,7,12,17,22,27)
+            if ([2, 7, 12, 17, 22, 27].includes(dayOfMonth)) {
+                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "禁阁", name: "星光沙漠" };
+                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "禁阁", name: "星光沙漠" };
+            }
+            
+            // 云野系 (日期: 3,8,13,18,23,28)
+            if ([3, 8, 13, 18, 23, 28].includes(dayOfMonth)) {
+                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "云野", name: "蝴蝶平原" };
+                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "云野", name: "云野仙乡" };
+            }
+            
+            // 雨林系 (日期: 4,9,14,19,24,29)
+            if ([4, 9, 14, 19, 24, 29].includes(dayOfMonth)) {
+                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "雨林", name: "荧光森林" };
+                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "雨林", name: "密林遗迹" };
+            }
+            
+            // 霞谷系 (日期: 5,10,15,20,25,30)
+            if ([5, 10, 15, 20, 25, 30].includes(dayOfMonth)) {
+                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "霞谷", name: "滑冰场" };
+                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "霞谷", name: "滑冰场" };
+            }
+            
+            return null;
+        }
+        
+        // 获取破晓红石事件时间段
+        function getDawnRedstoneTimeSlots(date, dayOfWeek) {
+            const dayOfMonth = date.getDate();
+            const slots = [];
+            
+            // 周日事件
+            if (dayOfWeek === 0) {
+                slots.push(
+                    { start: "07:08", end: "08:00" },
+                    { start: "13:08", end: "14:00" },
+                    { start: "19:08", end: "20:00" }
+                );
+            }
+            
+            // 周六事件 (1-15号)
+            if (dayOfWeek === 6 && dayOfMonth >= 1 && dayOfMonth <= 15) {
+                slots.push(
+                    { start: "10:08", end: "11:00" },
+                    { start: "14:08", end: "15:00" },
+                    { start: "22:08", end: "23:00" }
+                );
+            }
+            
+            // 周五事件 (16号到月底)
+            if (dayOfWeek === 5 && dayOfMonth >= 16) {
+                slots.push(
+                    { start: "11:08", end: "12:00" },
+                    { start: "17:08", end: "18:00" },
+                    { start: "23:08", end: "24:00" }
+                );
+            }
+            
+            return slots;
+        }
+        
+        // 获取破晓黑石事件时间段
+        function getDawnBlackstoneTimeSlots(date, dayOfWeek) {
+            const dayOfMonth = date.getDate();
+            const slots = [];
+            
+            // 星期二事件 (上半月1-15日)
+            if (dayOfWeek === 2 && dayOfMonth <= 15) {
+                slots.push(
+                    { start: "08:08", end: "09:00" },
+                    { start: "16:08", end: "17:00" },
+                    { start: "20:08", end: "21:00" }
+                );
+            }
+            
+            // 星期三事件 (下半月16-31日)
+            if (dayOfWeek === 3 && dayOfMonth >= 16) {
+                slots.push(
+                    { start: "09:08", end: "10:00" },
+                    { start: "15:08", end: "16:00" },
+                    { start: "21:08", end: "22:00" }
+                );
+            }
+            
+            return slots;
+        }
+        
+        // 生成指定月份的事件
+        function generateEvents(year, month) {
+            const events = [];
+            
+            // 计算该月有多少天
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // 遍历该月的每一天
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dayOfWeek = date.getDay(); // 0=周日, 1=周一, ..., 6=周六
+                
+                // 获取红石事件
+                const redstoneTimeSlots = getDawnRedstoneTimeSlots(date, dayOfWeek);
+                const redstoneLocation = getDawnRedstoneLocation(date, dayOfWeek);
+                
+                if (redstoneTimeSlots.length > 0 && redstoneLocation) {
+                    events.push({
+                        date: new Date(date),
+                        timeSlots: redstoneTimeSlots,
+                        location: redstoneLocation,
+                        dayOfWeek: dayOfWeek,
+                        type: 'redstone'
+                    });
+                }
+                
+                // 获取黑石事件
+                const blackstoneTimeSlots = getDawnBlackstoneTimeSlots(date, dayOfWeek);
+                const blackstoneLocation = getDawnBlackstoneLocation(date, dayOfWeek);
+                
+                if (blackstoneTimeSlots.length > 0 && blackstoneLocation) {
+                    events.push({
+                        date: new Date(date),
+                        timeSlots: blackstoneTimeSlots,
+                        location: blackstoneLocation,
+                        dayOfWeek: dayOfWeek,
+                        type: 'blackstone'
+                    });
+                }
+            }
+            
+            return events;
+        }
+        
+        // 渲染日历
+        function renderCalendar() {
+            const calendarContainer = document.getElementById('calendar');
+            const weekdayHeadersContainer = document.getElementById('weekday-headers');
+            const events = generateEvents(currentYear, currentMonth);
+            
+            // 更新月份标题
+            const monthNames = ["一月", "二月", "三月", "四月", "五月", "六月", 
+                               "七月", "八月", "九月", "十月", "十一月", "十二月"];
+            document.getElementById('month-title').textContent = `${currentYear}年${monthNames[currentMonth]}`;
+            
+            // 更新上下月按钮文本
+            const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+            document.getElementById('prev-month-text').textContent = `${monthNames[prevMonth]}`;
+            
+            const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+            const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+            document.getElementById('next-month-text').textContent = `${monthNames[nextMonth]}`;
+            
+            // 清空容器
+            calendarContainer.innerHTML = '';
+            weekdayHeadersContainer.innerHTML = '';
+            
+            // 获取当前时间
+            const now = new Date();
+            
+            // 计算该月第一天是星期几 (0=周日, 1=周一, ..., 6=周六)
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            
+            // 计算该月有多少天
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // 创建星期标题
+            const weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+            
+            for (let i = 0; i < 7; i++) {
+                const weekdayHeader = document.createElement('div');
+                weekdayHeader.className = 'weekday-header';
+                weekdayHeader.textContent = weekdayNames[i];
+                weekdayHeadersContainer.appendChild(weekdayHeader);
+            }
+            
+            // 创建日期单元格前的空白
+            for (let i = 0; i < firstDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day opacity-30';
+                calendarContainer.appendChild(emptyDay);
+            }
+            
+            // 创建日期单元格
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dayOfWeek = date.getDay();
+                
+                // 检查是否是今天
+                const isToday = now.getDate() === day && 
+                               now.getMonth() === currentMonth && 
+                               now.getFullYear() === currentYear;
+                
+                // 获取这一天的事件
+                const dayEvents = events.filter(event => 
+                    event.date.getDate() === day
+                );
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = `calendar-day ${isToday ? 'today' : ''}`;
+                
+                // 日期标题
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'compact-date';
+                dayHeader.textContent = day;
+                dayElement.appendChild(dayHeader);
+                
+                // 添加事件
+                if (dayEvents.length > 0) {
+                    dayEvents.forEach(event => {
+                        // 检查事件是否正在进行中
+                        const isActive = event.timeSlots.some(slot => {
+                            const eventStart = new Date(event.date);
+                            const [startHour, startMinute] = slot.start.split(':');
+                            eventStart.setHours(parseInt(startHour), parseInt(startMinute));
+                            
+                            const eventEnd = new Date(event.date);
+                            const [endHour, endMinute] = slot.end.split(':');
+                            eventEnd.setHours(parseInt(endHour), parseInt(endMinute));
+                            
+                            return now >= eventStart && now < eventEnd;
+                        });
+                        
+                        const eventElement = document.createElement('div');
+                        eventElement.className = `event-item ${event.type === 'redstone' ? 'redstone-event' : 'blackstone-event'} ${isActive ? 'active-event' : ''}`;
+                        
+                        // 事件类型徽章
+                        const typeBadge = document.createElement('div');
+                        typeBadge.className = `event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'}`;
+                        typeBadge.textContent = event.type === 'redstone' ? '红石' : '黑石';
+                        eventElement.appendChild(typeBadge);
+                        
+                        // 显示地点
+                        const locationContainer = document.createElement('div');
+                        locationContainer.className = 'location-container';
+                        
+                        const areaElement = document.createElement('div');
+                        areaElement.className = 'location-area';
+                        areaElement.textContent = event.location.area;
+                        locationContainer.appendChild(areaElement);
+                        
+                        const nameElement = document.createElement('div');
+                        nameElement.className = 'location-name';
+                        nameElement.textContent = event.location.name;
+                        locationContainer.appendChild(nameElement);
+                        
+                        eventElement.appendChild(locationContainer);
+                        
+                        // 显示时间段
+                        const timeContainer = document.createElement('div');
+                        timeContainer.className = 'flex flex-wrap justify-center';
+                        
+                        event.timeSlots.forEach(slot => {
+                            const timeSlot = document.createElement('span');
+                            timeSlot.className = `time-slot ${event.type === 'redstone' ? 'redstone-time' : 'blackstone-time'}`;
+                            timeSlot.textContent = slot.start;
+                            timeContainer.appendChild(timeSlot);
+                        });
+                        
+                        eventElement.appendChild(timeContainer);
+                        
+                        // 添加点击事件
+                        eventElement.addEventListener('click', () => {
+                            showEventDetails(event);
+                        });
+                        
+                        dayElement.appendChild(eventElement);
+                    });
+                }
+                
+                calendarContainer.appendChild(dayElement);
+            }
+        }
+        
+        // 显示事件详情
+        function showEventDetails(event) {
+            const detailsContainer = document.getElementById('event-details');
+            
+            const eventDate = event.date;
+            const dateStr = eventDate.toLocaleDateString('zh-CN', { 
+                year: 'numeric',
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            });
+            
+            // 构建时间段文本
+            const timeSlotsText = event.timeSlots.map(slot => 
+                `${slot.start} - ${slot.end}`
+            ).join('、');
+            
+            const eventType = event.type === 'redstone' ? '红石' : '黑石';
+            const eventColor = event.type === 'redstone' ? 'text-red-600' : 'text-slate-600';
+            
+            detailsContainer.innerHTML = `
+                <div class="mb-4">
+                    <h4 class="text-lg font-semibold mb-2 text-slate-800">${dateStr}</h4>
+                    <div class="flex items-center justify-center mb-2">
+                        <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'} mr-2">${eventType}</span>
+                        <i class="fa fa-map-marker mr-2 ${eventColor}"></i>
+                        <span class="text-slate-700">${event.location.area} - ${event.location.name}</span>
+                    </div>
+                    <div class="flex items-center justify-center">
+                        <i class="fa fa-clock-o mr-2 ${eventColor}"></i>
+                        <span class="text-slate-700">${timeSlotsText}</span>
+                    </div>
+                </div>
+                <div class="text-sm text-slate-600">
+                    <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
+                    <ul class="mt-2 list-disc list-inside text-left max-w-md mx-auto">
+                        ${event.type === 'redstone' ? 
+                            `<li>周日：每月每个周日固定时间段循环事件</li>
+                             <li>周六：每月1-15号内的每个周六固定时间段循环事件</li>
+                             <li>周五：每月16号到月底内的每个周五固定时间段循环事件</li>` :
+                            `<li>周二：每月1-15号内的每个周二固定时间段循环事件</li>
+                             <li>周三：每月16号到月底内的每个周三固定时间段循环事件</li>`
+                        }
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // 更新当前时间
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            document.getElementById('current-time').textContent = timeStr;
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateCurrentTime();
+            renderCalendar();
+            
+            // 添加上下月按钮事件
+            document.getElementById('prev-month').addEventListener('click', () => {
+                if (currentMonth === 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                } else {
+                    currentMonth--;
+                }
+                renderCalendar();
+            });
+            
+            document.getElementById('next-month').addEventListener('click', () => {
+                if (currentMonth === 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                } else {
+                    currentMonth++;
+                }
+                renderCalendar();
+            });
+            
+            // 每秒更新时间
+            setInterval(updateCurrentTime, 1000);
+            
+            // 每分钟重新渲染日历（检查是否有事件变为活动状态）
+            setInterval(renderCalendar, 60000);
+        });
+    </script>
+</body>
+</html>
