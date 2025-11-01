@@ -69,9 +69,9 @@
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(100, 116, 139, 0.2);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            padding: 8px 16px;
+            padding: 6px 16px;
             position: relative;
-            min-height: 60px;
+            min-height: 50px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -86,12 +86,13 @@
         }
         
         .current-time {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             font-weight: 600;
             color: #475569;
             width: 100%;
             text-align: center;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
+            line-height: 1.2;
         }
         
         .weekday-header {
@@ -168,12 +169,26 @@
             font-weight: 500;
             font-size: 0.6rem;
             color: #64748b;
-            /* 双字换行优化 */
+            /* 双字换行优化 - 针对4字文本 */
             word-break: break-all;
             word-wrap: break-word;
             line-height: 1.2;
             text-align: center;
             width: 100%;
+            /* 强制4字文本对半换行 */
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+        }
+        
+        /* 专门针对4字文本的优化 */
+        .four-char-text {
+            letter-spacing: -0.5px;
+            word-break: break-all;
+            display: inline-block;
+            max-width: 100%;
+            line-height: 1.1;
         }
         
         .compact-date {
@@ -227,7 +242,7 @@
         }
         
         .nav-button {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-radius: 8px;
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
@@ -237,8 +252,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
         }
         
         .nav-button:hover {
@@ -246,9 +261,10 @@
         }
         
         .month-title {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 700;
             color: #1e293b;
+            margin: 0 8px;
         }
         
         /* 事件详情面板样式 */
@@ -312,6 +328,8 @@
             
             .location-name {
                 font-size: 0.7rem;
+                -webkit-line-clamp: unset;
+                overflow: visible;
             }
             
             .time-slot {
@@ -336,23 +354,24 @@
             }
             
             .month-navigation {
-                padding: 12px 20px;
-                min-height: 70px;
+                padding: 8px 20px;
+                min-height: 60px;
             }
             
             .current-time {
-                font-size: 1rem;
+                font-size: 0.9rem;
+                margin-bottom: 6px;
             }
             
             .nav-button {
-                padding: 10px 14px;
+                padding: 8px 12px;
                 font-size: 0.85rem;
-                width: 44px;
-                height: 44px;
+                width: 40px;
+                height: 40px;
             }
             
             .month-title {
-                font-size: 1.4rem;
+                font-size: 1.3rem;
             }
             
             .event-info-section,
@@ -381,6 +400,26 @@
                 padding: 2px;
                 margin-bottom: 2px;
             }
+            
+            .month-navigation {
+                padding: 4px 12px;
+                min-height: 46px;
+            }
+            
+            .current-time {
+                font-size: 0.75rem;
+                margin-bottom: 2px;
+            }
+            
+            .nav-button {
+                width: 32px;
+                height: 32px;
+                padding: 4px 8px;
+            }
+            
+            .month-title {
+                font-size: 0.9rem;
+            }
         }
         
         /* 超窄手机屏幕优化 */
@@ -401,11 +440,43 @@
             
             .location-name {
                 font-size: 0.55rem;
+                line-height: 1.1;
             }
             
             .compact-date {
                 font-size: 0.8rem;
                 padding: 1px;
+            }
+            
+            .month-navigation {
+                padding: 3px 10px;
+                min-height: 42px;
+            }
+            
+            .current-time {
+                font-size: 0.7rem;
+                margin-bottom: 1px;
+            }
+            
+            .nav-button {
+                width: 30px;
+                height: 30px;
+                padding: 3px 6px;
+            }
+            
+            .month-title {
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* 针对4字文本的特殊处理 */
+        @media (max-width: 340px) {
+            .location-name.four-char {
+                font-size: 0.5rem;
+                letter-spacing: -0.5px;
+                word-break: break-all;
+                display: block;
+                line-height: 1;
             }
         }
     </style>
@@ -415,7 +486,7 @@
         <!-- 页面标题 -->
         <h1 class="text-2xl md:text-3xl font-bold text-center text-slate-800 mb-4">破晓红石与黑石事件日历</h1>
         
-        <!-- 月份导航 -->
+        <!-- 月份导航 - 高度压缩版本 -->
         <div class="month-navigation rounded-xl mb-4">
             <div class="current-time" id="current-time"></div>
             <div class="month-navigation-inner">
@@ -783,6 +854,12 @@
                         
                         const nameElement = document.createElement('div');
                         nameElement.className = 'location-name';
+                        
+                        // 检查是否为4字文本并添加特殊类
+                        if (event.location.name.length === 4) {
+                            nameElement.classList.add('four-char');
+                        }
+                        
                         nameElement.textContent = event.location.name;
                         locationContainer.appendChild(nameElement);
                         
