@@ -24,9 +24,9 @@
         
         .calendar-day {
             background-color: #ffffff;
-            min-height: 75px; /* 手机版日期模块高度缩小 */
+            min-height: 75px;
             transition: all 0.2s ease;
-            border-radius: 8px; /* 日期容器圆角 */
+            border-radius: 8px;
             padding: 6px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             display: flex;
@@ -42,7 +42,7 @@
         .event-item {
             padding: 4px;
             margin-bottom: 4px;
-            border-radius: 8px; /* 事件项圆角与日期容器一致 */
+            border-radius: 8px;
             font-size: 0.65rem;
             transition: all 0.2s ease;
             width: 100%;
@@ -69,13 +69,13 @@
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(100, 116, 139, 0.2);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            padding: 8px 16px; /* 减少月份导航模块高度 */
+            padding: 8px 16px;
             position: relative;
-            min-height: 60px; /* 调整月份导航模块外框高度 */
+            min-height: 60px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-radius: 8px; /* 月份导航圆角与日期容器一致 */
+            border-radius: 8px;
         }
         
         .month-navigation-inner {
@@ -99,7 +99,7 @@
             padding: 8px 4px;
             text-align: center;
             font-weight: 600;
-            border-radius: 8px; /* 星期标题圆角与日期容器一致 */
+            border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             font-size: 0.8rem;
         }
@@ -135,7 +135,7 @@
             display: inline-block;
             padding: 2px 4px;
             margin: 1px;
-            border-radius: 8px; /* 时间槽圆角与日期容器一致 */
+            border-radius: 8px;
             font-size: 0.6rem;
             font-weight: 500;
         }
@@ -155,24 +155,21 @@
             flex-direction: column;
             align-items: center;
             margin-bottom: 2px;
-            border-radius: 6px; /* 地点容器圆角与日期容器一致 */
+            border-radius: 6px;
             padding: 2px;
-            width: 100%;
         }
         
         .location-area {
             font-weight: 600;
             font-size: 0.65rem;
-            word-break: keep-all; /* 防止单字换行 */
-            white-space: nowrap; /* 防止换行 */
         }
         
         .location-name {
             font-weight: 500;
             font-size: 0.6rem;
             color: #64748b;
-            word-break: keep-all; /* 防止单字换行 */
-            white-space: nowrap; /* 防止换行 */
+            word-break: keep-all;
+            line-height: 1.2;
         }
         
         .compact-date {
@@ -181,7 +178,7 @@
             padding: 4px;
             text-align: center;
             margin-bottom: 4px;
-            border-radius: 6px; /* 日期数字圆角与日期容器一致 */
+            border-radius: 6px;
             background: rgba(248, 250, 252, 0.5);
             width: 24px;
             height: 24px;
@@ -193,7 +190,7 @@
         .event-type-badge {
             display: inline-block;
             padding: 2px 6px;
-            border-radius: 8px; /* 事件类型徽章圆角与日期容器一致 */
+            border-radius: 8px;
             font-size: 0.55rem;
             font-weight: 600;
             margin-bottom: 3px;
@@ -219,15 +216,15 @@
         .weekday-event-badge {
             display: inline-block;
             padding: 2px 6px;
-            border-radius: 8px; /* 星期事件徽章圆角与日期容器一致 */
+            border-radius: 8px;
             font-size: 0.55rem;
             font-weight: 600;
             margin: 2px;
         }
         
         .nav-button {
-            padding: 8px 12px; /* 调整按钮大小 */
-            border-radius: 8px; /* 导航按钮圆角与日期容器一致 */
+            padding: 8px 12px;
+            border-radius: 8px;
             background: #f1f5f9;
             border: 1px solid #cbd5e1;
             font-size: 0.75rem;
@@ -236,8 +233,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px; /* 固定按钮宽度 */
-            height: 40px; /* 固定按钮高度 */
+            width: 40px;
+            height: 40px;
         }
         
         .nav-button:hover {
@@ -250,20 +247,24 @@
             color: #1e293b;
         }
         
-        /* 事件详情面板圆角 */
+        /* 事件详情面板居中 */
         #event-details {
-            border-radius: 8px; /* 事件详情面板圆角与日期容器一致 */
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .event-details-container {
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 120px;
+            text-align: center;
+            width: 100%;
         }
         
         /* 平板和桌面样式 */
         @media (min-width: 768px) {
             .calendar-day {
-                min-height: 120px; /* 桌面端保持原有高度 */
+                min-height: 120px;
                 padding: 10px;
             }
             
@@ -339,48 +340,48 @@
         /* 手机端优化 */
         @media (max-width: 767px) {
             .calendar-day {
-                min-height: 70px; /* 进一步缩小手机端日期容器高度 */
-                padding: 4px 2px; /* 减少内边距 */
+                min-height: 70px;
+                padding: 4px 2px;
             }
             
             .event-item {
-                padding: 2px; /* 减少事件内边距 */
-                margin-bottom: 2px; /* 减少事件间距 */
+                padding: 2px;
+                margin-bottom: 2px;
             }
             
             .location-container {
-                margin-bottom: 1px; /* 减少地点容器间距 */
+                margin-bottom: 1px;
             }
             
             .compact-date {
-                padding: 2px; /* 减少日期数字内边距 */
-                margin-bottom: 2px; /* 减少日期数字间距 */
+                padding: 2px;
+                margin-bottom: 2px;
             }
         }
         
         /* 超窄手机屏幕优化 */
         @media (max-width: 380px) {
             .calendar-day {
-                min-height: 65px; /* 超窄屏幕进一步缩小高度 */
-                padding: 3px 1px; /* 进一步减少内边距 */
+                min-height: 65px;
+                padding: 3px 1px;
             }
             
             .event-item {
-                padding: 1px; /* 进一步减少事件内边距 */
-                margin-bottom: 1px; /* 进一步减少事件间距 */
+                padding: 1px;
+                margin-bottom: 1px;
             }
             
             .location-area {
-                font-size: 0.6rem; /* 超窄屏幕微调地点区域字体 */
+                font-size: 0.6rem;
             }
             
             .location-name {
-                font-size: 0.55rem; /* 超窄屏幕微调地点名称字体 */
+                font-size: 0.55rem;
             }
             
             .compact-date {
-                font-size: 0.8rem; /* 超窄屏幕微调日期数字大小 */
-                padding: 1px; /* 进一步减少日期数字内边距 */
+                font-size: 0.8rem;
+                padding: 1px;
             }
         }
     </style>
@@ -749,7 +750,7 @@
                         const eventElement = document.createElement('div');
                         eventElement.className = `event-item ${event.type === 'redstone' ? 'redstone-event' : 'blackstone-event'} ${isActive ? 'active-event' : ''}`;
                         
-                        // 显示地点
+                        // 显示地点 - 优化地点名称显示
                         const locationContainer = document.createElement('div');
                         locationContainer.className = 'location-container';
                         
@@ -760,7 +761,14 @@
                         
                         const nameElement = document.createElement('div');
                         nameElement.className = 'location-name';
-                        nameElement.textContent = event.location.name;
+                        
+                        // 处理地点名称换行 - 4字名称分成2+2
+                        let locationName = event.location.name;
+                        if (locationName.length === 4) {
+                            locationName = locationName.substring(0, 2) + '<br>' + locationName.substring(2);
+                        }
+                        nameElement.innerHTML = locationName;
+                        
                         locationContainer.appendChild(nameElement);
                         
                         eventElement.appendChild(locationContainer);
@@ -778,7 +786,7 @@
             }
         }
         
-        // 显示事件详情
+        // 显示事件详情 - 修改为居中显示
         function showEventDetails(event) {
             const detailsContainer = document.getElementById('event-details');
             
@@ -799,29 +807,31 @@
             const eventColor = event.type === 'redstone' ? 'text-red-600' : 'text-slate-600';
             
             detailsContainer.innerHTML = `
-                <div class="mb-3 w-full flex flex-col items-center">
-                    <h4 class="text-base font-semibold mb-1 text-slate-800 text-center">${dateStr}</h4>
-                    <div class="flex items-center justify-center mb-1">
-                        <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'} mr-2">${eventType}</span>
-                        <i class="fa fa-map-marker mr-2 ${eventColor}"></i>
-                        <span class="text-slate-700 text-sm">${event.location.area} - ${event.location.name}</span>
+                <div class="event-details-container">
+                    <div class="mb-3">
+                        <h4 class="text-base font-semibold mb-1 text-slate-800">${dateStr}</h4>
+                        <div class="flex items-center justify-center mb-1">
+                            <span class="event-type-badge ${event.type === 'redstone' ? 'redstone-badge' : 'blackstone-badge'} mr-2">${eventType}</span>
+                            <i class="fa fa-map-marker mr-2 ${eventColor}"></i>
+                            <span class="text-slate-700 text-sm">${event.location.area} - ${event.location.name}</span>
+                        </div>
+                        <div class="flex items-center justify-center">
+                            <i class="fa fa-clock-o mr-2 ${eventColor}"></i>
+                            <span class="text-slate-700 text-sm">${timeSlotsText}</span>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-center">
-                        <i class="fa fa-clock-o mr-2 ${eventColor}"></i>
-                        <span class="text-slate-700 text-sm">${timeSlotsText}</span>
+                    <div class="text-xs text-slate-600">
+                        <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
+                        <ul class="mt-1 list-disc list-inside text-left max-w-md mx-auto">
+                            ${event.type === 'redstone' ? 
+                                `<li>周日：每月每个周日固定时间段循环事件</li>
+                                 <li>周六：每月1-15号内的每个周六固定时间段循环事件</li>
+                                 <li>周五：每月16号到月底内的每个周五固定时间段循环事件</li>` :
+                                `<li>周二：每月1-15号内的每个周二固定时间段循环事件</li>
+                                 <li>周三：每月16号到月底内的每个周三固定时间段循环事件</li>`
+                            }
+                        </ul>
                     </div>
-                </div>
-                <div class="text-xs text-slate-600 text-center">
-                    <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
-                    <ul class="mt-1 list-disc list-inside text-left max-w-md mx-auto">
-                        ${event.type === 'redstone' ? 
-                            `<li>周日：每月每个周日固定时间段循环事件</li>
-                             <li>周六：每月1-15号内的每个周六固定时间段循环事件</li>
-                             <li>周五：每月16号到月底内的每个周五固定时间段循环事件</li>` :
-                            `<li>周二：每月1-15号内的每个周二固定时间段循环事件</li>
-                             <li>周三：每月16号到月底内的每个周三固定时间段循环事件</li>`
-                        }
-                    </ul>
                 </div>
             `;
         }
