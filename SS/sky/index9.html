@@ -227,11 +227,6 @@
             .future-task-item.active {
                 @apply bg-primary bg-opacity-10 border-primary;
             }
-            /* 主题切换按钮 */
-            .theme-toggle {
-                z-index: 40;
-                transition: all 0.3s ease;
-            }
             /* 手机端优化 */
             @media (max-width: 640px) {
                 .app-expanded {
@@ -293,112 +288,9 @@
                 }
             }
         }
-
-        /* 主题变量定义 */
-        :root {
-            /* 暗黑主题变量 */
-            --bg-color: #1e293b;
-            --card-color: #334155;
-            --text-color: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --hover-color: #475569;
-            --border-color: #4b5563;
-            --primary-color: #60a5fa;
-            --priority-high: #ef4444;
-            --priority-medium: #f59e0b;
-            --priority-low: #10b981;
-            --priority-none: #64748b;
-        }
-
-        [data-theme="light"] {
-            --bg-color: #f8fafc;
-            --card-color: #ffffff;
-            --text-color: #1e293b;
-            --text-secondary: #64748b;
-            --hover-color: #f1f5f9;
-            --border-color: #e2e8f0;
-            --primary-color: #3b82f6;
-            --priority-high: #dc2626;
-            --priority-medium: #d97706;
-            --priority-low: #059669;
-            --priority-none: #6b7280;
-        }
-
-        /* 应用主题变量 */
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        .bg-dark-bg {
-            background-color: var(--bg-color) !important;
-        }
-
-        .bg-dark-card {
-            background-color: var(--card-color) !important;
-        }
-
-        .text-dark-text {
-            color: var(--text-color) !important;
-        }
-
-        .text-dark-textSecondary {
-            color: var(--text-secondary) !important;
-        }
-
-        .bg-dark-hover:hover {
-            background-color: var(--hover-color) !important;
-        }
-
-        .border-gray-700 {
-            border-color: var(--border-color) !important;
-        }
-
-        /* 确保其他元素也支持主题切换 */
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.6);
-        }
-
-        .context-menu {
-            background-color: var(--card-color);
-            border-color: var(--border-color);
-        }
-
-        .preview-card {
-            background-color: var(--card-color);
-            border-color: var(--primary-color);
-        }
-
-        .empty-hover-area {
-            background-color: transparent;
-        }
-
-        .empty-hover-area:hover {
-            background-color: var(--hover-color);
-        }
-
-        /* 系统主题检测备用 */
-        @media (prefers-color-scheme: light) {
-            :root:not([data-theme]) {
-                --bg-color: #f8fafc;
-                --card-color: #ffffff;
-                --text-color: #1e293b;
-                --text-secondary: #64748b;
-                --hover-color: #f1f5f9;
-                --border-color: #e2e8f0;
-            }
-        }
     </style>
 </head>
 <body class="bg-dark-bg min-h-screen flex items-center justify-center p-4 font-inter text-dark-text m-0">
-    <!-- 主题切换按钮 -->
-    <div class="theme-toggle-container fixed top-4 left-4 z-40">
-        <button id="theme-toggle" class="theme-toggle p-2 rounded-lg bg-dark-card border border-gray-700 text-dark-text hover:bg-dark-hover transition-colors shadow-lg" title="切换主题">
-            <i class="fa fa-moon" id="theme-icon"></i>
-        </button>
-    </div>
-
     <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded relative">
         <div id="lock-indicator" class="lock-indicator" title="当前锁定状态">
             <i class="fa fa-unlock"></i>
@@ -461,13 +353,6 @@
                         <span>时间</span>
                     </span>
                     <span id="preview-time" class="preview-value"></span>
-                </div>
-                <div class="preview-row">
-                    <span class="preview-label">
-                        <i class="fa fa-map-marker preview-icon"></i>
-                        <span>地点</span>
-                    </span>
-                    <span id="preview-location" class="preview-value"></span>
                 </div>
                 <div class="preview-row">
                     <span class="preview-label">
@@ -781,80 +666,6 @@
     <div id="notification" class="notification">数据已保存</div>
 
     <script>
-        // ==================== 主题管理器 ====================
-        class ThemeManager {
-            constructor() {
-                this.currentTheme = this.getStoredTheme() || this.getSystemTheme();
-                this.init();
-            }
-
-            // 获取系统主题偏好
-            getSystemTheme() {
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    return 'dark';
-                }
-                return 'light';
-            }
-
-            // 获取存储的主题
-            getStoredTheme() {
-                return localStorage.getItem('theme');
-            }
-
-            // 保存主题偏好
-            saveTheme(theme) {
-                localStorage.setItem('theme', theme);
-            }
-
-            // 应用主题
-            applyTheme(theme) {
-                document.documentElement.setAttribute('data-theme', theme);
-                this.currentTheme = theme;
-                this.updateThemeIcon();
-                this.saveTheme(theme);
-            }
-
-            // 更新主题图标
-            updateThemeIcon() {
-                const icon = document.getElementById('theme-icon');
-                if (icon) {
-                    if (this.currentTheme === 'dark') {
-                        icon.className = 'fa fa-sun';
-                        icon.title = '切换到浅色模式';
-                    } else {
-                        icon.className = 'fa fa-moon';
-                        icon.title = '切换到深色模式';
-                    }
-                }
-            }
-
-            // 切换主题
-            toggleTheme() {
-                const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
-                this.applyTheme(newTheme);
-                showNotification(`已切换到${newTheme === 'dark' ? '深色' : '浅色'}模式`);
-            }
-
-            // 监听系统主题变化
-            watchSystemTheme() {
-                if (window.matchMedia) {
-                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                        // 只有当用户没有手动设置过主题时才跟随系统
-                        if (!this.getStoredTheme()) {
-                            this.applyTheme(e.matches ? 'dark' : 'light');
-                            showNotification(`已跟随系统切换到${e.matches ? '深色' : '浅色'}模式`);
-                        }
-                    });
-                }
-            }
-
-            // 初始化
-            init() {
-                this.applyTheme(this.currentTheme);
-                this.watchSystemTheme();
-            }
-        }
-
         // ==================== 时区转换工具 ====================
         const TimeZoneUtils = {
             // 判断当前是否处于太平洋夏令时
@@ -1012,35 +823,6 @@
                 }
             },
             
-            // 破晓红石地点映射表
-            getLocation(pdtDate) {
-                const day = pdtDate.getDate();
-                
-                // 云野
-                if (day === 1 || day === 31) return "云野-云野山洞";
-                if (day === 11) return "云野-圣岛";
-                if (day === 21) return "云野-浮石鸟巢";
-                
-                // 雨林
-                if (day === 7) return "雨林-雨林宫殿";
-                if (day === 17) return "雨林-雨林高处";
-                if (day === 27) return "雨林-大树屋";
-                
-                // 霞谷
-                if (day === 3 || day === 13) return "霞谷-圆梦村";
-                if (day === 23) return "霞谷-隐士山谷";
-                
-                // 暮土
-                if (day === 9) return "暮土-暗蟹沙原";
-                if (day === 19) return "暮土-暮土墓园";
-                if (day === 29) return "暮土-失落方舟";
-                
-                // 禁阁
-                if (day === 5 || day === 15 || day === 25) return "禁阁-星漠海滩";
-                
-                return "地点未知";
-            },
-            
             // 检查破晓红石事件是否在活动时间段
             isActive(nowCST) {
                 const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
@@ -1055,8 +837,7 @@
                     if (nowCST >= slotStartCST && nowCST < slotEndCST) {
                         return {
                             startTime: slotStartCST,
-                            endTime: slotEndCST,
-                            location: this.getLocation(nowPDT)
+                            endTime: slotEndCST
                         };
                     }
                 }
@@ -1068,10 +849,7 @@
                 // 首先检查当前是否有正在进行的事件
                 const currentActive = this.isActive(nowCST);
                 if (currentActive) {
-                    return {
-                        startTime: currentActive.startTime,
-                        location: currentActive.location
-                    };
+                    return currentActive.startTime;
                 }
                 
                 const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
@@ -1083,10 +861,7 @@
                     for (let slot of slots) {
                         const slotStartCST = TimeZoneUtils.PDTtoCST(slot.start);
                         if (slotStartCST > nowCST) {
-                            return {
-                                startTime: slotStartCST,
-                                location: this.getLocation(nowPDT)
-                            };
+                            return slotStartCST;
                         }
                     }
                 }
@@ -1099,18 +874,12 @@
                     if (futureGroup) {
                         const slots = this.getTimeSlots(futureGroup, checkDate);
                         if (slots.length > 0) {
-                            return {
-                                startTime: TimeZoneUtils.PDTtoCST(slots[0].start),
-                                location: this.getLocation(checkDate)
-                            };
+                            return TimeZoneUtils.PDTtoCST(slots[0].start);
                         }
                     }
                 }
                 
-                return {
-                    startTime: new Date(nowCST.getTime() + 7 * 24 * 60 * 60 * 1000),
-                    location: "地点未知"
-                };
+                return new Date(nowCST.getTime() + 7 * 24 * 60 * 60 * 1000);
             }
         };
 
@@ -1556,7 +1325,6 @@
         const lockIndicator = document.getElementById('lock-indicator');
         const emptyHoverArea = document.querySelector('.empty-hover-area');
         const previewCard = document.getElementById('preview-card');
-        const themeToggle = document.getElementById('theme-toggle');
         
         // 获取今天的日期字符串
         function getTodayDate() {
@@ -1730,20 +1498,14 @@
             try {
                 // 破晓红石特殊处理
                 if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
-                    const nextOccurrence = DawnRedstoneRules.getNextOccurrence(nowCST);
-                    return {
-                        startTime: nextOccurrence.startTime,
-                        location: nextOccurrence.location
-                    };
+                    const nextTimeCST = DawnRedstoneRules.getNextOccurrence(nowCST);
+                    return nextTimeCST;
                 }
                 
                 // 圆梦滑冰特殊处理
                 if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
                     const nextTimeCST = DreamSkatingRules.getNextOccurrence(nowCST);
-                    return {
-                        startTime: nextTimeCST,
-                        location: "圆梦村"
-                    };
+                    return nextTimeCST;
                 }
                 
                 // 将当前时间转换为太平洋时间进行计算
@@ -1760,10 +1522,7 @@
                 
                 if (task.recurrence.type === "none") {
                     // 不重复事件，直接返回开始时间
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(initialStartPDT),
-                        location: ""
-                    };
+                    return TimeZoneUtils.PDTtoCST(initialStartPDT);
                 }
                 
                 if (task.recurrence.type === "daily") {
@@ -1771,10 +1530,7 @@
                     if (nextTimePDT <= nowPDT) {
                         nextTimePDT.setDate(nextTimePDT.getDate() + 1);
                     }
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
-                        location: ""
-                    };
+                    return TimeZoneUtils.PDTtoCST(nextTimePDT);
                 }
                 
                 if (task.recurrence.type === "weekly") {
@@ -1804,10 +1560,7 @@
                         const nextTimeCST = TimeZoneUtils.PDTtoCST(nextTimePDT);
                         
                         if (nextTimeCST <= nowCST && nowCST < nextTimeCST.getTime() + durationMs) {
-                            return {
-                                startTime: nextTimeCST,
-                                location: ""
-                            };
+                            return nextTimeCST;
                         }
                         
                         if (nextTimeCST <= nowCST) {
@@ -1815,10 +1568,7 @@
                         }
                     }
                     
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
-                        location: ""
-                    };
+                    return TimeZoneUtils.PDTtoCST(nextTimePDT);
                 }
                 
                 if (task.recurrence.type === "custom") {
@@ -1833,40 +1583,26 @@
                     const lastOccurrenceCST = TimeZoneUtils.PDTtoCST(lastOccurrencePDT);
                     
                     if (nowCST <= lastOccurrenceCST.getTime() + durationMs) {
-                        return {
-                            startTime: lastOccurrenceCST,
-                            location: ""
-                        };
+                        return lastOccurrenceCST;
                     }
                     
                     const nextOccurrencePDT = new Date(lastOccurrencePDT.getTime() + intervalMs);
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextOccurrencePDT),
-                        location: ""
-                    };
+                    return TimeZoneUtils.PDTtoCST(nextOccurrencePDT);
                 }
                 
                 // 默认返回1小时后
-                return {
-                    startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
-                    location: ""
-                };
+                return new Date(nowCST.getTime() + 60 * 60 * 1000);
                 
             } catch (e) {
                 console.error('计算下次发生时间出错:', task.name, e);
-                return {
-                    startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
-                    location: ""
-                };
+                return new Date(nowCST.getTime() + 60 * 60 * 1000);
             }
         }
 
         // 获取事件状态信息
         function getTaskStatus(task, nowCST) {
             try {
-                const nextOccurrence = getNextOccurrence(task, nowCST);
-                const nextStartCST = nextOccurrence.startTime;
-                const location = nextOccurrence.location;
+                const nextStartCST = getNextOccurrence(task, nowCST);
                 
                 let durationMs, endTimeCST;
                 
@@ -1911,8 +1647,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
+                        displayEndTime: displayEndTimeCST
                     };
                 }
                 
@@ -1928,8 +1663,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
+                        displayEndTime: displayEndTimeCST
                     };
                 } else if (isInDisplayRange) {
                     const converted = convertFromMilliseconds(timeUntilStart);
@@ -1942,8 +1676,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
+                        displayEndTime: displayEndTimeCST
                     };
                 } else {
                     const converted = convertFromMilliseconds(timeUntilStart);
@@ -1956,8 +1689,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
+                        displayEndTime: displayEndTimeCST
                     };
                 }
             } catch (e) {
@@ -1972,8 +1704,7 @@
                     startTime: defaultTime,
                     endTime: new Date(defaultTime.getTime() + 60 * 60 * 1000),
                     displayStartTime: defaultTime,
-                    displayEndTime: new Date(defaultTime.getTime() + 60 * 60 * 1000),
-                    location: ""
+                    displayEndTime: new Date(defaultTime.getTime() + 60 * 60 * 1000)
                 };
             }
         }
@@ -2034,8 +1765,7 @@
                             startTime: new Date(),
                             endTime: new Date(),
                             displayStartTime: new Date(),
-                            displayEndTime: new Date(),
-                            location: ""
+                            displayEndTime: new Date()
                         };
                     }
                 })
@@ -2123,9 +1853,6 @@
             
             const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
             
-            // 添加地点显示
-            const locationText = task.location ? `<span class="task-meta-item"><i class="fa fa-map-marker mr-1 opacity-70"></i>${task.location}</span>` : '';
-            
             taskEl.innerHTML = `
                 <div class="flex justify-between items-center task-title">
                     <div class="font-medium text-dark-text flex items-center">
@@ -2141,7 +1868,6 @@
                     <span class="task-meta-item"><i class="fa fa-clock-o mr-1 opacity-70"></i>持续 ${durationText}</span>
                     <span class="task-meta-item"><i class="fa fa-calendar mr-1 opacity-70"></i>${dateText}</span>
                     <span class="task-meta-item"><i class="fa fa-hourglass-start mr-1 opacity-70"></i>${startTimeText} - ${endTimeText}</span>
-                    ${locationText}
                 </div>
             `;
             
@@ -2174,17 +1900,6 @@
                     showPreviewCard(task, e.clientX, e.clientY);
                 }
             });
-            
-            // 为破晓红石事件添加双击跳转功能
-            if (task.name === "破晓 红石") {
-                element.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    
-                    // 跳转到 HHS.html
-                    window.open('HHS.html', '_self');
-                });
-            }
         }
 
         // 创建缩略事件元素
@@ -2206,9 +1921,6 @@
             const timeDisplay = task.status === 'ongoing' ? '进行中' : 
                               TimeZoneUtils.formatCSTTime(task.startTime);
             
-            // 添加地点显示
-            const locationText = task.location ? `<div class="text-xs text-dark-textSecondary truncate">${task.location}</div>` : '';
-            
             taskEl.innerHTML = `
                 <div class="flex items-center flex-1 min-w-0">
                     <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
@@ -2217,7 +1929,6 @@
                         <div class="text-xs text-primary flex items-center">
                             ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText || '即将开始'}</span>${countdownBadge}
                         </div>
-                        ${locationText}
                     </div>
                 </div>
                 <div class="text-xs text-dark-textSecondary whitespace-nowrap ml-2">
@@ -2334,7 +2045,6 @@
             document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
             document.getElementById('preview-date').textContent = dateText;
             document.getElementById('preview-time').textContent = timeRangeText;
-            document.getElementById('preview-location').textContent = currentTask.location || "无特定地点";
             document.getElementById('preview-alert').textContent = alertText;
             
             // 设置卡片位置
@@ -2831,16 +2541,6 @@
             
             startDateInput.value = dateStr;
             startTimeInput.value = timeStr;
-            
-            // 初始化主题管理器
-            const themeManager = new ThemeManager();
-            
-            // 绑定主题切换按钮
-            if (themeToggle) {
-                themeToggle.addEventListener('click', () => {
-                    themeManager.toggleTheme();
-                });
-            }
             
             // 初始化重复选项点击事件
             recurrenceOptions.forEach(option => {
