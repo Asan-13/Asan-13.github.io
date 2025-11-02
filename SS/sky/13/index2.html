@@ -223,10 +223,6 @@
             .preview-smooth {
                 transition: transform 0.1s ease-out, opacity 0.2s ease-out;
             }
-            /* 任务激活状态 */
-            .future-task-item.active {
-                @apply bg-primary bg-opacity-10 border-primary;
-            }
             /* 手机端优化 */
             @media (max-width: 640px) {
                 .app-expanded {
@@ -250,41 +246,61 @@
                 .preview-card::before {
                     display: none;
                 }
+                /* 新增：轮播模块下方信息改为2行显示 */
                 .task-meta {
-                    @apply flex flex-col gap-1;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 0.25rem 1rem;
+                    margin-top: 0.75rem;
                 }
                 .task-meta-item {
-                    @apply mr-0;
+                    margin-right: 0;
+                    display: flex;
+                    align-items: center;
+                }
+                /* 重复方式和日期在第一行 */
+                .task-meta-item:nth-child(1),
+                .task-meta-item:nth-child(3) {
+                    grid-column: span 1;
+                }
+                /* 持续时间和时间范围在第二行 */
+                .task-meta-item:nth-child(2),
+                .task-meta-item:nth-child(4) {
+                    grid-column: span 1;
                 }
                 .time-input-group {
-                    @apply flex-col items-stretch;
+                    flex-direction: column;
+                    align-items: stretch;
                 }
                 .time-input, .time-select {
-                    @apply w-full;
+                    width: 100%;
                 }
                 .download-btn, .save-btn {
-                    @apply bottom-4 p-2.5;
+                    bottom: 1rem;
+                    padding: 0.625rem;
                 }
                 .download-btn {
-                    @apply right-4;
+                    right: 1rem;
                 }
                 .save-btn {
-                    @apply left-4;
+                    left: 1rem;
                 }
                 .save-status {
-                    @apply bottom-4 left-16;
+                    bottom: 1rem;
+                    left: 4rem;
                 }
                 .modal-content {
-                    @apply max-h-[90vh] overflow-y-auto;
+                    max-height: 90vh;
+                    overflow-y: auto;
                 }
                 .task-item {
-                    @apply p-3;
+                    padding: 0.75rem;
                 }
                 .task-title {
-                    @apply text-sm;
+                    font-size: 0.875rem;
                 }
                 .task-meta {
-                    @apply text-xs;
+                    font-size: 0.75rem;
                 }
             }
         }
@@ -353,13 +369,6 @@
                         <span>时间</span>
                     </span>
                     <span id="preview-time" class="preview-value"></span>
-                </div>
-                <div class="preview-row">
-                    <span class="preview-label">
-                        <i class="fa fa-map-marker preview-icon"></i>
-                        <span>地点</span>
-                    </span>
-                    <span id="preview-location" class="preview-value"></span>
                 </div>
                 <div class="preview-row">
                     <span class="preview-label">
@@ -651,7 +660,7 @@
     <!-- 下载按钮 -->
     <div class="download-container relative">
         <button id="download-btn" class="download-btn">
-            <i class="fa fa-download"></i>
+            <i class="fa fa-download十三隐藏"></i>
         </button>
         <span class="download-tooltip">保存当前事件到HTML文件</span>
     </div>
@@ -659,7 +668,7 @@
     <!-- 保存按钮 -->
     <div class="save-container relative">
         <button id="manual-save-btn" class="save-btn">
-            <i class="fa fa-save"></i>
+            <i class="fa fa-save十三隐藏"></i>
         </button>
         <span class="save-tooltip">手动保存当前数据</span>
     </div>
@@ -673,405 +682,7 @@
     <div id="notification" class="notification">数据已保存</div>
 
     <script>
-        // ==================== 时区转换工具 ====================
-        const TimeZoneUtils = {
-            // 判断当前是否处于太平洋夏令时
-            isPDT() {
-                const now = new Date();
-                const year = now.getFullYear();
-                
-                // 太平洋夏令时规则：3月第二个周日 02:00 开始，11月第一个周日 02:00 结束
-                const getDayOfMonth = (year, month, dayOfWeek, occurrence) => {
-                    const firstDay = new Date(year, month, 1);
-                    const firstDayOfWeek = firstDay.getDay();
-                    let offset = dayOfWeek - firstDayOfWeek;
-                    if (offset < 0) offset += 7;
-                    return 1 + offset + (occurrence - 1) * 7;
-                };
-                
-                const marchSecondSunday = getDayOfMonth(year, 2, 0, 2); // 3月第二个周日
-                const novemberFirstSunday = getDayOfMonth(year, 10, 0, 1); // 11月第一个周日
-                
-                const startDST = new Date(year, 2, marchSecondSunday, 2, 0, 0); // 3月开始
-                const endDST = new Date(year, 10, novemberFirstSunday, 2, 0, 0); // 11月结束
-                
-                return now >= startDST && now < endDST;
-            },
-            
-            // 太平洋时间到北京时间的转换
-            PDTtoCST(pdtDate) {
-                const offset = this.isPDT() ? 15 : 16; // 夏令时15小时，标准时间16小时
-                return new Date(pdtDate.getTime() + offset * 60 * 60 * 1000);
-            },
-            
-            // 北京时间到太平洋时间的转换
-            CSTtoPDT(cstDate) {
-                const offset = this.isPDT() ? 15 : 16;
-                return new Date(cstDate.getTime() - offset * 60 * 60 * 1000);
-            },
-            
-            // 格式化时间为北京时间显示
-            formatCSTTime(date) {
-                return date.toLocaleTimeString('zh-CN', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                });
-            },
-            
-            // 格式化日期为北京时间显示
-            formatCSTDate(date) {
-                const today = new Date();
-                if (date.toDateString() === today.toDateString()) {
-                    return '今天';
-                }
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                if (date.toDateString() === tomorrow.toDateString()) {
-                    return '明天';
-                }
-                return date.toLocaleDateString('zh-CN', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    weekday: 'short' 
-                });
-            },
-            
-            // 解析太平洋时间字符串为Date对象
-            parsePDTDateTime(dateStr, timeStr) {
-                const [year, month, day] = dateStr.split('-').map(Number);
-                const [hour, minute] = timeStr.split(':').map(Number);
-                return new Date(year, month - 1, day, hour, minute, 0, 0);
-            }
-        };
-
-        // ==================== 破晓红石事件规则 ====================
-        const DawnRedstoneRules = {
-            // 日期分组规则（基于PDT日期）
-            getDateGroup(pdtDate) {
-                const day = pdtDate.getDate();
-                const weekday = pdtDate.getDay(); // 0=周日, 1=周一, ..., 6=周六
-                
-                // 第一组：1,7,13,19,25,31日（周一、周二取消）
-                const group1 = [1, 7, 13, 19, 25, 31];
-                if (group1.includes(day)) {
-                    return weekday === 1 || weekday === 2 ? null : 'group1';
-                }
-                
-                // 第二组：3,9,15,17,21,27日（周二、周三取消）
-                const group2 = [3, 9, 15, 17, 21, 27];
-                if (group2.includes(day)) {
-                    return weekday === 2 || weekday === 3 ? null : 'group2';
-                }
-                
-                // 第三组：5,11,23,29日（周三、周四取消）
-                const group3 = [5, 11, 23, 29];
-                if (group3.includes(day)) {
-                    return weekday === 3 || weekday === 4 ? null : 'group3';
-                }
-                
-                return null;
-            },
-            
-            // 获取对应日期组的时间段（太平洋时间）
-            getTimeSlots(group, pdtDate) {
-                const year = pdtDate.getFullYear();
-                const month = pdtDate.getMonth();
-                const day = pdtDate.getDate();
-                
-                switch(group) {
-                    case 'group1':
-                        return [
-                            { 
-                                start: new Date(year, month, day, 7, 48), 
-                                end: new Date(year, month, day, 11, 40) 
-                            },
-                            { 
-                                start: new Date(year, month, day, 13, 48), 
-                                end: new Date(year, month, day, 17, 40) 
-                            },
-                            { 
-                                start: new Date(year, month, day, 19, 48), 
-                                end: new Date(year, month, day, 23, 40) 
-                            }
-                        ];
-                    case 'group2':
-                        return [
-                            { 
-                                start: new Date(year, month, day, 2, 28), 
-                                end: new Date(year, month, day, 6, 20) 
-                            },
-                            { 
-                                start: new Date(year, month, day, 8, 28), 
-                                end: new Date(year, month, day, 12, 20) 
-                            },
-                            { 
-                                start: new Date(year, month, day, 14, 28), 
-                                end: new Date(year, month, day, 18, 20) 
-                            }
-                        ];
-                    case 'group3':
-                        return [
-                            { 
-                                start: new Date(year, month, day, 3, 38), 
-                                end: new Date(year, month, day, 7, 30) 
-                            },
-                            { 
-                                start: new Date(year, month, day, 9, 38), 
-                                end: new Date(year, month, day, 13, 30) 
-                            },
-                            { 
-                                start: new Date(year, month, day, 15, 38), 
-                                end: new Date(year, month, day, 19, 30) 
-                            }
-                        ];
-                    default:
-                        return [];
-                }
-            },
-            
-            // 破晓红石地点映射表
-            getLocation(pdtDate) {
-                const day = pdtDate.getDate();
-                
-                // 云野
-                if (day === 1 || day === 31) return "云野-云野山洞";
-                if (day === 11) return "云野-圣岛";
-                if (day === 21) return "云野-浮石鸟巢";
-                
-                // 雨林
-                if (day === 7) return "雨林-雨林宫殿";
-                if (day === 17) return "雨林-雨林高处";
-                if (day === 27) return "雨林-大树屋";
-                
-                // 霞谷
-                if (day === 3 || day === 13) return "霞谷-圆梦村";
-                if (day === 23) return "霞谷-隐士山谷";
-                
-                // 暮土
-                if (day === 9) return "暮土-暗蟹沙原";
-                if (day === 19) return "暮土-暮土墓园";
-                if (day === 29) return "暮土-失落方舟";
-                
-                // 禁阁
-                if (day === 5 || day === 15 || day === 25) return "禁阁-星漠海滩";
-                
-                return "地点未知";
-            },
-            
-            // 检查破晓红石事件是否在活动时间段
-            isActive(nowCST) {
-                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
-                const group = this.getDateGroup(nowPDT);
-                if (!group) return null;
-                
-                const slots = this.getTimeSlots(group, nowPDT);
-                for (let slot of slots) {
-                    const slotStartCST = TimeZoneUtils.PDTtoCST(slot.start);
-                    const slotEndCST = TimeZoneUtils.PDTtoCST(slot.end);
-                    
-                    if (nowCST >= slotStartCST && nowCST < slotEndCST) {
-                        return {
-                            startTime: slotStartCST,
-                            endTime: slotEndCST,
-                            location: this.getLocation(nowPDT)
-                        };
-                    }
-                }
-                return null;
-            },
-            
-            // 计算破晓红石事件的下一次发生时间
-            getNextOccurrence(nowCST) {
-                // 首先检查当前是否有正在进行的事件
-                const currentActive = this.isActive(nowCST);
-                if (currentActive) {
-                    return {
-                        startTime: currentActive.startTime,
-                        location: currentActive.location
-                    };
-                }
-                
-                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
-                
-                // 检查当前PDT日内的所有时间段
-                const currentGroup = this.getDateGroup(nowPDT);
-                if (currentGroup) {
-                    const slots = this.getTimeSlots(currentGroup, nowPDT);
-                    for (let slot of slots) {
-                        const slotStartCST = TimeZoneUtils.PDTtoCST(slot.start);
-                        if (slotStartCST > nowCST) {
-                            return {
-                                startTime: slotStartCST,
-                                location: this.getLocation(nowPDT)
-                            };
-                        }
-                    }
-                }
-                
-                // 如果当前PDT日内没有找到，检查未来7天
-                let checkDate = new Date(nowPDT);
-                for (let i = 1; i <= 7; i++) {
-                    checkDate.setDate(checkDate.getDate() + 1);
-                    const futureGroup = this.getDateGroup(checkDate);
-                    if (futureGroup) {
-                        const slots = this.getTimeSlots(futureGroup, checkDate);
-                        if (slots.length > 0) {
-                            return {
-                                startTime: TimeZoneUtils.PDTtoCST(slots[0].start),
-                                location: this.getLocation(checkDate)
-                            };
-                        }
-                    }
-                }
-                
-                return {
-                    startTime: new Date(nowCST.getTime() + 7 * 24 * 60 * 60 * 1000),
-                    location: "地点未知"
-                };
-            }
-        };
-
-        // ==================== 圆梦滑冰事件规则 ====================
-        const DreamSkatingRules = {
-            // 检查圆梦滑冰事件是否在活动时间段
-            isActive(nowCST) {
-                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
-                const weekday = nowPDT.getDay(); // 0=周日, 1=周一, ..., 6=周六
-                const hour = nowPDT.getHours();
-                const minute = nowPDT.getMinutes();
-                
-                // 周二、三、四无事件
-                if (weekday === 2 || weekday === 3 || weekday === 4) {
-                    return null;
-                }
-                
-                // 计算当前时间是否在活动时间段内
-                let baseHour;
-                if (weekday === 5) { // 周五
-                    baseHour = 0; // 太平洋时间00:00 = 北京时间15:00/16:00
-                } else { // 周六、日、一
-                    baseHour = 10; // 太平洋时间10:00 = 北京时间次日01:00/02:00
-                }
-                
-                // 每2小时进行一次，持续15分钟
-                const totalMinutes = hour * 60 + minute;
-                const baseMinutes = baseHour * 60;
-                const intervalMinutes = 2 * 60; // 2小时间隔
-                
-                // 计算当前时间相对于基点的间隔数
-                const intervals = Math.floor((totalMinutes - baseMinutes) / intervalMinutes);
-                
-                if (intervals < 0) {
-                    return null; // 还没到第一个时间段
-                }
-                
-                const slotStartMinutes = baseMinutes + intervals * intervalMinutes;
-                const slotEndMinutes = slotStartMinutes + 15; // 持续15分钟
-                
-                if (totalMinutes >= slotStartMinutes && totalMinutes < slotEndMinutes) {
-                    const slotStartPDT = new Date(nowPDT);
-                    slotStartPDT.setHours(Math.floor(slotStartMinutes / 60), slotStartMinutes % 60, 0, 0);
-                    const slotEndPDT = new Date(nowPDT);
-                    slotEndPDT.setHours(Math.floor(slotEndMinutes / 60), slotEndMinutes % 60, 0, 0);
-                    
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(slotStartPDT),
-                        endTime: TimeZoneUtils.PDTtoCST(slotEndPDT)
-                    };
-                }
-                
-                return null;
-            },
-            
-            // 计算圆梦滑冰事件的下一次发生时间
-            getNextOccurrence(nowCST) {
-                // 首先检查当前是否有正在进行的事件
-                const currentActive = this.isActive(nowCST);
-                if (currentActive) {
-                    return currentActive.startTime;
-                }
-                
-                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
-                const weekday = nowPDT.getDay();
-                const hour = nowPDT.getHours();
-                const minute = nowPDT.getMinutes();
-                const totalMinutes = hour * 60 + minute;
-                
-                // 周二、三、四无事件，跳到下一个有效日期
-                if (weekday === 2 || weekday === 3 || weekday === 4) {
-                    let nextDate = new Date(nowPDT);
-                    let daysToAdd = 1;
-                    
-                    // 找到下一个有效日期（周五、周六、周日或周一）
-                    while (true) {
-                        nextDate.setDate(nextDate.getDate() + daysToAdd);
-                        const nextWeekday = nextDate.getDay();
-                        if (nextWeekday === 5 || nextWeekday === 6 || nextWeekday === 0 || nextWeekday === 1) {
-                            break;
-                        }
-                        daysToAdd++;
-                    }
-                    
-                    const nextWeekday = nextDate.getDay();
-                    const baseHour = nextWeekday === 5 ? 0 : 10; // 周五00:00，其他10:00
-                    
-                    nextDate.setHours(baseHour, 0, 0, 0);
-                    return TimeZoneUtils.PDTtoCST(nextDate);
-                }
-                
-                // 当前是有效日期，计算下一个时间段
-                let baseHour;
-                if (weekday === 5) { // 周五
-                    baseHour = 0;
-                } else { // 周六、日、一
-                    baseHour = 10;
-                }
-                
-                const baseMinutes = baseHour * 60;
-                const intervalMinutes = 2 * 60; // 2小时间隔
-                
-                // 计算下一个时间段
-                let nextSlotMinutes;
-                if (totalMinutes < baseMinutes) {
-                    nextSlotMinutes = baseMinutes; // 还没到第一个时间段
-                } else {
-                    const intervals = Math.floor((totalMinutes - baseMinutes) / intervalMinutes);
-                    nextSlotMinutes = baseMinutes + (intervals + 1) * intervalMinutes;
-                }
-                
-                // 检查下一个时间段是否在同一天
-                const nextHour = Math.floor(nextSlotMinutes / 60);
-                const nextMinute = nextSlotMinutes % 60;
-                
-                if (nextHour < 24) {
-                    const nextTimePDT = new Date(nowPDT);
-                    nextTimePDT.setHours(nextHour, nextMinute, 0, 0);
-                    return TimeZoneUtils.PDTtoCST(nextTimePDT);
-                } else {
-                    // 跳到下一天
-                    let nextDate = new Date(nowPDT);
-                    nextDate.setDate(nextDate.getDate() + 1);
-                    const nextWeekday = nextDate.getDay();
-                    
-                    // 如果下一天是无效日期，继续找
-                    let daysToAdd = 1;
-                    while (nextWeekday === 2 || nextWeekday === 3 || nextWeekday === 4) {
-                        daysToAdd++;
-                        nextDate.setDate(nextDate.getDate() + 1);
-                    }
-                    
-                    const validWeekday = nextDate.getDay();
-                    const nextBaseHour = validWeekday === 5 ? 0 : 10;
-                    nextDate.setHours(nextBaseHour, 0, 0, 0);
-                    return TimeZoneUtils.PDTtoCST(nextDate);
-                }
-            }
-        };
-
-        // ==================== 核心逻辑 ====================
-        
-        // 用于存储外部数据的变量
+        // 用于存储外部数据的变量 - 从localStorage加载或使用默认值
         let externalData = null;
         
         // 保存状态管理
@@ -1092,17 +703,280 @@
         let mouseX = 0;
         let mouseY = 0;
         
-        // 存储当前显示的可见任务
+        // 存储当前显示的可见任务，用于预览卡片数据同步
         let currentVisibleTasks = [];
         let currentAllTasks = [];
         
-        // 任务数据 - 所有时间使用太平洋时间
+        // 尝试从localStorage加载数据
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('timeProjectReminderTasks');
+                if (savedData) {
+                    return JSON.parse(savedData);
+                }
+            } catch (e) {
+                console.error('Failed to load from localStorage:', e);
+                showNotification('加载数据失败: ' + e.message, true);
+            }
+            return null;
+        }
+        
+        // 保存数据到localStorage - 核心保存函数
+        function saveToLocalStorage(data, retry = 0) {
+            if (saveState.isSaving) {
+                if (retry < saveState.maxAttempts) {
+                    return new Promise(resolve => {
+                        setTimeout(() => {
+                            saveToLocalStorage(data, retry + 1)
+                                .then(resolve)
+                                .catch(resolve);
+                        }, 300);
+                    });
+                }
+                return Promise.resolve(false);
+            }
+            
+            saveState.isSaving = true;
+            showSaveStatus(true);
+            
+            return new Promise(resolve => {
+                try {
+                    if (!data || !Array.isArray(data)) {
+                        throw new Error('无效的数据格式');
+                    }
+                    
+                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(data));
+                    
+                    saveState.lastSaved = new Date();
+                    saveState.saveAttempts = 0;
+                    saveState.isSaving = false;
+                    
+                    showSaveStatus(false, true);
+                    showNotification('数据已成功保存');
+                    resolve(true);
+                } catch (e) {
+                    console.error('Failed to save to localStorage:', e);
+                    
+                    saveState.saveAttempts++;
+                    saveState.isSaving = false;
+                    
+                    showSaveStatus(false, false);
+                    showNotification('保存失败: ' + e.message, true);
+                    
+                    if (saveState.saveAttempts >= saveState.maxAttempts) {
+                        if (confirm('多次保存失败，是否导出数据以防止丢失？')) {
+                            downloadAsHtml();
+                        }
+                    }
+                    
+                    resolve(false);
+                }
+            });
+        }
+        
+        // 显示保存状态指示器
+        function showSaveStatus(isSaving, success = false) {
+            const statusEl = document.getElementById('save-status');
+            const statusTextEl = document.getElementById('save-status-text');
+            
+            if (isSaving) {
+                statusTextEl.textContent = '保存中...';
+                statusEl.classList.remove('hidden', 'text-green-500', 'text-red-500');
+                statusEl.classList.add('text-primary');
+            } else {
+                if (success) {
+                    statusTextEl.textContent = '保存成功';
+                    statusEl.classList.remove('hidden', 'text-primary', 'text-red-500');
+                    statusEl.classList.add('text-green-500');
+                    
+                    setTimeout(() => {
+                        statusEl.classList.add('hidden');
+                    }, 2000);
+                } else {
+                    statusTextEl.textContent = '保存失败';
+                    statusEl.classList.remove('hidden', 'text-primary', 'text-green-500');
+                    statusEl.classList.add('text-red-500');
+                }
+            }
+        }
+        
+        // 显示通知
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            
+            if (isError) {
+                notification.classList.add('error');
+            } else {
+                notification.classList.remove('error');
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 获取今天的日期字符串
+        function getTodayDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 获取北京时间对应的PDT日期
+        function getPDTDateFromCST(cstTime) {
+            // 北京时间 (CST) = UTC+8
+            // 太平洋夏令时 (PDT) = UTC-7
+            // 时差: 15小时
+            const pdtTime = new Date(cstTime.getTime() - 15 * 60 * 60 * 1000);
+            return pdtTime;
+        }
+
+        // 新增辅助函数：获取指定PDT日期的所有有效时间段
+        function getDawnRedstoneTimeSlots(pdtDate) {
+            const pdtDay = pdtDate.getDate();
+            const pdtWeekday = pdtDate.getDay();
+            
+            // 第一组PDT日期：1,7,13,19,25,31日
+            const group1 = [1, 7, 13, 19, 25, 31];
+            // 第二组PDT日期：3,9,15,17,21,27日
+            const group2 = [3, 9, 15, 17, 21, 27];
+            // 第三组PDT日期：5,11,23,29日
+            const group3 = [5, 11, 23, 29];
+            
+            let timeSlots = [];
+            
+            // 检查是否在第一组PDT日期
+            if (group1.includes(pdtDay)) {
+                // 周一或周二取消（PDT时间）
+                if (pdtWeekday === 1 || pdtWeekday === 2) return [];
+                
+                // 三个时间段（北京时间）- 按正确顺序
+                timeSlots = [
+                    { startHour: 22, startMinute: 48, endHour: 2, endMinute: 40, isOvernight: true },
+                    { startHour: 4, startMinute: 48, endHour: 8, endMinute: 40, isOvernight: false },
+                    { startHour: 10, startMinute: 48, endHour: 14, endMinute: 40, isOvernight: false }
+                ];
+            }
+            // 检查是否在第二组PDT日期
+            else if (group2.includes(pdtDay)) {
+                // 周二或周三取消（PDT时间）
+                if (pdtWeekday === 2 || pdtWeekday === 3) return [];
+                
+                // 三个时间段（北京时间）- 按正确顺序
+                timeSlots = [
+                    { startHour: 17, startMinute: 28, endHour: 21, endMinute: 20, isOvernight: false },
+                    { startHour: 23, startMinute: 28, endHour: 3, endMinute: 20, isOvernight: true },
+                    { startHour: 5, startMinute: 28, endHour: 9, endMinute: 20, isOvernight: false }
+                ];
+            }
+            // 检查是否在第三组PDT日期
+            else if (group3.includes(pdtDay)) {
+                // 周三或周四取消（PDT时间）
+                if (pdtWeekday === 3 || pdtWeekday === 4) return [];
+                
+                // 三个时间段（北京时间）- 按正确顺序
+                timeSlots = [
+                    { startHour: 18, startMinute: 38, endHour: 22, endMinute: 30, isOvernight: false },
+                    { startHour: 0, startMinute: 38, endHour: 4, endMinute: 30, isOvernight: false },
+                    { startHour: 6, startMinute: 38, endHour: 10, endMinute: 30, isOvernight: false }
+                ];
+            }
+            
+            // 转换时间段为具体的Date对象
+            const result = [];
+            const cstYear = pdtDate.getFullYear();
+            const cstMonth = pdtDate.getMonth();
+            const cstDay = pdtDate.getDate();
+            
+            for (let slot of timeSlots) {
+                let startTime, endTime;
+                
+                if (slot.isOvernight) {
+                    // 跨天时间段：开始时间在当前CST日，结束时间在次日
+                    startTime = new Date(cstYear, cstMonth, cstDay, slot.startHour, slot.startMinute);
+                    endTime = new Date(cstYear, cstMonth, cstDay + 1, slot.endHour, slot.endMinute);
+                } else {
+                    // 普通时间段
+                    startTime = new Date(cstYear, cstMonth, cstDay, slot.startHour, slot.startMinute);
+                    endTime = new Date(cstYear, cstMonth, cstDay, slot.endHour, slot.endMinute);
+                    
+                    // 如果结束时间小于开始时间，说明跨天
+                    if (endTime < startTime) {
+                        endTime.setDate(endTime.getDate() + 1);
+                    }
+                }
+                
+                result.push({
+                    startTime: startTime,
+                    endTime: endTime
+                });
+            }
+            
+            return result;
+        }
+
+        // 修复后的函数：检查破晓红石事件是否在活动时间段
+        function isDawnRedstoneActive(now) {
+            const pdtDate = getPDTDateFromCST(now);
+            const timeSlots = getDawnRedstoneTimeSlots(pdtDate);
+            
+            for (let slot of timeSlots) {
+                if (now >= slot.startTime && now < slot.endTime) {
+                    return slot;
+                }
+            }
+            
+            return null;
+        }
+
+        // 修复后的函数：计算破晓红石事件的下一次发生时间
+        function getNextDawnRedstoneOccurrence(now) {
+            // 首先检查当前是否有正在进行的事件
+            const currentActiveInfo = isDawnRedstoneActive(now);
+            if (currentActiveInfo) {
+                return currentActiveInfo.startTime;
+            }
+            
+            // 获取当前北京时间对应的PDT日期
+            const currentPDTDate = getPDTDateFromCST(now);
+            
+            // 检查当前PDT日内的所有时间段（按正确顺序）
+            const timeSlots = getDawnRedstoneTimeSlots(currentPDTDate);
+            
+            for (let slot of timeSlots) {
+                if (slot.startTime > now) {
+                    return slot.startTime;
+                }
+            }
+            
+            // 如果当前PDT日内没有找到，检查未来7天
+            let checkDate = new Date(currentPDTDate);
+            for (let i = 1; i <= 7; i++) {
+                checkDate.setDate(checkDate.getDate() + 1);
+                checkDate.setHours(0, 0, 0, 0);
+                
+                const nextSlots = getDawnRedstoneTimeSlots(checkDate);
+                if (nextSlots.length > 0) {
+                    return nextSlots[0].startTime; // 返回第一个时间段
+                }
+            }
+            
+            // 如果7天内没找到，返回一个较远的未来时间
+            return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        }
+        
+        // 事件数据
         let tasks = [
             {
                 id: 1,
                 name: "奶奶饭",
                 startDate: getTodayDate(),
-                startTime: "00:35", // 太平洋时间 00:35 = 北京时间 15:35/16:35
+                startTime: "15:35",
                 displayThreshold: 10,
                 displayThresholdUnit: "minute",
                 priority: "medium",
@@ -1118,7 +992,7 @@
                 id: 2,
                 name: "间歇泉",
                 startDate: getTodayDate(),
-                startTime: "00:05", // 太平洋时间 00:05 = 北京时间 15:05/16:05
+                startTime: "15:05",
                 displayThreshold: 10,
                 displayThresholdUnit: "minute",
                 priority: "medium",
@@ -1134,7 +1008,7 @@
                 id: 3,
                 name: "海龟",
                 startDate: getTodayDate(),
-                startTime: "00:50", // 太平洋时间 00:50 = 北京时间 15:50/16:50
+                startTime: "15:50",
                 displayThreshold: 10,
                 displayThresholdUnit: "minute",
                 priority: "medium",
@@ -1148,24 +1022,24 @@
             },
             {
                 id: 4,
-                name: "献祭 重置",
+                name: "🔄献祭 重置↻ ♺ ♻  🗘 ⟳ 🔄",
                 startDate: getTodayDate(),
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                startTime: "15:00",
                 displayThreshold: 1,
                 displayThresholdUnit: "day",
                 priority: "low",
                 recurrence: {
                     type: "weekly",
                     weekdays: [0],
-                    duration: 1,
-                    durationUnit: "day"
+                    duration: 5,
+                    durationUnit: "minute"
                 }
             },
             {
                 id: 5,
                 name: "每日 重置",
                 startDate: getTodayDate(),
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                startTime: "15:00",
                 displayThreshold: 60,
                 displayThresholdUnit: "minute",
                 priority: "high",
@@ -1179,13 +1053,13 @@
                 id: 6,
                 name: "AURORA",
                 startDate: getTodayDate(),
-                startTime: "00:10", // 太平洋时间 00:10 = 北京时间 15:10/16:10
-                displayThreshold: 10,
+                startTime: "15:10",
+                displayThreshold: 30,
                 displayThresholdUnit: "minute",
                 priority: "low",
                 recurrence: {
                     type: "custom",
-                    count: 2,
+                    count: 4,
                     unit: "hour",
                     duration: 50,
                     durationUnit: "minute"
@@ -1195,7 +1069,7 @@
                 id: 7,
                 name: "先祖复刻",
                 startDate: "2025-10-09",
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                startTime: "15:00",
                 displayThreshold: 1,
                 displayThresholdUnit: "day",
                 priority: "low",
@@ -1203,36 +1077,36 @@
                     type: "custom",
                     count: 2,
                     unit: "week",
-                    duration: 4,
-                    durationUnit: "day"
+                    duration: 10,
+                    durationUnit: "minute"
                 }
             },
             {
                 id: 8,
                 name: "空间站",
                 startDate: getTodayDate(),
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                startTime: "15:00",
                 displayThreshold: 1,
                 displayThresholdUnit: "day",
                 priority: "low",
                 recurrence: {
                     type: "weekly",
                     weekdays: [4],
-                    duration: 1,
-                    durationUnit: "day"
+                    duration: 5,
+                    durationUnit: "hour"
                 }
             },
             {
                 id: 9,
                 name: "迁徙季",
                 startDate: "2025-10-20",
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
-                displayThreshold: 3,
+                startTime: "15:00",
+                displayThreshold: 7,
                 displayThresholdUnit: "day",
-                priority: "none",
+                priority: "low",
                 recurrence: {
                     type: "none",
-                    duration: 77,
+                    duration: 76,
                     durationUnit: "day"
                 }
             },
@@ -1240,10 +1114,10 @@
                 id: 10,
                 name: "万圣节",
                 startDate: "2025-10-27",
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
-                displayThreshold: 3,
+                startTime: "15:00",
+                displayThreshold: 7,
                 displayThresholdUnit: "day",
-                priority: "low",
+                priority: "none",
                 recurrence: {
                     type: "none",
                     duration: 3,
@@ -1254,7 +1128,7 @@
                 id: 12,
                 name: "复刻 公布",
                 startDate: "2025-10-18",
-                startTime: "11:00", // 太平洋时间 11:00 = 北京时间 次日02:00/03:00
+                startTime: "02:00",
                 displayThreshold: 12,
                 displayThresholdUnit: "hour",
                 priority: "low",
@@ -1269,38 +1143,24 @@
             {
                 id: 18,
                 name: "家具 轮换",
-                startDate: "2025-10-14",
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                startDate:"2025-10-14",
+                startTime: "15:00",
                 displayThreshold: 1,
                 displayThresholdUnit: "day",
                 priority: "low",
                 recurrence: {
                     type: "weekly",
                     weekdays: [1],
-                    duration: 1,
-                    durationUnit: "day"
+                    duration: 5,
+                    durationUnit: "minute"
                 }
             },
-            {
-                id: 20,
-                name: "染料商店 重置",
-                startDate: "2025-10-14",
-                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
-                displayThreshold: 1,
-                displayThresholdUnit: "day",
-                priority: "low",
-                recurrence: {
-                    type: "weekly",
-                    weekdays: [1],
-                    duration: 1,
-                    durationUnit: "day"
-                }
-            },
+            // 修复：破晓红石事件名称改为"破晓 红石"
             {
                 id: 19,
                 name: "破晓 红石",
                 startDate: getTodayDate(),
-                startTime: "07:48", // 太平洋时间，对应第一组的第一个时间段
+                startTime: "22:48",
                 displayThreshold: 8,
                 displayThresholdUnit: "hour",
                 priority: "high",
@@ -1308,21 +1168,6 @@
                     type: "custom_complex",
                     pattern: "dawn_redstone",
                     duration: 232,
-                    durationUnit: "minute"
-                }
-            },
-            {
-                id: 21,
-                name: "圆梦 滑冰",
-                startDate: getTodayDate(),
-                startTime: "10:00", // 太平洋时间 10:00 = 北京时间 次日01:00/02:00
-                displayThreshold: 15,
-                displayThresholdUnit: "minute",
-                priority: "medium",
-                recurrence: {
-                    type: "custom_complex",
-                    pattern: "dream_skating",
-                    duration: 15,
                     durationUnit: "minute"
                 }
             }
@@ -1375,694 +1220,94 @@
         const emptyHoverArea = document.querySelector('.empty-hover-area');
         const previewCard = document.getElementById('preview-card');
         
-        // 获取今天的日期字符串
-        function getTodayDate() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        // 转换时间单位为毫秒
-        function convertToMilliseconds(value, unit) {
-            const units = {
-                minute: 60 * 1000,
-                hour: 60 * 60 * 1000,
-                day: 24 * 60 * 60 * 1000,
-                week: 7 * 24 * 60 * 60 * 1000,
-                month: 30 * 24 * 60 * 60 * 1000
-            };
-            return value * (units[unit] || units.minute);
-        }
-
-        // 转换毫秒为最适合的单位
-        function convertFromMilliseconds(ms) {
-            if (ms >= 30 * 24 * 60 * 60 * 1000) {
-                return { value: Math.round(ms / (30 * 24 * 60 * 60 * 1000)), unit: 'month', text: '月' };
-            } else if (ms >= 7 * 24 * 60 * 60 * 1000) {
-                return { value: Math.round(ms / (7 * 24 * 60 * 60 * 1000)), unit: 'week', text: '周' };
-            } else if (ms >= 24 * 60 * 60 * 1000) {
-                return { value: Math.round(ms / (24 * 60 * 60 * 1000)), unit: 'day', text: '天' };
-            } else if (ms >= 60 * 60 * 1000) {
-                return { value: Math.round(ms / (60 * 60 * 1000)), unit: 'hour', text: '小时' };
-            } else {
-                return { value: Math.round(ms / (60 * 1000)), unit: 'minute', text: '分钟' };
-            }
-        }
-
-        // 格式化倒计时显示
-        function formatCountdown(ms) {
-            if (ms < 0) return "已开始";
+        // 初始化日期和时间为今天和当前时间
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
             
-            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+            startDateInput.value = dateStr;
+            startTimeInput.value = timeStr;
             
-            if (days > 0) {
-                return `${days}天${hours}时`;
-            } else if (hours > 0) {
-                return `${hours}时${minutes}分`;
-            } else if (minutes > 0) {
-                return `${minutes}分${seconds}秒`;
-            } else {
-                return `${seconds}秒`;
-            }
-        }
-
-        // 从localStorage加载数据
-        function loadFromLocalStorage() {
-            try {
-                const savedData = localStorage.getItem('timeProjectReminderTasks');
-                if (savedData) {
-                    return JSON.parse(savedData);
-                }
-            } catch (e) {
-                console.error('Failed to load from localStorage:', e);
-                showNotification('加载数据失败: ' + e.message, true);
-            }
-            return null;
-        }
-
-        // 保存数据到localStorage
-        function saveToLocalStorage(data, retry = 0) {
-            if (saveState.isSaving) {
-                if (retry < saveState.maxAttempts) {
-                    return new Promise(resolve => {
-                        setTimeout(() => {
-                            saveToLocalStorage(data, retry + 1)
-                                .then(resolve)
-                                .catch(resolve);
-                        }, 300);
-                    });
-                }
-                return Promise.resolve(false);
-            }
-            
-            saveState.isSaving = true;
-            showSaveStatus(true);
-            
-            return new Promise(resolve => {
-                try {
-                    if (!data || !Array.isArray(data)) {
-                        throw new Error('无效的数据格式');
-                    }
-                    
-                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(data));
-                    
-                    saveState.lastSaved = new Date();
-                    saveState.saveAttempts = 0;
-                    saveState.isSaving = false;
-                    
-                    showSaveStatus(false, true);
-                    showNotification('数据已成功保存');
-                    resolve(true);
-                } catch (e) {
-                    console.error('Failed to save to localStorage:', e);
-                    
-                    saveState.saveAttempts++;
-                    saveState.isSaving = false;
-                    
-                    showSaveStatus(false, false);
-                    showNotification('保存失败: ' + e.message, true);
-                    
-                    if (saveState.saveAttempts >= saveState.maxAttempts) {
-                        if (confirm('多次保存失败，是否导出数据以防止丢失？')) {
-                            downloadAsHtml();
-                        }
-                    }
-                    
-                    resolve(false);
-                }
-            });
-        }
-
-        // 显示保存状态指示器
-        function showSaveStatus(isSaving, success = false) {
-            const statusEl = document.getElementById('save-status');
-            const statusTextEl = document.getElementById('save-status-text');
-            
-            if (isSaving) {
-                statusTextEl.textContent = '保存中...';
-                statusEl.classList.remove('hidden', 'text-green-500', 'text-red-500');
-                statusEl.classList.add('text-primary');
-            } else {
-                if (success) {
-                    statusTextEl.textContent = '保存成功';
-                    statusEl.classList.remove('hidden', 'text-primary', 'text-red-500');
-                    statusEl.classList.add('text-green-500');
-                    
-                    setTimeout(() => {
-                        statusEl.classList.add('hidden');
-                    }, 2000);
-                } else {
-                    statusTextEl.textContent = '保存失败';
-                    statusEl.classList.remove('hidden', 'text-primary', 'text-green-500');
-                    statusEl.classList.add('text-red-500');
-                }
-            }
-        }
-
-        // 显示通知
-        function showNotification(message, isError = false) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            
-            if (isError) {
-                notification.classList.add('error');
-            } else {
-                notification.classList.remove('error');
-            }
-            
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
-        }
-
-        // 计算事件的下一次发生时间 - 基于太平洋时间计算
-        function getNextOccurrence(task, nowCST) {
-            try {
-                // 破晓红石特殊处理
-                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
-                    const nextOccurrence = DawnRedstoneRules.getNextOccurrence(nowCST);
-                    return {
-                        startTime: nextOccurrence.startTime,
-                        location: nextOccurrence.location
-                    };
-                }
-                
-                // 圆梦滑冰特殊处理
-                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
-                    const nextTimeCST = DreamSkatingRules.getNextOccurrence(nowCST);
-                    return {
-                        startTime: nextTimeCST,
-                        location: "圆梦村"
-                    };
-                }
-                
-                // 将当前时间转换为太平洋时间进行计算
-                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
-                
-                // 解析开始时间（太平洋时间）
-                const [startHour, startMinute] = task.startTime.split(':').map(Number);
-                let nextTimePDT = new Date(nowPDT);
-                nextTimePDT.setHours(startHour, startMinute, 0, 0);
-                
-                // 解析开始日期
-                const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
-                const initialStartPDT = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
-                
-                if (task.recurrence.type === "none") {
-                    // 不重复事件，直接返回开始时间
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(initialStartPDT),
-                        location: ""
-                    };
-                }
-                
-                if (task.recurrence.type === "daily") {
-                    // 每天重复
-                    if (nextTimePDT <= nowPDT) {
-                        nextTimePDT.setDate(nextTimePDT.getDate() + 1);
-                    }
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
-                        location: ""
-                    };
-                }
-                
-                if (task.recurrence.type === "weekly") {
-                    // 每周重复
-                    const todayWeekday = nowPDT.getDay();
-                    let daysToAdd = 0;
-                    let found = false;
-                    
-                    if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
-                        for (let i = 0; i < 7; i++) {
-                            const checkDay = (todayWeekday + i) % 7;
-                            if (task.recurrence.weekdays.includes(checkDay)) {
-                                daysToAdd = i;
-                                found = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!found) {
-                            daysToAdd = 7;
-                        }
-                        
-                        nextTimePDT.setDate(nextTimePDT.getDate() + daysToAdd);
-                        
-                        // 检查是否正在进行中
-                        const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                        const nextTimeCST = TimeZoneUtils.PDTtoCST(nextTimePDT);
-                        
-                        if (nextTimeCST <= nowCST && nowCST < nextTimeCST.getTime() + durationMs) {
-                            return {
-                                startTime: nextTimeCST,
-                                location: ""
-                            };
-                        }
-                        
-                        if (nextTimeCST <= nowCST) {
-                            nextTimePDT.setDate(nextTimePDT.getDate() + 7);
-                        }
-                    }
-                    
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
-                        location: ""
-                    };
-                }
-                
-                if (task.recurrence.type === "custom") {
-                    // 自定义间隔重复
-                    const intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
-                    const timeDiff = nowPDT - initialStartPDT;
-                    const intervals = Math.floor(timeDiff / intervalMs);
-                    
-                    const lastOccurrencePDT = new Date(initialStartPDT.getTime() + intervals * intervalMs);
-                    const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                    
-                    const lastOccurrenceCST = TimeZoneUtils.PDTtoCST(lastOccurrencePDT);
-                    
-                    if (nowCST <= lastOccurrenceCST.getTime() + durationMs) {
-                        return {
-                            startTime: lastOccurrenceCST,
-                            location: ""
-                        };
-                    }
-                    
-                    const nextOccurrencePDT = new Date(lastOccurrencePDT.getTime() + intervalMs);
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextOccurrencePDT),
-                        location: ""
-                    };
-                }
-                
-                // 默认返回1小时后
-                return {
-                    startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
-                    location: ""
-                };
-                
-            } catch (e) {
-                console.error('计算下次发生时间出错:', task.name, e);
-                return {
-                    startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
-                    location: ""
-                };
-            }
-        }
-
-        // 获取事件状态信息
-        function getTaskStatus(task, nowCST) {
-            try {
-                const nextOccurrence = getNextOccurrence(task, nowCST);
-                const nextStartCST = nextOccurrence.startTime;
-                const location = nextOccurrence.location;
-                
-                let durationMs, endTimeCST;
-                
-                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
-                    const activeInfo = DawnRedstoneRules.isActive(nowCST);
-                    if (activeInfo) {
-                        endTimeCST = activeInfo.endTime;
-                        durationMs = endTimeCST - activeInfo.startTime;
-                    } else {
-                        durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                        endTimeCST = new Date(nextStartCST.getTime() + durationMs);
-                    }
-                } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
-                    const activeInfo = DreamSkatingRules.isActive(nowCST);
-                    if (activeInfo) {
-                        endTimeCST = activeInfo.endTime;
-                        durationMs = endTimeCST - activeInfo.startTime;
-                    } else {
-                        durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                        endTimeCST = new Date(nextStartCST.getTime() + durationMs);
-                    }
-                } else {
-                    durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
-                    endTimeCST = new Date(nextStartCST.getTime() + durationMs);
-                }
-                
-                const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
-                const displayStartTimeCST = new Date(nextStartCST.getTime() - thresholdMs);
-                const displayEndTimeCST = new Date(endTimeCST);
-                
-                const isInDisplayRange = nowCST >= displayStartTimeCST && nowCST <= displayEndTimeCST;
-                const isOngoing = nowCST >= nextStartCST && nowCST < endTimeCST;
-                const timeUntilStart = nextStartCST - nowCST;
-                
-                if (task.recurrence.type === "none" && nowCST > displayEndTimeCST) {
-                    return {
-                        status: "completed",
-                        timeText: "已完成",
-                        countdownMs: 0,
-                        countdownText: "已完成",
-                        minutes: Infinity,
-                        startTime: nextStartCST,
-                        endTime: endTimeCST,
-                        displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
-                    };
-                }
-                
-                if (isOngoing) {
-                    const timeLeft = endTimeCST - nowCST;
-                    const converted = convertFromMilliseconds(timeLeft);
-                    return {
-                        status: "ongoing",
-                        timeText: `正在进行`,
-                        countdownMs: timeLeft,
-                        countdownText: formatCountdown(timeLeft),
-                        minutes: Math.ceil(timeLeft / (1000 * 60)),
-                        startTime: nextStartCST,
-                        endTime: endTimeCST,
-                        displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
-                    };
-                } else if (isInDisplayRange) {
-                    const converted = convertFromMilliseconds(timeUntilStart);
-                    return {
-                        status: "upcoming",
-                        timeText: `${converted.value}${converted.text}后开始`,
-                        countdownMs: timeUntilStart,
-                        countdownText: formatCountdown(timeUntilStart),
-                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
-                        startTime: nextStartCST,
-                        endTime: endTimeCST,
-                        displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
-                    };
-                } else {
-                    const converted = convertFromMilliseconds(timeUntilStart);
-                    return {
-                        status: "future",
-                        timeText: `${converted.value}${converted.text}后开始`,
-                        countdownMs: timeUntilStart,
-                        countdownText: formatCountdown(timeUntilStart),
-                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
-                        startTime: nextStartCST,
-                        endTime: endTimeCST,
-                        displayStartTime: displayStartTimeCST,
-                        displayEndTime: displayEndTimeCST,
-                        location: location
-                    };
-                }
-            } catch (e) {
-                console.error('计算任务状态出错:', task.name, e);
-                const defaultTime = new Date();
-                return {
-                    status: "future",
-                    timeText: "时间计算中",
-                    countdownMs: 0,
-                    countdownText: "--",
-                    minutes: Infinity,
-                    startTime: defaultTime,
-                    endTime: new Date(defaultTime.getTime() + 60 * 60 * 1000),
-                    displayStartTime: defaultTime,
-                    displayEndTime: new Date(defaultTime.getTime() + 60 * 60 * 1000),
-                    location: ""
-                };
-            }
-        }
-
-        // 过滤出需要显示的事件
-        function getVisibleTasks() {
-            const nowCST = new Date();
-            return tasks
-                .map(task => {
-                    const status = getTaskStatus(task, nowCST);
-                    return {
-                        ...task,
-                        ...status
-                    };
-                })
-                .filter(task => {
-                    if (task.priority === "none") {
-                        return false;
-                    }
-                    
-                    return task.status !== "completed" && 
-                           (task.status === "ongoing" || task.status === "upcoming");
-                })
-                .sort((a, b) => {
-                    const priorityOrder = { high: 3, medium: 2, low: 1 };
-                    
-                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-                        return priorityOrder[b.priority] - priorityOrder[a.priority];
-                    }
-                    
-                    if (a.status === "ongoing" && b.status !== "ongoing") return -1;
-                    if (a.status !== "ongoing" && b.status === "ongoing") return 1;
-                    
-                    return a.minutes - b.minutes;
+            // 初始化重复选项点击事件
+            recurrenceOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    const type = option.getAttribute('data-type');
+                    recurrenceTypeInput.value = type;
+                    showRecurrenceOptions(type);
                 });
-        }
-
-        // 获取所有事件（用于悬停显示）
-        function getAllTasksWithStatus() {
-            const nowCST = new Date();
-            return tasks
-                .map(task => {
-                    try {
-                        const status = getTaskStatus(task, nowCST);
-                        return {
-                            ...task,
-                            ...status
-                        };
-                    } catch (e) {
-                        console.error('计算任务状态出错:', task.name, e);
-                        return {
-                            ...task,
-                            status: "future",
-                            timeText: "时间计算中",
-                            countdownMs: 0,
-                            countdownText: "--",
-                            minutes: Infinity,
-                            startTime: new Date(),
-                            endTime: new Date(),
-                            displayStartTime: new Date(),
-                            displayEndTime: new Date(),
-                            location: ""
-                        };
-                    }
-                })
-                .filter(task => task.status !== "completed")
-                .sort((a, b) => {
-                    if (a.priority === "none" && b.priority !== "none") return 1;
-                    if (a.priority !== "none" && b.priority === "none") return -1;
-                    
-                    const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
-                    
-                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-                        return priorityOrder[b.priority] - priorityOrder[a.priority];
-                    }
-                    
-                    return (a.startTime || new Date()) - (b.startTime || new Date());
-                });
-        }
-
-        // 创建事件元素
-        function createTaskElement(task) {
-            const taskEl = document.createElement('div');
-            const baseClass = "task-item p-4 rounded-xl mb-3 task-transition bg-dark-bg shadow-sm mx-auto max-w-md";
-            
-            taskEl.className = baseClass;
-            taskEl.dataset.taskId = task.id;
-            
-            let recurrenceText = "";
-            if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
-                recurrenceText = "破晓红石特殊规则";
-            } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
-                recurrenceText = "圆梦滑冰特殊规则";
-            } else {
-                switch(task.recurrence.type) {
-                    case "none":
-                        recurrenceText = "不重复";
-                        break;
-                    case "daily":
-                        recurrenceText = "每天";
-                        break;
-                    case "weekly":
-                        const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-                        const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
-                        recurrenceText = `每周${selectedDays}`;
-                        break;
-                    case "monthly":
-                        const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
-                        if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
-                            const selectedWeekDays = task.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
-                            recurrenceText = `每月${selectedWeekDays}`;
-                        } else if (task.recurrence.days && task.recurrence.days.length > 0) {
-                            const selectedDays = task.recurrence.days?.join(', ') || "";
-                            recurrenceText = `每月${selectedDays}日`;
-                        }
-                        break;
-                    case "custom":
-                        const unitNames = {
-                            "minute": "分钟",
-                            "hour": "小时",
-                            "day": "天",
-                            "week": "周",
-                            "month": "月"
-                        };
-                        recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
-                        break;
-                }
-            }
-            
-            const durationUnitNames = {
-                "minute": "分钟",
-                "hour": "小时",
-                "day": "天",
-                "week": "周"
-            };
-            const durationText = `${task.recurrence.duration}${durationUnitNames[task.recurrence.durationUnit]}`;
-            
-            // 使用北京时间显示
-            const dateText = TimeZoneUtils.formatCSTDate(task.startTime);
-            const startTimeText = TimeZoneUtils.formatCSTTime(task.startTime);
-            const endTimeText = TimeZoneUtils.formatCSTTime(task.endTime);
-            
-            const ongoingIndicator = task.status === "ongoing" ? 
-                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
-            
-            const countdownBadge = `<span class="countdown ml-2">${task.countdownText}</span>`;
-            
-            const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
-            
-            // 添加地点显示
-            const locationText = task.location ? `<span class="task-meta-item"><i class="fa fa-map-marker mr-1 opacity-70"></i>${task.location}</span>` : '';
-            
-            taskEl.innerHTML = `
-                <div class="flex justify-between items-center task-title">
-                    <div class="font-medium text-dark-text flex items-center">
-                        <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
-                        ${task.name}
-                    </div>
-                    <div class="text-sm text-primary flex items-center">
-                        ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText}</span>${countdownBadge}
-                    </div>
-                </div>
-                <div class="text-xs text-dark-textSecondary task-meta flex flex-col sm:flex-row sm:justify-between gap-1">
-                    <span class="task-meta-item"><i class="fa fa-repeat mr-1 opacity-70"></i>${recurrenceText}</span>
-                    <span class="task-meta-item"><i class="fa fa-clock-o mr-1 opacity-70"></i>持续 ${durationText}</span>
-                    <span class="task-meta-item"><i class="fa fa-calendar mr-1 opacity-70"></i>${dateText}</span>
-                    <span class="task-meta-item"><i class="fa fa-hourglass-start mr-1 opacity-70"></i>${startTimeText} - ${endTimeText}</span>
-                    ${locationText}
-                </div>
-            `;
-            
-            taskEl.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                hideAllContextMenus();
-                
-                currentTaskId = task.id;
-                const x = e.clientX;
-                const y = e.clientY;
-                
-                taskContextMenu.style.left = `${x}px`;
-                taskContextMenu.style.top = `${y}px`;
-                taskContextMenu.classList.remove('hidden');
             });
             
-            return taskEl;
-        }
+            // 检查是否有外部数据并加载
+            const savedData = loadFromLocalStorage();
+            if (savedData && savedData.tasks) {
+                tasks = savedData.tasks;
+            } else {
+                // 保存初始任务列表
+                saveToLocalStorage(tasks);
+            }
+            
+            // 初始化下载按钮事件
+            downloadBtn.addEventListener('click', downloadAsHtml);
+            
+            // 初始化手动保存按钮事件
+            manualSaveBtn.addEventListener('click', async () => {
+                await saveToLocalStorage(tasks);
+            });
+            
+            // 初始化悬停空白区域点击事件用于锁定
+            emptyHoverArea.addEventListener('click', toggleListLock);
+            
+            // 修复：为右键菜单选项添加点击事件
+            addTaskOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showAddTaskModal();
+            });
 
-        // 为未来事件列表中的任务添加点击交互
-        function addClickInteractionToFutureTask(element, task) {
-            element.addEventListener('click', (e) => {
-                e.stopPropagation(); // 防止事件冒泡
-                
-                // 如果点击的是同一个任务，则切换显示状态
-                if (currentPreviewTaskId === task.id && isPreviewVisible) {
+            editTaskOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentTaskId !== null) {
+                    showEditTaskModal(currentTaskId);
+                }
+            });
+
+            deleteTaskOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentTaskId !== null) {
+                    showConfirmDeleteModal(currentTaskId);
+                }
+            });
+            
+            // 点击其他地方隐藏预览卡片
+            document.addEventListener('click', (e) => {
+                if (!previewCard.contains(e.target) && !e.target.closest('.future-task-item')) {
                     hidePreviewCard();
-                } else {
-                    // 显示新的预览卡片
-                    showPreviewCard(task, e.clientX, e.clientY);
                 }
             });
-        }
-
-        // 创建缩略事件元素
-        function createMiniTaskElement(task) {
-            const taskEl = document.createElement('div');
-            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover future-task-item";
             
-            taskEl.className = baseClass;
-            taskEl.dataset.taskId = task.id;
-            
-            const ongoingIndicator = task.status === "ongoing" ? 
-                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
-            
-            const countdownBadge = task.countdownText ? `<span class="countdown ml-2">${task.countdownText}</span>` : '';
-            
-            const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
-            
-            // 使用北京时间显示
-            const timeDisplay = task.status === 'ongoing' ? '进行中' : 
-                              TimeZoneUtils.formatCSTTime(task.startTime);
-            
-            // 添加地点显示
-            const locationText = task.location ? `<div class="text-xs text-dark-textSecondary truncate">${task.location}</div>` : '';
-            
-            taskEl.innerHTML = `
-                <div class="flex items-center flex-1 min-w-0">
-                    <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-sm truncate">${task.name}</div>
-                        <div class="text-xs text-primary flex items-center">
-                            ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText || '即将开始'}</span>${countdownBadge}
-                        </div>
-                        ${locationText}
-                    </div>
-                </div>
-                <div class="text-xs text-dark-textSecondary whitespace-nowrap ml-2">
-                    ${timeDisplay}
-                </div>
-            `;
-            
-            // 为未来事件列表中的任务添加点击交互
-            addClickInteractionToFutureTask(taskEl, task);
-            
-            taskEl.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                hideAllContextMenus();
+            // 跟踪鼠标移动以实现丝滑跟随
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
                 
-                currentTaskId = task.id;
-                const x = e.clientX;
-                const y = e.clientY;
-                
-                taskContextMenu.style.left = `${x}px`;
-                taskContextMenu.style.top = `${y}px`;
-                taskContextMenu.classList.remove('hidden');
+                if (isPreviewVisible) {
+                    updatePreviewCardPosition(mouseX, mouseY);
+                }
             });
             
-            return taskEl;
-        }
-
-        // 显示预览卡片
+            // 验证本地存储是否可用
+            testLocalStorageAvailability();
+            
+            // 初始化显示
+            updateCurrentTime();
+            updateTasks();
+        });
+        
+        // 显示预览卡片 - 使用现有数据，无需重新计算
         function showPreviewCard(task, x, y) {
-            // 先移除所有任务的激活样式
-            document.querySelectorAll('.future-task-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // 为当前点击的任务添加激活样式
-            const clickedTask = document.querySelector(`.future-task-item[data-task-id="${task.id}"]`);
-            if (clickedTask) {
-                clickedTask.classList.add('active');
-            }
-            
+            // 从当前显示的任务数据中获取信息
             let currentTask = currentAllTasks.find(t => t.id === task.id);
             
             if (!currentTask) return;
@@ -2071,8 +1316,6 @@
             let recurrenceText = "";
             if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dawn_redstone") {
                 recurrenceText = "破晓红石特殊规则";
-            } else if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dream_skating") {
-                recurrenceText = "圆梦滑冰特殊规则";
             } else {
                 switch(currentTask.recurrence.type) {
                     case "none":
@@ -2118,11 +1361,11 @@
             };
             const durationText = `${currentTask.recurrence.duration}${durationUnitNames[currentTask.recurrence.durationUnit]}`;
             
-            // 使用北京时间显示
-            const dateText = TimeZoneUtils.formatCSTDate(currentTask.startTime);
-            const startTimeText = TimeZoneUtils.formatCSTTime(currentTask.startTime);
-            const endTimeText = TimeZoneUtils.formatCSTTime(currentTask.endTime);
-            const timeRangeText = `${startTimeText} - ${endTimeText}`;
+            // 生成时间范围文本
+            const isToday = currentTask.startTime && currentTask.startTime.toLocaleDateString() === new Date().toLocaleDateString();
+            const dateText = isToday ? '今天' : currentTask.startTime ? currentTask.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'}) : '';
+            const timeText = currentTask.startTime && currentTask.endTime ? 
+                `${currentTask.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${currentTask.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}` : '';
             
             // 生成提醒文本
             const alertText = `提前${currentTask.displayThreshold} ${currentTask.displayThresholdUnit === 'minute' ? '分钟' : currentTask.displayThresholdUnit === 'hour' ? '小时' : currentTask.displayThresholdUnit === 'day' ? '天' : '周'}提醒`;
@@ -2139,8 +1382,7 @@
             document.getElementById('preview-recurrence').textContent = recurrenceText;
             document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
             document.getElementById('preview-date').textContent = dateText;
-            document.getElementById('preview-time').textContent = timeRangeText;
-            document.getElementById('preview-location').textContent = currentTask.location || "无特定地点";
+            document.getElementById('preview-time').textContent = timeText;
             document.getElementById('preview-alert').textContent = alertText;
             
             // 设置卡片位置
@@ -2152,7 +1394,7 @@
             isPreviewVisible = true;
         }
         
-        // 更新预览卡片位置
+        // 更新预览卡片位置（丝滑跟随）
         function updatePreviewCardPosition(x, y) {
             const cardWidth = previewCard.offsetWidth;
             const cardHeight = previewCard.offsetHeight;
@@ -2181,11 +1423,6 @@
         
         // 隐藏预览卡片
         function hidePreviewCard() {
-            // 移除所有任务的激活样式
-            document.querySelectorAll('.future-task-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
             previewCard.classList.remove('show', 'preview-highlight');
             currentPreviewTaskId = null;
             isPreviewVisible = false;
@@ -2210,19 +1447,605 @@
                 showNotification('任务列表已解锁');
             }
         }
-
-        // 修改悬停展开逻辑 - 在任意位置悬停都能展开列表
-        function handleAnywhereHover() {
-            if (!isListLocked) {
-                allTasksEl.style.maxHeight = '500px';
+        
+        // 测试本地存储是否可用
+        function testLocalStorageAvailability() {
+            try {
+                const testKey = 'test_local_storage_availability_' + Math.random();
+                localStorage.setItem(testKey, testKey);
+                localStorage.removeItem(testKey);
+            } catch (e) {
+                console.error('LocalStorage is not available:', e);
+                showNotification('本地存储不可用，建议使用下载功能保存数据', true);
+            }
+        }
+        
+        // 转换时间单位为毫秒
+        function convertToMilliseconds(value, unit) {
+            const units = {
+                minute: 60 * 1000,
+                hour: 60 * 60 * 1000,
+                day: 24 * 60 * 60 * 1000,
+                week: 7 * 24 * 60 * 60 * 1000,
+                month: 30 * 24 * 60 * 60 * 1000
+            };
+            return value * (units[unit] || units.minute);
+        }
+        
+        // 转换毫秒为最适合的单位
+        function convertFromMilliseconds(ms) {
+            if (ms >= 30 * 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (30 * 24 * 60 * 60 * 1000)), unit: 'month', text: '月' };
+            } else if (ms >= 7 * 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (7 * 24 * 60 * 60 * 1000)), unit: 'week', text: '周' };
+            } else if (ms >= 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (24 * 60 * 60 * 1000)), unit: 'day', text: '天' };
+            } else if (ms >= 60 * 60 * 1000) {
+                return { value: Math.round(ms / (60 * 60 * 1000)), unit: 'hour', text: '小时' };
+            } else {
+                return { value: Math.round(ms / (60 * 1000)), unit: 'minute', text: '分钟' };
             }
         }
 
-        // 修改离开逻辑 - 只有当鼠标离开整个应用容器时才收起
-        function handleAppContainerLeave() {
-            if (!isListLocked) {
-                allTasksEl.style.maxHeight = '0';
+        // 格式化倒计时显示
+        function formatCountdown(ms) {
+            if (ms < 0) return "已开始";
+            
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+            
+            if (days > 0) {
+                return `${days}天${hours}时`;
+            } else if (hours > 0) {
+                return `${hours}时${minutes}分`;
+            } else if (minutes > 0) {
+                return `${minutes}分${seconds}秒`;
+            } else {
+                return `${seconds}秒`;
             }
+        }
+
+        // 轮播状态
+        let currentSlide = 0;
+        let visibleTasks = [];
+
+        // 更新当前时间显示
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 修复：计算事件的下一次发生时间 - 增强版本
+        function getNextOccurrence(task, now) {
+            try {
+                // 确保 now 是有效的 Date 对象
+                if (!(now instanceof Date) || isNaN(now)) {
+                    now = new Date();
+                }
+
+                // 处理破晓红石复杂事件
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                    const nextTime = getNextDawnRedstoneOccurrence(now);
+                    if (!(nextTime instanceof Date) || isNaN(nextTime)) {
+                        throw new Error('破晓红石时间计算失败');
+                    }
+                    return nextTime;
+                }
+                
+                // 解析开始时间
+                const [startHour, startMinute] = task.startTime.split(':').map(Number);
+                if (isNaN(startHour) || isNaN(startMinute)) {
+                    throw new Error('无效的开始时间格式');
+                }
+                
+                let nextTime = new Date(now);
+                nextTime.setHours(startHour, startMinute, 0, 0);
+                
+                if (task.recurrence.type === "weekly") {
+                    const todayWeekday = now.getDay();
+                    let daysToAdd = 0;
+                    let found = false;
+                    
+                    if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                        for (let i = 0; i < 7; i++) {
+                            const checkDay = (todayWeekday + i) % 7;
+                            if (task.recurrence.weekdays.includes(checkDay)) {
+                                daysToAdd = i;
+                                found = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!found) {
+                            daysToAdd = 7;
+                        }
+                        
+                        nextTime.setDate(nextTime.getDate() + daysToAdd);
+                        
+                        const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                        
+                        const sameDay = nextTime.toDateString() === now.toDateString();
+                        if (sameDay && nextTime <= now && now < nextTime.getTime() + durationMs) {
+                            return new Date(nextTime);
+                        }
+                        
+                        if (nextTime <= now) {
+                            nextTime.setDate(nextTime.getDate() + 7);
+                        }
+                    }
+                    
+                    return nextTime;
+                }
+                
+                if (task.recurrence.type === "monthly") {
+                    if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                        const targetWeekday = task.recurrence.weekdays[0];
+                        let currentMonth = now.getMonth();
+                        let currentYear = now.getFullYear();
+                        let candidateDate = new Date(currentYear, currentMonth, 1);
+                        
+                        while (candidateDate.getDay() !== targetWeekday) {
+                            candidateDate.setDate(candidateDate.getDate() + 1);
+                        }
+                        
+                        candidateDate.setHours(startHour, startMinute, 0, 0);
+                        
+                        if (candidateDate < now) {
+                            candidateDate.setMonth(candidateDate.getMonth() + 1);
+                            while (candidateDate.getDay() !== targetWeekday) {
+                                candidateDate.setDate(candidateDate.getDate() + 1);
+                            }
+                        }
+                        
+                        return candidateDate;
+                    } 
+                    else if (task.recurrence.days && task.recurrence.days.length > 0) {
+                        const targetDay = parseInt(task.recurrence.days[0]);
+                        let candidateDate = new Date(now.getFullYear(), now.getMonth(), targetDay, startHour, startMinute);
+                        
+                        if (candidateDate < now) {
+                            candidateDate.setMonth(candidateDate.getMonth() + 1);
+                            if (candidateDate.getDate() !== targetDay) {
+                                candidateDate.setDate(0);
+                            }
+                        }
+                        
+                        return candidateDate;
+                    }
+                }
+                
+                // 解析开始日期
+                const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
+                if (isNaN(startYear) || isNaN(startMonth) || isNaN(startDay)) {
+                    throw new Error('无效的开始日期格式');
+                }
+                
+                const initialStart = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
+                
+                if (task.recurrence.type !== "none") {
+                    let intervalMs;
+                    switch(task.recurrence.type) {
+                        case "daily":
+                            intervalMs = 24 * 60 * 60 * 1000;
+                            break;
+                        case "custom":
+                            intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
+                            break;
+                        default:
+                            intervalMs = 24 * 60 * 60 * 1000;
+                    }
+                    
+                    const timeDiff = now - initialStart;
+                    const intervals = Math.floor(timeDiff / intervalMs);
+                    
+                    const lastOccurrence = new Date(initialStart.getTime() + intervals * intervalMs);
+                    
+                    const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    
+                    if (now <= lastOccurrence.getTime() + durationMs) {
+                        return lastOccurrence;
+                    }
+                    
+                    return new Date(lastOccurrence.getTime() + intervalMs);
+                }
+                
+                if (initialStart > now) {
+                    return new Date(initialStart);
+                }
+                
+                return new Date(initialStart);
+            } catch (e) {
+                console.error('计算下次发生时间出错:', task.name, e);
+                // 返回一个安全的默认时间（1小时后）
+                return new Date(now.getTime() + 60 * 60 * 1000);
+            }
+        }
+
+        // 修复：获取事件状态信息 - 增强版本
+        function getTaskStatus(task, now) {
+            try {
+                // 确保 now 是有效的 Date 对象
+                if (!(now instanceof Date) || isNaN(now)) {
+                    now = new Date();
+                }
+
+                const nextStart = getNextOccurrence(task, now);
+                
+                // 确保 nextStart 是有效的 Date 对象
+                if (!(nextStart instanceof Date) || isNaN(nextStart)) {
+                    throw new Error('无效的下次开始时间');
+                }
+                
+                let durationMs, endTime;
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                    const activeInfo = isDawnRedstoneActive(now);
+                    if (activeInfo) {
+                        endTime = activeInfo.endTime;
+                        durationMs = endTime - activeInfo.startTime;
+                    } else {
+                        durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                        endTime = new Date(nextStart.getTime() + durationMs);
+                    }
+                } else {
+                    durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    endTime = new Date(nextStart.getTime() + durationMs);
+                }
+                
+                // 确保 endTime 是有效的 Date 对象
+                if (!(endTime instanceof Date) || isNaN(endTime)) {
+                    throw new Error('无效的结束时间');
+                }
+                
+                const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+                const displayStartTime = new Date(nextStart.getTime() - thresholdMs);
+                const displayEndTime = new Date(endTime);
+                
+                const isInDisplayRange = now >= displayStartTime && now <= displayEndTime;
+                const isOngoing = now >= nextStart && now < endTime;
+                const timeUntilStart = nextStart - now;
+                
+                if (task.recurrence.type === "none" && now > displayEndTime) {
+                    return {
+                        status: "completed",
+                        timeText: "已完成",
+                        countdownMs: 0,
+                        countdownText: "已完成",
+                        minutes: Infinity,
+                        startTime: nextStart,
+                        endTime: endTime,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                }
+                
+                if (isOngoing) {
+                    const timeLeft = endTime - now;
+                    const converted = convertFromMilliseconds(timeLeft);
+                    return {
+                        status: "ongoing",
+                        timeText: `正在进行`,
+                        countdownMs: timeLeft,
+                        countdownText: formatCountdown(timeLeft),
+                        minutes: Math.ceil(timeLeft / (1000 * 60)),
+                        startTime: nextStart,
+                        endTime: endTime,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                } else if (isInDisplayRange) {
+                    const converted = convertFromMilliseconds(timeUntilStart);
+                    return {
+                        status: "upcoming",
+                        timeText: `${converted.value}${converted.text}后开始`,
+                        countdownMs: timeUntilStart,
+                        countdownText: formatCountdown(timeUntilStart),
+                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                        startTime: nextStart,
+                        endTime: endTime,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                } else {
+                    const converted = convertFromMilliseconds(timeUntilStart);
+                    return {
+                        status: "future",
+                        timeText: `${converted.value}${converted.text}后开始`,
+                        countdownMs: timeUntilStart,
+                        countdownText: formatCountdown(timeUntilStart),
+                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                        startTime: nextStart,
+                        endTime: endTime,
+                        displayStartTime: displayStartTime,
+                        displayEndTime: displayEndTime
+                    };
+                }
+            } catch (e) {
+                console.error('计算任务状态出错:', task.name, e);
+                // 返回一个安全的默认状态
+                const defaultTime = new Date();
+                return {
+                    status: "future",
+                    timeText: "时间计算中",
+                    countdownMs: 0,
+                    countdownText: "--",
+                    minutes: Infinity,
+                    startTime: defaultTime,
+                    endTime: new Date(defaultTime.getTime() + 60 * 60 * 1000), // 1小时后
+                    displayStartTime: defaultTime,
+                    displayEndTime: new Date(defaultTime.getTime() + 60 * 60 * 1000)
+                };
+            }
+        }
+
+        // 过滤出需要显示的事件
+        function getVisibleTasks() {
+            const now = new Date();
+            return tasks
+                .map(task => {
+                    const status = getTaskStatus(task, now);
+                    return {
+                        ...task,
+                        ...status
+                    };
+                })
+                .filter(task => {
+                    if (task.priority === "none") {
+                        return false;
+                    }
+                    
+                    return task.status !== "completed" && 
+                           (task.status === "ongoing" || task.status === "upcoming");
+                })
+                .sort((a, b) => {
+                    const priorityOrder = { high: 3, medium: 2, low: 1 };
+                    
+                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                        return priorityOrder[b.priority] - priorityOrder[a.priority];
+                    }
+                    
+                    if (a.status === "ongoing" && b.status !== "ongoing") return -1;
+                    if (a.status !== "ongoing" && b.status === "ongoing") return 1;
+                    
+                    return a.minutes - b.minutes;
+                });
+        }
+
+        // 获取所有事件（用于悬停显示）- 修复版本
+        function getAllTasksWithStatus() {
+            const now = new Date();
+            return tasks
+                .map(task => {
+                    try {
+                        const status = getTaskStatus(task, now);
+                        return {
+                            ...task,
+                            ...status
+                        };
+                    } catch (e) {
+                        console.error('计算任务状态出错:', task.name, e);
+                        // 返回一个基本状态，避免预览功能失效
+                        return {
+                            ...task,
+                            status: "future",
+                            timeText: "时间计算中",
+                            countdownMs: 0,
+                            countdownText: "--",
+                            minutes: Infinity,
+                            startTime: new Date(),
+                            endTime: new Date(),
+                            displayStartTime: new Date(),
+                            displayEndTime: new Date()
+                        };
+                    }
+                })
+                .filter(task => task.status !== "completed")
+                .sort((a, b) => {
+                    if (a.priority === "none" && b.priority !== "none") return 1;
+                    if (a.priority !== "none" && b.priority === "none") return -1;
+                    
+                    const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
+                    
+                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                        return priorityOrder[b.priority] - priorityOrder[a.priority];
+                    }
+                    
+                    return (a.startTime || new Date()) - (b.startTime || new Date());
+                });
+        }
+
+        // 创建事件元素
+        function createTaskElement(task) {
+            const taskEl = document.createElement('div');
+            const baseClass = "task-item p-4 rounded-xl mb-3 task-transition bg-dark-bg shadow-sm mx-auto max-w-md";
+            
+            taskEl.className = baseClass;
+            taskEl.dataset.taskId = task.id;
+            
+            let recurrenceText = "";
+            if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                recurrenceText = "破晓红石特殊规则";
+            } else {
+                switch(task.recurrence.type) {
+                    case "none":
+                        recurrenceText = "不重复";
+                        break;
+                    case "daily":
+                        recurrenceText = "每天";
+                        break;
+                    case "weekly":
+                        const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
+                        recurrenceText = `每周${selectedDays}`;
+                        break;
+                    case "monthly":
+                        const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                            const selectedWeekDays = task.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
+                            recurrenceText = `每月${selectedWeekDays}`;
+                        } else if (task.recurrence.days && task.recurrence.days.length > 0) {
+                            const selectedDays = task.recurrence.days?.join(', ') || "";
+                            recurrenceText = `每月${selectedDays}日`;
+                        }
+                        break;
+                    case "custom":
+                        const unitNames = {
+                            "minute": "分钟",
+                            "hour": "小时",
+                            "day": "天",
+                            "week": "周",
+                            "month": "月"
+                        };
+                        recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
+                        break;
+                }
+            }
+            
+            const durationUnitNames = {
+                "minute": "分钟",
+                "hour": "小时",
+                "day": "天",
+                "week": "周"
+            };
+            const durationText = `${task.recurrence.duration}${durationUnitNames[task.recurrence.durationUnit]}`;
+            
+            const isToday = task.startTime.toLocaleDateString() === new Date().toLocaleDateString();
+            const dateText = isToday ? '今天' : task.startTime.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric', weekday: 'short'});
+            
+            const ongoingIndicator = task.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            
+            const countdownBadge = `<span class="countdown ml-2">${task.countdownText}</span>`;
+            
+            const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
+            
+            taskEl.innerHTML = `
+                <div class="flex justify-between items-center task-title">
+                    <div class="font-medium text-dark-text flex items-center">
+                        <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
+                        ${task.name}
+                    </div>
+                    <div class="text-sm text-primary flex items-center">
+                        ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText}</span>${countdownBadge}
+                    </div>
+                </div>
+                <div class="text-xs text-dark-textSecondary task-meta">
+                    <span class="task-meta-item"><i class="fa fa-repeat mr-1 opacity-70"></i>${recurrenceText}</span>
+                    <span class="task-meta-item"><i class="fa fa-clock-o mr-1 opacity-70"></i>持续 ${durationText}</span>
+                    <span class="task-meta-item"><i class="fa fa-calendar mr-1 opacity-70"></i>${dateText}</span>
+                    <span class="task-meta-item"><i class="fa fa-hourglass-start mr-1 opacity-70"></i>${task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${task.endTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}</span>
+                </div>
+            `;
+            
+            // 移除了轮播事件的预览交互
+            
+            taskEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                currentTaskId = task.id;
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                taskContextMenu.style.left = `${x}px`;
+                taskContextMenu.style.top = `${y}px`;
+                taskContextMenu.classList.remove('hidden');
+            });
+            
+            return taskEl;
+        }
+
+        // 创建缩略事件元素 - 修复版本
+        function createMiniTaskElement(task) {
+            const taskEl = document.createElement('div');
+            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover future-task-item";
+            
+            taskEl.className = baseClass;
+            taskEl.dataset.taskId = task.id;
+            
+            const ongoingIndicator = task.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            
+            const countdownBadge = task.countdownText ? `<span class="countdown ml-2">${task.countdownText}</span>` : '';
+            
+            const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
+            
+            // 安全地处理时间显示
+            let timeDisplay = '时间计算中';
+            if (task.startTime && task.startTime instanceof Date && !isNaN(task.startTime)) {
+                timeDisplay = task.status === 'ongoing' ? '进行中' : 
+                             task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+            }
+            
+            taskEl.innerHTML = `
+                <div class="flex items-center flex-1 min-w-0">
+                    <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm truncate">${task.name}</div>
+                        <div class="text-xs text-primary flex items-center">
+                            ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText || '即将开始'}</span>${countdownBadge}
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-dark-textSecondary whitespace-nowrap ml-2">
+                    ${timeDisplay}
+                </div>
+            `;
+            
+            // 为未来事件列表中的任务添加预览交互
+            addPreviewInteractionToFutureTask(taskEl, task);
+            
+            taskEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                currentTaskId = task.id;
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                taskContextMenu.style.left = `${x}px`;
+                taskContextMenu.style.top = `${y}px`;
+                taskContextMenu.classList.remove('hidden');
+            });
+            
+            return taskEl;
+        }
+
+        // 专门为未来事件列表添加预览交互
+        function addPreviewInteractionToFutureTask(element, task) {
+            let previewTimer = null;
+            
+            element.addEventListener('mouseenter', (e) => {
+                // 清除之前的定时器
+                if (previewTimer) {
+                    clearTimeout(previewTimer);
+                }
+                
+                // 设置新的预览显示定时器
+                previewTimer = setTimeout(() => {
+                    showPreviewCard(task, e.clientX, e.clientY);
+                }, 2300);
+            });
+            
+            element.addEventListener('mouseleave', () => {
+                // 清除定时器
+                if (previewTimer) {
+                    clearTimeout(previewTimer);
+                    previewTimer = null;
+                }
+                hidePreviewCard();
+            });
+            
+            element.addEventListener('mousemove', (e) => {
+                if (isPreviewVisible && currentPreviewTaskId === task.id) {
+                    updatePreviewCardPosition(e.clientX, e.clientY);
+                }
+            });
         }
 
         // 更新事件显示
@@ -2244,13 +2067,16 @@
                     const taskEl = createTaskElement(task);
                     taskCarousel.appendChild(taskEl);
                 });
+                
+                currentSlide = 0;
+                updateCarouselPosition();
             }
             
             updateAllTasksList();
             adjustContainerSize(hasVisibleContent);
         }
 
-        // 更新所有事件列表
+        // 更新所有事件列表 - 修复版本
         function updateAllTasksList() {
             const allTasks = getAllTasksWithStatus();
             allTasksListEl.innerHTML = '';
@@ -2287,6 +2113,14 @@
                 controlsContainer.classList.add('opacity-0', 'pointer-events-none', 'h-0');
                 appContainer.style.minHeight = '120px';
             }
+        }
+
+        // 更新轮播位置
+        function updateCarouselPosition() {
+            if (currentVisibleTasks.length <= 1) return;
+            
+            const slideHeight = 100;
+            taskCarousel.style.transform = `translateY(-${currentSlide * slideHeight}px)`;
         }
 
         // 显示对应的重复选项面板
@@ -2560,6 +2394,123 @@
             confirmDeleteModal.classList.add('hidden');
         }
 
+        // 鼠标悬停显示所有事件 - 考虑锁定状态
+        appContainer.addEventListener('mouseenter', () => {
+            if (!isListLocked) {
+                allTasksEl.style.maxHeight = '500px';
+            }
+        });
+
+        appContainer.addEventListener('mouseleave', () => {
+            if (!isListLocked) {
+                allTasksEl.style.maxHeight = '0';
+            }
+        });
+
+        // 应用容器右键菜单事件
+        appContainer.addEventListener('contextmenu', (e) => {
+            if (!e.target.closest('.task-item') && !e.target.closest('[data-task-id]')) {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                mainContextMenu.style.left = `${x}px`;
+                mainContextMenu.style.top = `${y}px`;
+                mainContextMenu.classList.remove('hidden');
+            }
+        });
+
+        // 点击其他地方隐藏右键菜单
+        document.addEventListener('click', hideAllContextMenus);
+
+        // 修复：为右键菜单选项添加点击事件（已在DOMContentLoaded中添加）
+
+        // 关闭模态框事件
+        closeModal.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideTaskModal();
+        });
+        
+        cancelTask.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideTaskModal();
+        });
+        
+        taskModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideTaskModal();
+        });
+
+        // 关闭确认删除模态框事件
+        closeDeleteModal.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideConfirmDeleteModal();
+        });
+        
+        cancelDelete.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideConfirmDeleteModal();
+        });
+        
+        confirmDeleteModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideConfirmDeleteModal();
+        });
+
+        // 确认删除事件
+        confirmDelete.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (currentTaskId !== null) {
+                await deleteTask(currentTaskId);
+                currentTaskId = null;
+                hideConfirmDeleteModal();
+            }
+        });
+
+        // 表单提交事件
+        taskForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const formData = {
+                id: document.getElementById('task-id').value,
+                name: document.getElementById('task-name').value,
+                startDate: document.getElementById('start-date').value,
+                startTime: document.getElementById('start-time').value,
+                displayThreshold: document.getElementById('display-threshold').value,
+                displayThresholdUnit: document.getElementById('display-threshold-unit').value,
+                priority: document.getElementById('task-priority').value,
+                recurrenceType: recurrenceTypeInput.value,
+                duration: document.getElementById('task-duration').value,
+                durationUnit: document.getElementById('duration-unit').value,
+                intervalCount: document.getElementById('interval-count').value,
+                intervalUnit: document.getElementById('interval-unit').value,
+                weekdays: Array.from(weekdayCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value),
+                monthdays: Array.from(monthdayCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value),
+                monthweekdays: Array.from(monthweekdayCheckboxes)
+                    .filter(cb => cb.checked)
+                    .map(cb => cb.value)
+            };
+            
+            if (!validateFormData(formData.recurrenceType)) {
+                return;
+            }
+            
+            if (formData.id) {
+                await updateExistingTask(formData);
+            } else {
+                await addNewTask(formData);
+            }
+            
+            hideTaskModal();
+        });
+
         // 下载为HTML文件功能
         function downloadAsHtml() {
             try {
@@ -2627,203 +2578,6 @@
                 console.error('下载失败:', e);
                 showNotification('导出HTML文件失败: ' + e.message, true);
             }
-        }
-
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            const now = new Date();
-            const dateStr = now.toISOString().split('T')[0];
-            const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
-            
-            startDateInput.value = dateStr;
-            startTimeInput.value = timeStr;
-            
-            // 初始化重复选项点击事件
-            recurrenceOptions.forEach(option => {
-                option.addEventListener('click', () => {
-                    recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
-                    option.classList.add('selected');
-                    const type = option.getAttribute('data-type');
-                    recurrenceTypeInput.value = type;
-                    showRecurrenceOptions(type);
-                });
-            });
-            
-            // 检查是否有外部数据并加载
-            const savedData = loadFromLocalStorage();
-            if (savedData && savedData.tasks) {
-                tasks = savedData.tasks;
-            } else {
-                // 保存初始任务列表
-                saveToLocalStorage(tasks);
-            }
-            
-            // 初始化按钮事件
-            downloadBtn.addEventListener('click', downloadAsHtml);
-            manualSaveBtn.addEventListener('click', async () => {
-                await saveToLocalStorage(tasks);
-            });
-            
-            // 初始化悬停空白区域事件
-            emptyHoverArea.addEventListener('click', toggleListLock);
-            
-            // 修改悬停展开逻辑 - 在整个应用容器上监听
-            appContainer.addEventListener('mouseenter', handleAnywhereHover);
-            appContainer.addEventListener('mouseleave', handleAppContainerLeave);
-            
-            // 为右键菜单选项添加点击事件
-            addTaskOption.addEventListener('click', (e) => {
-                e.stopPropagation();
-                showAddTaskModal();
-            });
-
-            editTaskOption.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (currentTaskId !== null) {
-                    showEditTaskModal(currentTaskId);
-                }
-            });
-
-            deleteTaskOption.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (currentTaskId !== null) {
-                    showConfirmDeleteModal(currentTaskId);
-                }
-            });
-            
-            // 点击其他地方隐藏预览卡片
-            document.addEventListener('click', (e) => {
-                // 如果点击的不是预览卡片本身，也不是未来事件列表中的任务，则关闭预览卡片
-                if (!previewCard.contains(e.target) && !e.target.closest('.future-task-item')) {
-                    hidePreviewCard();
-                }
-            });
-            
-            // 保持原有的鼠标移动跟踪以实现丝滑跟随
-            document.addEventListener('mousemove', (e) => {
-                mouseX = e.clientX;
-                mouseY = e.clientY;
-                
-                if (isPreviewVisible) {
-                    updatePreviewCardPosition(mouseX, mouseY);
-                }
-            });
-            
-            // 应用容器右键菜单事件
-            appContainer.addEventListener('contextmenu', (e) => {
-                if (!e.target.closest('.task-item') && !e.target.closest('[data-task-id]')) {
-                    e.preventDefault();
-                    hideAllContextMenus();
-                    
-                    const x = e.clientX;
-                    const y = e.clientY;
-                    
-                    mainContextMenu.style.left = `${x}px`;
-                    mainContextMenu.style.top = `${y}px`;
-                    mainContextMenu.classList.remove('hidden');
-                }
-            });
-
-            // 点击其他地方隐藏右键菜单
-            document.addEventListener('click', hideAllContextMenus);
-
-            // 关闭模态框事件
-            closeModal.addEventListener('click', (e) => {
-                e.stopPropagation();
-                hideTaskModal();
-            });
-            
-            cancelTask.addEventListener('click', (e) => {
-                e.stopPropagation();
-                hideTaskModal();
-            });
-            
-            taskModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
-                e.stopPropagation();
-                hideTaskModal();
-            });
-
-            // 关闭确认删除模态框事件
-            closeDeleteModal.addEventListener('click', (e) => {
-                e.stopPropagation();
-                hideConfirmDeleteModal();
-            });
-            
-            cancelDelete.addEventListener('click', (e) => {
-                e.stopPropagation();
-                hideConfirmDeleteModal();
-            });
-            
-            confirmDeleteModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
-                e.stopPropagation();
-                hideConfirmDeleteModal();
-            });
-
-            // 确认删除事件
-            confirmDelete.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                if (currentTaskId !== null) {
-                    await deleteTask(currentTaskId);
-                    currentTaskId = null;
-                    hideConfirmDeleteModal();
-                }
-            });
-
-            // 表单提交事件
-            taskForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const formData = {
-                    id: document.getElementById('task-id').value,
-                    name: document.getElementById('task-name').value,
-                    startDate: document.getElementById('start-date').value,
-                    startTime: document.getElementById('start-time').value,
-                    displayThreshold: document.getElementById('display-threshold').value,
-                    displayThresholdUnit: document.getElementById('display-threshold-unit').value,
-                    priority: document.getElementById('task-priority').value,
-                    recurrenceType: recurrenceTypeInput.value,
-                    duration: document.getElementById('task-duration').value,
-                    durationUnit: document.getElementById('duration-unit').value,
-                    intervalCount: document.getElementById('interval-count').value,
-                    intervalUnit: document.getElementById('interval-unit').value,
-                    weekdays: Array.from(weekdayCheckboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => cb.value),
-                    monthdays: Array.from(monthdayCheckboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => cb.value),
-                    monthweekdays: Array.from(monthweekdayCheckboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => cb.value)
-                };
-                
-                if (!validateFormData(formData.recurrenceType)) {
-                    return;
-                }
-                
-                if (formData.id) {
-                    await updateExistingTask(formData);
-                } else {
-                    await addNewTask(formData);
-                }
-                
-                hideTaskModal();
-            });
-
-            // 初始化显示
-            updateCurrentTime();
-            updateTasks();
-        });
-
-        // 更新当前时间显示
-        function updateCurrentTime() {
-            const now = new Date();
-            currentTimeEl.textContent = now.toLocaleTimeString('zh-CN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
         }
 
         // 每秒更新时间
