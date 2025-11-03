@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>光·遇 红石 日历</title>
+    <title>破晓 红黑石 事件日历</title>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* 保持原有的所有CSS样式不变 */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         body {
@@ -471,12 +472,25 @@
                 font-size: 1.1rem;
             }
         }
+
+        /* 时区状态指示器 */
+        .timezone-indicator {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: rgba(96, 165, 250, 0.1);
+            color: #3b82f6;
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
     </style>
 </head>
 <body class="min-h-screen">
-    <div class="max-w-4xl mx-auto">
+    <div class="max-w-7xl mx-auto">
         <!-- 页面标题 -->
-        <h1 class="text-xl md:text-3xl font-bold text-center text-slate-800 mb-4">光·遇 红石 黑石 日历</h1>        
+        <h1 class="text-xl md:text-3xl font-bold text-center text-slate-800 mb-4">破晓 红石 黑石 事件日历</h1>        
         <!-- 月份导航 - 高度压缩版本 -->
         <div class="month-navigation rounded-xl mb-2">
             <div class="current-time" id="current-time"></div>
@@ -489,6 +503,7 @@
                     <i class="fa fa-chevron-right"></i>
                 </button>
             </div>
+            <div class="timezone-indicator" id="timezone-indicator"></div>
         </div>
         
         <!-- 星期标题 -->
@@ -512,165 +527,213 @@
 
     <script>
         // 当前显示的月份和年份
-        let currentYear = 2025;
-        let currentMonth = 10; // 0=一月, 10=十一月
-        
-        // 星期几对应的时间段信息
-        const weekdayTimeInfo = {
-            0: { // 周日
-                redstone: ["07:08", "13:08", "19:08"]
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth();
+
+        // 太平洋时区工具
+        const PacificTimeUtils = {
+            // 判断当前是否处于太平洋夏令时
+            isPDT(date = new Date()) {
+                const year = date.getFullYear();
+                
+                // 太平洋夏令时规则：3月第二个周日 02:00 开始，11月第一个周日 02:00 结束
+                const getDayOfMonth = (year, month, dayOfWeek, occurrence) => {
+                    const firstDay = new Date(year, month, 1);
+                    const firstDayOfWeek = firstDay.getDay();
+                    let offset = dayOfWeek - firstDayOfWeek;
+                    if (offset < 0) offset += 7;
+                    return 1 + offset + (occurrence - 1) * 7;
+                };
+                
+                const marchSecondSunday = getDayOfMonth(year, 2, 0, 2); // 3月第二个周日
+                const novemberFirstSunday = getDayOfMonth(year, 10, 0, 1); // 11月第一个周日
+                
+                const startDST = new Date(year, 2, marchSecondSunday, 2, 0, 0); // 3月开始
+                const endDST = new Date(year, 10, novemberFirstSunday, 2, 0, 0); // 11月结束
+                
+                return date >= startDST && date < endDST;
             },
-            5: { // 周五
-                redstone: ["11:08", "17:08", "23:08"]
+            
+            // 调整时间显示（基于夏令时转换后的数据）
+            adjustTimeForDisplay(timeSlots, eventDate) {
+                const isPDT = this.isPDT(eventDate);
+                
+                // 如果当前是冬令时，所有时间+1小时
+                if (!isPDT) {
+                    return timeSlots.map(slot => {
+                        const adjustTime = (timeStr) => {
+                            let [hours, minutes] = timeStr.split(':').map(Number);
+                            hours = (hours + 1) % 24;
+                            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                        };
+                        
+                        return {
+                            start: adjustTime(slot.start),
+                            end: adjustTime(slot.end)
+                        };
+                    });
+                }
+                
+                // 夏令时期间直接返回原时间
+                return timeSlots;
             },
-            6: { // 周六
-                redstone: ["10:08", "14:08", "22:08"]
-            },
-            2: { // 周二
-                blackstone: ["08:08", "16:08", "20:08"]
-            },
-            3: { // 周三
-                blackstone: ["09:08", "15:08", "21:08"]
+            
+            // 获取时区显示文本
+            getTimezoneText(date = new Date()) {
+                return this.isPDT(date) ? 'PDT' : 'PST';
             }
         };
         
-        // 破晓红石地点推算函数
-        function getDawnRedstoneLocation(date, dayOfWeek) {
+        // 红石事件规则（基于太平洋夏令时转换后的北京时间）
+        const redstoneRules = {
+            group1: {
+                days: [1, 7, 13, 19, 25, 31],
+                cancelDays: [1, 2], // 周一、周二取消
+                timeSlots: [
+                    { start: "22:48", end: "02:40" },
+                    { start: "04:48", end: "08:40" },
+                    { start: "10:48", end: "14:40" }
+                ]
+            },
+            group2: {
+                days: [3, 9, 15, 21, 27],
+                cancelDays: [2, 3], // 周二、周三取消
+                timeSlots: [
+                    { start: "17:28", end: "21:20" },
+                    { start: "23:28", end: "03:20" },
+                    { start: "05:28", end: "09:20" }
+                ]
+            },
+            group3: {
+                days: [5, 11, 17, 23, 29],
+                cancelDays: [3, 4], // 周三、周四取消
+                timeSlots: [
+                    { start: "18:38", end: "22:30" },
+                    { start: "00:38", end: "04:30" },
+                    { start: "06:38", end: "10:30" }
+                ]
+            }
+        };
+
+        // 黑石事件规则（基于太平洋夏令时转换后的北京时间）
+        const blackstoneRules = {
+            group1: {
+                days: [2, 6, 10, 14, 18, 22, 26, 30],
+                cancelDays: [0, 1], // 周日、周一取消
+                timeSlots: [
+                    { start: "17:18", end: "21:10" },
+                    { start: "07:18", end: "05:10" },
+                    { start: "09:18", end: "13:10" }
+                ]
+            },
+            group2: {
+                days: [4, 8, 12, 16, 20, 24, 28],
+                cancelDays: [6, 0], // 周六、周日取消
+                timeSlots: [
+                    { start: "16:58", end: "20:50" },
+                    { start: "00:58", end: "04:50" },
+                    { start: "08:58", end: "12:50" }
+                ]
+            }
+        };
+
+        // 地点映射
+        const locationMap = {
+            redstone: {
+                1: { area: "云野", name: "云野山洞" },
+                3: { area: "霞谷", name: "圆梦村" },
+                5: { area: "禁阁", name: "星漠海滩" },
+                7: { area: "雨林", name: "雨林宫殿" },
+                9: { area: "暮土", name: "暗蟹沙原" },
+                11: { area: "云野", name: "圣岛" },
+                13: { area: "霞谷", name: "圆梦村" },
+                15: { area: "禁阁", name: "星漠海滩" },
+                17: { area: "雨林", name: "雨林高处" },
+                19: { area: "暮土", name: "暮土墓园" },
+                21: { area: "云野", name: "浮石鸟巢" },
+                23: { area: "霞谷", name: "隐士山谷" },
+                25: { area: "禁阁", name: "星漠海滩" },
+                27: { area: "雨林", name: "大树屋" },
+                29: { area: "暮土", name: "失落方舟" },
+                31: { area: "云野", name: "云野山洞" }
+            },
+            blackstone: {
+                2: { area: "雨林", name: "埋骨之地" },
+                4: { area: "暮土", name: "破旧神庙" },
+                6: { area: "云野", name: "云野村庄" },
+                8: { area: "霞谷", name: "滑冰场" },
+                10: { area: "禁阁", name: "星漠" },
+                12: { area: "雨林", name: "雨林小溪" },
+                14: { area: "暮土", name: "暮土战场" },
+                16: { area: "云野", name: "蝴蝶平原" },
+                18: { area: "霞谷", name: "滑冰场" },
+                20: { area: "禁阁", name: "星漠" },
+                22: { area: "雨林", name: "埋骨之地" },
+                24: { area: "暮土", name: "破旧神庙" },
+                26: { area: "云野", name: "云野村庄" },
+                28: { area: "霞谷", name: "滑冰场" },
+                30: { area: "禁阁", name: "星漠" }
+            }
+        };
+
+        // 获取红石事件
+        function getRedstoneEvents(date) {
             const dayOfMonth = date.getDate();
-            
-            // 暮土系 (日期: 1,6,11,16,21,26,31)
-            if ([1, 6, 11, 16, 21, 26, 31].includes(dayOfMonth)) {
-                if (dayOfWeek === 5) return { area: "暮土", name: "黑水港湾" };
-                if (dayOfWeek === 6) return { area: "暮土", name: "巨兽荒原" };
-                if (dayOfWeek === 0) return { area: "暮土", name: "失落方舟" };
-            }
-            
-            // 禁阁系 (日期: 2,7,12,17,22,27)
-            if ([2, 7, 12, 17, 22, 27].includes(dayOfMonth)) {
-                if ([5, 6, 0].includes(dayOfWeek)) return { area: "禁阁", name: "星漠海滩" };
-            }
-            
-            // 云野系 (日期: 3,8,13,18,23,28)
-            if ([3, 8, 13, 18, 23, 28].includes(dayOfMonth)) {
-                if (dayOfWeek === 5) return { area: "云野", name: "云顶浮石" };
-                if (dayOfWeek === 6) return { area: "云野", name: "幽光山洞" };
-                if (dayOfWeek === 0) return { area: "云野", name: "圣岛" };
-            }
-            
-            // 雨林系 (日期: 4,9,14,19,24,29)
-            if ([4, 9, 14, 19, 24, 29].includes(dayOfMonth)) {
-                if (dayOfWeek === 5) return { area: "雨林", name: "大树屋" };
-                if (dayOfWeek === 6) return { area: "雨林", name: "雨林神庙" };
-                if (dayOfWeek === 0) return { area: "雨林", name: "秘密花园" };
-            }
-            
-            // 霞谷系 (日期: 5,10,15,20,25,30)
-            if ([5, 10, 15, 20, 25, 30].includes(dayOfMonth)) {
-                if ([5, 6].includes(dayOfWeek)) return { area: "霞谷", name: "圆梦村" };
-                if (dayOfWeek === 0) return { area: "霞谷", name: "雪隐峰" };
-            }
-            
-            return null;
+            const dayOfWeek = date.getDay(); // 0=周日, 1=周一, ..., 6=周六
+            const events = [];
+
+            // 检查每个红石组
+            Object.values(redstoneRules).forEach(group => {
+                if (group.days.includes(dayOfMonth) && !group.cancelDays.includes(dayOfWeek)) {
+                    const location = locationMap.redstone[dayOfMonth];
+                    if (location) {
+                        // 根据时区调整时间显示
+                        const adjustedTimeSlots = PacificTimeUtils.adjustTimeForDisplay(group.timeSlots, date);
+                        
+                        events.push({
+                            date: new Date(date),
+                            timeSlots: adjustedTimeSlots,
+                            originalTimeSlots: group.timeSlots, // 保存原始时间用于比较
+                            location: location,
+                            dayOfWeek: dayOfWeek,
+                            type: 'redstone'
+                        });
+                    }
+                }
+            });
+
+            return events;
         }
-        
-        // 破晓黑石地点推算函数
-        function getDawnBlackstoneLocation(date, dayOfWeek) {
+
+        // 获取黑石事件
+        function getBlackstoneEvents(date) {
             const dayOfMonth = date.getDate();
-            
-            // 暮土系 (日期: 1,6,11,16,21,26,31)
-            if ([1, 6, 11, 16, 21, 26, 31].includes(dayOfMonth)) {
-                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "暮土", name: "边陲荒漠" };
-                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "暮土", name: "远古战场" };
-            }
-            
-            // 禁阁系 (日期: 2,7,12,17,22,27)
-            if ([2, 7, 12, 17, 22, 27].includes(dayOfMonth)) {
-                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "禁阁", name: "星光沙漠" };
-                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "禁阁", name: "星光沙漠" };
-            }
-            
-            // 云野系 (日期: 3,8,13,18,23,28)
-            if ([3, 8, 13, 18, 23, 28].includes(dayOfMonth)) {
-                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "云野", name: "蝴蝶平原" };
-                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "云野", name: "云野仙乡" };
-            }
-            
-            // 雨林系 (日期: 4,9,14,19,24,29)
-            if ([4, 9, 14, 19, 24, 29].includes(dayOfMonth)) {
-                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "雨林", name: "荧光森林" };
-                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "雨林", name: "密林遗迹" };
-            }
-            
-            // 霞谷系 (日期: 5,10,15,20,25,30)
-            if ([5, 10, 15, 20, 25, 30].includes(dayOfMonth)) {
-                if (dayOfWeek === 2 && dayOfMonth <= 15) return { area: "霞谷", name: "滑冰场" };
-                if (dayOfWeek === 3 && dayOfMonth >= 16) return { area: "霞谷", name: "滑冰场" };
-            }
-            
-            return null;
+            const dayOfWeek = date.getDay(); // 0=周日, 1=周一, ..., 6=周六
+            const events = [];
+
+            // 检查每个黑石组
+            Object.values(blackstoneRules).forEach(group => {
+                if (group.days.includes(dayOfMonth) && !group.cancelDays.includes(dayOfWeek)) {
+                    const location = locationMap.blackstone[dayOfMonth];
+                    if (location) {
+                        // 根据时区调整时间显示
+                        const adjustedTimeSlots = PacificTimeUtils.adjustTimeForDisplay(group.timeSlots, date);
+                        
+                        events.push({
+                            date: new Date(date),
+                            timeSlots: adjustedTimeSlots,
+                            originalTimeSlots: group.timeSlots, // 保存原始时间用于比较
+                            location: location,
+                            dayOfWeek: dayOfWeek,
+                            type: 'blackstone'
+                        });
+                    }
+                }
+            });
+
+            return events;
         }
-        
-        // 获取破晓红石事件时间段
-        function getDawnRedstoneTimeSlots(date, dayOfWeek) {
-            const dayOfMonth = date.getDate();
-            const slots = [];
-            
-            // 周日事件
-            if (dayOfWeek === 0) {
-                slots.push(
-                    { start: "07:08", end: "08:00" },
-                    { start: "13:08", end: "14:00" },
-                    { start: "19:08", end: "20:00" }
-                );
-            }
-            
-            // 周六事件 (1-15号)
-            if (dayOfWeek === 6 && dayOfMonth >= 1 && dayOfMonth <= 15) {
-                slots.push(
-                    { start: "10:08", end: "11:00" },
-                    { start: "14:08", end: "15:00" },
-                    { start: "22:08", end: "23:00" }
-                );
-            }
-            
-            // 周五事件 (16号到月底)
-            if (dayOfWeek === 5 && dayOfMonth >= 16) {
-                slots.push(
-                    { start: "11:08", end: "12:00" },
-                    { start: "17:08", end: "18:00" },
-                    { start: "23:08", end: "24:00" }
-                );
-            }
-            
-            return slots;
-        }
-        
-        // 获取破晓黑石事件时间段
-        function getDawnBlackstoneTimeSlots(date, dayOfWeek) {
-            const dayOfMonth = date.getDate();
-            const slots = [];
-            
-            // 星期二事件 (上半月1-15日)
-            if (dayOfWeek === 2 && dayOfMonth <= 15) {
-                slots.push(
-                    { start: "08:08", end: "09:00" },
-                    { start: "16:08", end: "17:00" },
-                    { start: "20:08", end: "21:00" }
-                );
-            }
-            
-            // 星期三事件 (下半月16-31日)
-            if (dayOfWeek === 3 && dayOfMonth >= 16) {
-                slots.push(
-                    { start: "09:08", end: "10:00" },
-                    { start: "15:08", end: "16:00" },
-                    { start: "21:08", end: "22:00" }
-                );
-            }
-            
-            return slots;
-        }
-        
+
         // 将4字文本分割为两两格式
         function splitFourCharText(text) {
             if (text.length === 4) {
@@ -689,35 +752,14 @@
             // 遍历该月的每一天
             for (let day = 1; day <= daysInMonth; day++) {
                 const date = new Date(year, month, day);
-                const dayOfWeek = date.getDay(); // 0=周日, 1=周一, ..., 6=周六
                 
                 // 获取红石事件
-                const redstoneTimeSlots = getDawnRedstoneTimeSlots(date, dayOfWeek);
-                const redstoneLocation = getDawnRedstoneLocation(date, dayOfWeek);
-                
-                if (redstoneTimeSlots.length > 0 && redstoneLocation) {
-                    events.push({
-                        date: new Date(date),
-                        timeSlots: redstoneTimeSlots,
-                        location: redstoneLocation,
-                        dayOfWeek: dayOfWeek,
-                        type: 'redstone'
-                    });
-                }
+                const redstoneEvents = getRedstoneEvents(date);
+                events.push(...redstoneEvents);
                 
                 // 获取黑石事件
-                const blackstoneTimeSlots = getDawnBlackstoneTimeSlots(date, dayOfWeek);
-                const blackstoneLocation = getDawnBlackstoneLocation(date, dayOfWeek);
-                
-                if (blackstoneTimeSlots.length > 0 && blackstoneLocation) {
-                    events.push({
-                        date: new Date(date),
-                        timeSlots: blackstoneTimeSlots,
-                        location: blackstoneLocation,
-                        dayOfWeek: dayOfWeek,
-                        type: 'blackstone'
-                    });
-                }
+                const blackstoneEvents = getBlackstoneEvents(date);
+                events.push(...blackstoneEvents);
             }
             
             return events;
@@ -733,6 +775,12 @@
             const monthNames = ["1", "2", "3", "4", "5", "6", 
                                "7", "8", "9", "10", "11", "12"];
             document.getElementById('month-title').textContent = `${currentYear}年${monthNames[currentMonth]}月`;
+            
+            // 更新时区指示器
+            const timezoneIndicator = document.getElementById('timezone-indicator');
+            const currentTimezone = PacificTimeUtils.getTimezoneText();
+            timezoneIndicator.textContent = `UTC-${currentTimezone}-UTC`;
+            timezoneIndicator.title = currentTimezone === 'PDT' ? '太平洋夏令时' : '太平洋标准时';
             
             // 清空容器
             calendarContainer.innerHTML = '';
@@ -757,37 +805,6 @@
                 const weekdayName = document.createElement('div');
                 weekdayName.textContent = weekdayNames[i];
                 weekdayHeader.appendChild(weekdayName);
-                
-                // 添加星期几对应的时间信息
-                if (weekdayTimeInfo[i]) {
-                    const timeInfo = document.createElement('div');
-                    timeInfo.className = 'weekday-time-info';
-                    
-                    // 添加红黑石标签到星期模块
-                    if (weekdayTimeInfo[i].redstone) {
-                        const redstoneBadge = document.createElement('span');
-                        redstoneBadge.className = 'weekday-event-badge redstone-badge';
-                        redstoneBadge.textContent = '红石';
-                        timeInfo.appendChild(redstoneBadge);
-                        
-                        const timeText = document.createElement('div');
-                        timeText.textContent = weekdayTimeInfo[i].redstone.join(' ');
-                        timeInfo.appendChild(timeText);
-                    }
-                    
-                    if (weekdayTimeInfo[i].blackstone) {
-                        const blackstoneBadge = document.createElement('span');
-                        blackstoneBadge.className = 'weekday-event-badge blackstone-badge';
-                        blackstoneBadge.textContent = '黑石';
-                        timeInfo.appendChild(blackstoneBadge);
-                        
-                        const timeText = document.createElement('div');
-                        timeText.textContent = weekdayTimeInfo[i].blackstone.join(' ');
-                        timeInfo.appendChild(timeText);
-                    }
-                    
-                    weekdayHeader.appendChild(timeInfo);
-                }
                 
                 weekdayHeadersContainer.appendChild(weekdayHeader);
             }
@@ -826,17 +843,21 @@
                 // 添加事件
                 if (dayEvents.length > 0) {
                     dayEvents.forEach(event => {
-                        // 检查事件是否正在进行中
+                        // 检查事件是否正在进行中（使用调整后的时间）
                         const isActive = event.timeSlots.some(slot => {
-                            const eventStart = new Date(event.date);
+                            const nowTime = now.getHours() * 60 + now.getMinutes();
                             const [startHour, startMinute] = slot.start.split(':');
-                            eventStart.setHours(parseInt(startHour), parseInt(startMinute));
-                            
-                            const eventEnd = new Date(event.date);
                             const [endHour, endMinute] = slot.end.split(':');
-                            eventEnd.setHours(parseInt(endHour), parseInt(endMinute));
                             
-                            return now >= eventStart && now < eventEnd;
+                            const startTime = parseInt(startHour) * 60 + parseInt(startMinute);
+                            let endTime = parseInt(endHour) * 60 + parseInt(endMinute);
+                            
+                            // 处理跨天情况
+                            if (endTime < startTime) {
+                                endTime += 24 * 60;
+                            }
+                            
+                            return nowTime >= startTime && nowTime < endTime;
                         });
                         
                         const eventElement = document.createElement('div');
@@ -899,6 +920,28 @@
             const eventType = event.type === 'redstone' ? '红石' : '黑石';
             const eventColor = event.type === 'redstone' ? 'text-red-600' : 'text-slate-600';
             
+            // 构建规则说明
+            let ruleDescription = '';
+            if (event.type === 'redstone') {
+                if ([1, 7, 13, 19, 25, 31].includes(event.date.getDate())) {
+                    ruleDescription = '第一组红石：每月1,7,13,19,25,31日（周一、周二取消）';
+                } else if ([3, 9, 15, 21, 27].includes(event.date.getDate())) {
+                    ruleDescription = '第二组红石：每月3,9,15,21,27日（周二、周三取消）';
+                } else if ([5, 11, 17, 23, 29].includes(event.date.getDate())) {
+                    ruleDescription = '第三组红石：每月5,11,17,23,29日（周三、周四取消）';
+                }
+            } else {
+                if ([2, 6, 10, 14, 18, 22, 26, 30].includes(event.date.getDate())) {
+                    ruleDescription = '第一组黑石：每月2,6,10,14,18,22,26,30日（周日、周一取消）';
+                } else if ([4, 8, 12, 16, 20, 24, 28].includes(event.date.getDate())) {
+                    ruleDescription = '第二组黑石：每月4,8,12,16,20,24,28日（周六、周日取消）';
+                }
+            }
+            
+            // 添加时区信息
+            const timezoneInfo = PacificTimeUtils.isPDT(eventDate) ? 
+                '（太平洋夏令时期间）' : '（太平洋标准时期间）';
+            
             detailsContainer.innerHTML = `
                 <div class="event-details-container">
                     <div class="event-info-section">
@@ -914,18 +957,10 @@
                             <i class="fa fa-clock-o mr-2 ${eventColor}"></i>
                             <span class="text-slate-700 text-sm">${timeSlotsText}</span>
                         </div>
+                        <div class="text-xs text-slate-500 mt-1">北京时间 ${timezoneInfo}</div>
                     </div>
                     <div class="text-xs text-slate-600 mt-3">
-                        <p>破晓${eventType}事件根据日期和星期几自动推算地点：</p>
-                        <ul class="mt-1 list-disc list-inside text-left max-w-md mx-auto">
-                            ${event.type === 'redstone' ? 
-                                `<li>周日：每月每个周日固定时间段循环事件</li>
-                                 <li>周六：每月1-15号内的每个周六固定时间段循环事件</li>
-                                 <li>周五：每月16号到月底内的每个周五固定时间段循环事件</li>` :
-                                `<li>周二：每月1-15号内的每个周二固定时间段循环事件</li>
-                                 <li>周三：每月16号到月底内的每个周三固定时间段循环事件</li>`
-                            }
-                        </ul>
+                        <p>${ruleDescription}</p>
                     </div>
                 </div>
             `;

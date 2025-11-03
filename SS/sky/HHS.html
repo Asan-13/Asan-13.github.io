@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>破晓 红黑石 事件日历</title>
+    <title>Sky 红石 日历</title>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -488,9 +488,9 @@
     </style>
 </head>
 <body class="min-h-screen">
-    <div class="max-w-7xl mx-auto">
+    <div class="max-w-4xl mx-auto">
         <!-- 页面标题 -->
-        <h1 class="text-xl md:text-3xl font-bold text-center text-slate-800 mb-4">破晓 红石 黑石 事件日历</h1>        
+        <h1 class="text-xl md:text-3xl font-bold text-center text-slate-800 mb-4">Sky 红石 黑石 日历</h1>        
         <!-- 月份导航 - 高度压缩版本 -->
         <div class="month-navigation rounded-xl mb-2">
             <div class="current-time" id="current-time"></div>
@@ -526,12 +526,18 @@
     </div>
 
     <script>
-        // 当前显示的月份和年份
-        let currentYear = new Date().getFullYear();
-        let currentMonth = new Date().getMonth();
-
         // 太平洋时区工具
         const PacificTimeUtils = {
+            // 获取当前太平洋时间
+            getCurrentPacificTime() {
+                const now = new Date();
+                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                // 太平洋时区相对于UTC的偏移量（小时）
+                const pacificOffset = this.isPDT(now) ? -7 : -8;
+                const pacificTime = new Date(utc + (3600000 * pacificOffset));
+                return pacificTime;
+            },
+            
             // 判断当前是否处于太平洋夏令时
             isPDT(date = new Date()) {
                 const year = date.getFullYear();
@@ -583,7 +589,12 @@
                 return this.isPDT(date) ? 'PDT' : 'PST';
             }
         };
-        
+
+        // 当前显示的月份和年份（基于太平洋时间）
+        const currentPacificTime = PacificTimeUtils.getCurrentPacificTime();
+        let currentYear = currentPacificTime.getFullYear();
+        let currentMonth = currentPacificTime.getMonth();
+
         // 红石事件规则（基于太平洋夏令时转换后的北京时间）
         const redstoneRules = {
             group1: {
@@ -779,15 +790,15 @@
             // 更新时区指示器
             const timezoneIndicator = document.getElementById('timezone-indicator');
             const currentTimezone = PacificTimeUtils.getTimezoneText();
-            timezoneIndicator.textContent = `UTC-${currentTimezone}-UTC`;
+            timezoneIndicator.textContent = `${currentTimezone}`;
             timezoneIndicator.title = currentTimezone === 'PDT' ? '太平洋夏令时' : '太平洋标准时';
             
             // 清空容器
             calendarContainer.innerHTML = '';
             weekdayHeadersContainer.innerHTML = '';
             
-            // 获取当前时间
-            const now = new Date();
+            // 获取当前太平洋时间
+            const nowPacific = PacificTimeUtils.getCurrentPacificTime();
             
             // 计算该月第一天是星期几 (0=周日, 1=周一, ..., 6=周六)
             const firstDay = new Date(currentYear, currentMonth, 1).getDay();
@@ -821,10 +832,10 @@
                 const date = new Date(currentYear, currentMonth, day);
                 const dayOfWeek = date.getDay();
                 
-                // 检查是否是今天
-                const isToday = now.getDate() === day && 
-                               now.getMonth() === currentMonth && 
-                               now.getFullYear() === currentYear;
+                // 检查是否是今天（基于太平洋时间）
+                const isToday = nowPacific.getDate() === day && 
+                               nowPacific.getMonth() === currentMonth && 
+                               nowPacific.getFullYear() === currentYear;
                 
                 // 获取这一天的事件
                 const dayEvents = events.filter(event => 
@@ -845,7 +856,7 @@
                     dayEvents.forEach(event => {
                         // 检查事件是否正在进行中（使用调整后的时间）
                         const isActive = event.timeSlots.some(slot => {
-                            const nowTime = now.getHours() * 60 + now.getMinutes();
+                            const nowTime = nowPacific.getHours() * 60 + nowPacific.getMinutes();
                             const [startHour, startMinute] = slot.start.split(':');
                             const [endHour, endMinute] = slot.end.split(':');
                             
@@ -966,16 +977,16 @@
             `;
         }
         
-        // 更新当前时间
+        // 更新当前时间 - 显示太平洋时间
         function updateCurrentTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString('zh-CN', {
+            const nowPacific = PacificTimeUtils.getCurrentPacificTime();
+            const timeStr = nowPacific.toLocaleTimeString('zh-CN', {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit'
             });
             
-            document.getElementById('current-time').textContent = timeStr;
+            document.getElementById('current-time').textContent = timeStr + ' ';
         }
         
         // 初始化
