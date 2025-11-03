@@ -925,10 +925,10 @@
             if (event.type === 'redstone') {
                 if ([1, 7, 13, 19, 25, 31].includes(event.date.getDate())) {
                     ruleDescription = '第一组红石：每月1,7,13,19,25,31日（周一、周二取消）';
-                } else if ([3, 9, 15, 17, 21, 27].includes(event.date.getDate())) {
-                    ruleDescription = '第二组红石：每月3,9,15,17,21,27日（周二、周三取消）';
-                } else if ([5, 11, 23, 29].includes(event.date.getDate())) {
-                    ruleDescription = '第三组红石：每月5,11,23,29日（周三、周四取消）';
+                } else if ([3, 9, 15, 21, 27].includes(event.date.getDate())) {
+                    ruleDescription = '第二组红石：每月3,9,15,21,27日（周二、周三取消）';
+                } else if ([5, 11, 17, 23, 29].includes(event.date.getDate())) {
+                    ruleDescription = '第三组红石：每月5,11,17,23,29日（周三、周四取消）';
                 }
             } else {
                 if ([2, 6, 10, 14, 18, 22, 26, 30].includes(event.date.getDate())) {

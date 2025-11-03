@@ -940,14 +940,14 @@
                     return weekday === 1 || weekday === 2 ? null : 'group1';
                 }
                 
-                // 第二组：3,9,15,17,21,27日（周二、周三取消）
-                const group2 = [3, 9, 15, 17, 21, 27];
+                // 第二组：3,9,15,21,27日（周二、周三取消）
+                const group2 = [3, 9, 15, 21, 27];
                 if (group2.includes(day)) {
                     return weekday === 2 || weekday === 3 ? null : 'group2';
                 }
                 
-                // 第三组：5,11,23,29日（周三、周四取消）
-                const group3 = [5, 11, 23, 29];
+                // 第三组：5,11,17,23,29日（周三、周四取消）
+                const group3 = [5, 11, 17, 23, 29];
                 if (group3.includes(day)) {
                     return weekday === 3 || weekday === 4 ? null : 'group3';
                 }
