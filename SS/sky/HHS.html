@@ -779,7 +779,7 @@
             // 更新时区指示器
             const timezoneIndicator = document.getElementById('timezone-indicator');
             const currentTimezone = PacificTimeUtils.getTimezoneText();
-            timezoneIndicator.textContent = `UTC-${currentTimezone}`;
+            timezoneIndicator.textContent = `UTC-${currentTimezone}-UTC`;
             timezoneIndicator.title = currentTimezone === 'PDT' ? '太平洋夏令时' : '太平洋标准时';
             
             // 清空容器
