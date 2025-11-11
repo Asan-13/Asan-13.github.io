@@ -759,7 +759,7 @@
     <!-- 下载按钮 -->
     <div class="download-container relative">
         <button id="download-btn" class="download-btn">
-            <i class="fa fa-download"></i>
+            <i class="fa fa-download隐藏"></i>
         </button>
         <span class="download-tooltip">保存当前事件到HTML文件</span>
     </div>
@@ -767,7 +767,7 @@
     <!-- 保存按钮 -->
     <div class="save-container relative">
         <button id="manual-save-btn" class="save-btn">
-            <i class="fa fa-save"></i>
+            <i class="fa fa-save隐藏"></i>
         </button>
         <span class="save-tooltip">手动保存当前数据</span>
     </div>
@@ -880,13 +880,13 @@
                 return now >= startDST && now < endDST;
             },
             
-            // 太平洋时间到北京时间的转换 - 修复时区偏移
+            // 太平洋时间到北京时间的转换
             PDTtoCST(pdtDate) {
-                const offset = this.isPDT() ? 15 : 16; // 太平洋时间到北京时间：夏令时+15小时，标准时间+16小时
+                const offset = this.isPDT() ? 15 : 16; // 夏令时15小时，标准时间16小时
                 return new Date(pdtDate.getTime() + offset * 60 * 60 * 1000);
             },
             
-            // 北京时间到太平洋时间的转换 - 修复时区偏移
+            // 北京时间到太平洋时间的转换
             CSTtoPDT(cstDate) {
                 const offset = this.isPDT() ? 15 : 16;
                 return new Date(cstDate.getTime() - offset * 60 * 60 * 1000);
@@ -1063,7 +1063,7 @@
                 return null;
             },
             
-            // 计算破晓红石事件的下一次发生时间 - 修复计算逻辑
+            // 计算破晓红石事件的下一次发生时间
             getNextOccurrence(nowCST) {
                 // 首先检查当前是否有正在进行的事件
                 const currentActive = this.isActive(nowCST);
@@ -1099,16 +1099,14 @@
                     if (futureGroup) {
                         const slots = this.getTimeSlots(futureGroup, checkDate);
                         if (slots.length > 0) {
-                            const firstSlotCST = TimeZoneUtils.PDTtoCST(slots[0].start);
                             return {
-                                startTime: firstSlotCST,
+                                startTime: TimeZoneUtils.PDTtoCST(slots[0].start),
                                 location: this.getLocation(checkDate)
                             };
                         }
                     }
                 }
                 
-                // 默认返回7天后
                 return {
                     startTime: new Date(nowCST.getTime() + 7 * 24 * 60 * 60 * 1000),
                     location: "地点未知"
@@ -1173,10 +1171,7 @@
                 // 首先检查当前是否有正在进行的事件
                 const currentActive = this.isActive(nowCST);
                 if (currentActive) {
-                    return {
-                        startTime: currentActive.startTime,
-                        location: "圆梦村"
-                    };
+                    return currentActive.startTime;
                 }
                 
                 const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
@@ -1204,10 +1199,7 @@
                     const baseHour = nextWeekday === 5 ? 0 : 10; // 周五00:00，其他10:00
                     
                     nextDate.setHours(baseHour, 0, 0, 0);
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextDate),
-                        location: "圆梦村"
-                    };
+                    return TimeZoneUtils.PDTtoCST(nextDate);
                 }
                 
                 // 当前是有效日期，计算下一个时间段
@@ -1237,28 +1229,24 @@
                 if (nextHour < 24) {
                     const nextTimePDT = new Date(nowPDT);
                     nextTimePDT.setHours(nextHour, nextMinute, 0, 0);
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
-                        location: "圆梦村"
-                    };
+                    return TimeZoneUtils.PDTtoCST(nextTimePDT);
                 } else {
                     // 跳到下一天
                     let nextDate = new Date(nowPDT);
                     nextDate.setDate(nextDate.getDate() + 1);
-                    let nextWeekday = nextDate.getDay();
+                    const nextWeekday = nextDate.getDay();
                     
                     // 如果下一天是无效日期，继续找
+                    let daysToAdd = 1;
                     while (nextWeekday === 2 || nextWeekday === 3 || nextWeekday === 4) {
+                        daysToAdd++;
                         nextDate.setDate(nextDate.getDate() + 1);
-                        nextWeekday = nextDate.getDay();
                     }
                     
-                    const nextBaseHour = nextWeekday === 5 ? 0 : 10;
+                    const validWeekday = nextDate.getDay();
+                    const nextBaseHour = validWeekday === 5 ? 0 : 10;
                     nextDate.setHours(nextBaseHour, 0, 0, 0);
-                    return {
-                        startTime: TimeZoneUtils.PDTtoCST(nextDate),
-                        location: "圆梦村"
-                    };
+                    return TimeZoneUtils.PDTtoCST(nextDate);
                 }
             }
         };
@@ -1509,8 +1497,8 @@
                 name: "破晓 红石",
                 startDate: getTodayDate(),
                 startTime: "07:48", // 太平洋时间，对应第一组的第一个时间段
-                displayThreshold: 60,
-                displayThresholdUnit: "minute",
+                displayThreshold: 8,
+                displayThresholdUnit: "hour",
                 priority: "high",
                 recurrence: {
                     type: "custom_complex",
@@ -1756,12 +1744,20 @@
             try {
                 // 破晓红石特殊处理
                 if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
-                    return DawnRedstoneRules.getNextOccurrence(nowCST);
+                    const nextOccurrence = DawnRedstoneRules.getNextOccurrence(nowCST);
+                    return {
+                        startTime: nextOccurrence.startTime,
+                        location: nextOccurrence.location
+                    };
                 }
                 
                 // 圆梦滑冰特殊处理
                 if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
-                    return DreamSkatingRules.getNextOccurrence(nowCST);
+                    const nextTimeCST = DreamSkatingRules.getNextOccurrence(nowCST);
+                    return {
+                        startTime: nextTimeCST,
+                        location: "圆梦村"
+                    };
                 }
                 
                 // 将当前时间转换为太平洋时间进行计算
@@ -1879,7 +1875,7 @@
             }
         }
 
-        // 获取事件状态信息 - 修复状态计算逻辑
+        // 获取事件状态信息
         function getTaskStatus(task, nowCST) {
             try {
                 const nextOccurrence = getNextOccurrence(task, nowCST);
@@ -1891,10 +1887,8 @@
                 if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
                     const activeInfo = DawnRedstoneRules.isActive(nowCST);
                     if (activeInfo) {
-                        // 当前正在进行破晓红石事件
                         endTimeCST = activeInfo.endTime;
                         durationMs = endTimeCST - activeInfo.startTime;
-                        nextStartCST = activeInfo.startTime; // 使用实际的开始时间
                     } else {
                         durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
                         endTimeCST = new Date(nextStartCST.getTime() + durationMs);
@@ -1902,10 +1896,8 @@
                 } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
                     const activeInfo = DreamSkatingRules.isActive(nowCST);
                     if (activeInfo) {
-                        // 当前正在进行圆梦滑冰事件
                         endTimeCST = activeInfo.endTime;
                         durationMs = endTimeCST - activeInfo.startTime;
-                        nextStartCST = activeInfo.startTime; // 使用实际的开始时间
                     } else {
                         durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
                         endTimeCST = new Date(nextStartCST.getTime() + durationMs);
@@ -1915,15 +1907,15 @@
                     endTimeCST = new Date(nextStartCST.getTime() + durationMs);
                 }
                 
-                // 修正阈值计算
                 const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
                 const displayStartTimeCST = new Date(nextStartCST.getTime() - thresholdMs);
+                const displayEndTimeCST = new Date(endTimeCST);
                 
-                const isInDisplayRange = nowCST >= displayStartTimeCST;
+                const isInDisplayRange = nowCST >= displayStartTimeCST && nowCST <= displayEndTimeCST;
                 const isOngoing = nowCST >= nextStartCST && nowCST < endTimeCST;
                 const timeUntilStart = nextStartCST - nowCST;
                 
-                if (task.recurrence.type === "none" && nowCST > endTimeCST) {
+                if (task.recurrence.type === "none" && nowCST > displayEndTimeCST) {
                     return {
                         status: "completed",
                         timeText: "已完成",
@@ -1933,7 +1925,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: endTimeCST,
+                        displayEndTime: displayEndTimeCST,
                         location: location
                     };
                 }
@@ -1950,7 +1942,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: endTimeCST,
+                        displayEndTime: displayEndTimeCST,
                         location: location
                     };
                 } else if (isInDisplayRange) {
@@ -1964,7 +1956,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: endTimeCST,
+                        displayEndTime: displayEndTimeCST,
                         location: location
                     };
                 } else {
@@ -1978,7 +1970,7 @@
                         startTime: nextStartCST,
                         endTime: endTimeCST,
                         displayStartTime: displayStartTimeCST,
-                        displayEndTime: endTimeCST,
+                        displayEndTime: displayEndTimeCST,
                         location: location
                     };
                 }
