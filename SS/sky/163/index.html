@@ -1483,7 +1483,7 @@
             // 生成重复方式文本
             let recurrenceText = "";
             if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dawn_redstone") {
-                recurrenceText = "破晓红石特殊规则";
+                recurrenceText = "红石规则";
             } else if (currentTask.recurrence.type === "daily_times" && currentTask.recurrence.customTimes) {
                 recurrenceText = `每天 ${currentTask.recurrence.customTimes.join(', ')}`;
             } else {
