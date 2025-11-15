@@ -2155,7 +2155,7 @@
             if (task.recurrence.type === "daily_times" && task.recurrence.customTimes) {
                 recurrenceText = `每天 ${task.recurrence.customTimes.join(', ')}`;
             } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
-                recurrenceText = "破晓红石特殊规则";
+                recurrenceText = "红石规则";
             } else {
                 switch(task.recurrence.type) {
                     case "none":
