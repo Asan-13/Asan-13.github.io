@@ -1,0 +1,3353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sky 事件 时间</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        priority: {
+                            high: '#ef4444',
+                            medium: '#f59e0b',
+                            low: '#10b981',
+                            none: '#64748b'
+                        },
+                        primary: '#60a5fa',
+                        secondary: '#94a3b8',
+                        dark: {
+                            bg: '#1e293b',
+                            card: '#334155',
+                            hover: '#475569',
+                            text: '#f8fafc',
+                            textSecondary: '#cbd5e1'
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .task-transition {
+                transition: all 0.5s ease-in-out;
+            }
+            .hover-expand {
+                transition: max-height 0.5s ease-in-out;
+            }
+            .context-menu {
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            }
+            .modal-backdrop {
+                backdrop-filter: blur(2px);
+            }
+            .app-compact {
+                padding: 1.5rem;
+                min-height: auto !important;
+                width: auto !important;
+                max-width: 280px;
+            }
+            .app-expanded {
+                padding: 2rem;
+                width: auto !important;
+                max-width: 520px;
+            }
+            .task-item {
+                cursor: pointer;
+            }
+            .day-checkbox {
+                width: 1.5rem;
+                height: 1.5rem;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .recurrence-option {
+                @apply p-3 border border-gray-600 rounded-lg cursor-pointer transition-all hover:border-primary;
+            }
+            .recurrence-option.selected {
+                @apply border-primary bg-primary/10;
+            }
+            .ongoing-indicator {
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.6; }
+                100% { opacity: 1; }
+            }
+            .time-input-group {
+                @apply flex items-center gap-3;
+            }
+            .time-input {
+                @apply w-20 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+            }
+            .time-select {
+                @apply flex-1 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+            }
+            .countdown {
+                @apply text-xs font-medium px-2 py-0.5 rounded-lg bg-primary/10 text-primary;
+            }
+            .download-btn {
+                @apply fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
+            }
+            .download-tooltip {
+                @apply absolute right-full mr-3 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
+            }
+            .download-container:hover .download-tooltip {
+                @apply opacity-100 visible;
+            }
+            .notification {
+                @apply fixed top-4 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full;
+            }
+            .notification.show {
+                @apply translate-x-0;
+            }
+            .notification.error {
+                @apply bg-red-500;
+            }
+            .save-btn {
+                @apply fixed bottom-6 left-6 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
+            }
+            .save-tooltip {
+                @apply absolute left-full ml-3 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
+            }
+            .save-container:hover .save-tooltip {
+                @apply opacity-100 visible;
+            }
+            .save-status {
+                @apply fixed bottom-6 left-20 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm z-40;
+            }
+            .task-title {
+                @apply tracking-wide;
+            }
+            .task-meta {
+                @apply tracking-tight mt-1.5;
+            }
+            .task-meta-item {
+                @apply mr-3 last:mr-0;
+            }
+            .ongoing-text {
+                @apply text-priority-high font-medium;
+            }
+            .lock-indicator {
+                @apply absolute top-4 right-4 text-dark-textSecondary hover:text-primary transition-colors cursor-pointer;
+            }
+            .lock-indicator.locked {
+                @apply text-primary;
+            }
+            .page-switch-indicator {
+                @apply absolute top-4 left-4 text-dark-textSecondary hover:text-primary transition-colors cursor-pointer;
+            }
+            .page-switch-indicator.active {
+                @apply text-primary;
+            }
+            .empty-hover-area {
+                cursor: pointer;
+                @apply hover:bg-dark-hover/30 transition-colors rounded-lg;
+            }
+            .scrollable-list {
+                max-height: 300px;
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: theme('colors.primary') theme('colors.dark.bg');
+            }
+            .scrollable-list::-webkit-scrollbar {
+                width: 6px;
+            }
+            .scrollable-list::-webkit-scrollbar-track {
+                background: theme('colors.dark.bg');
+                border-radius: 3px;
+            }
+            .scrollable-list::-webkit-scrollbar-thumb {
+                background-color: theme('colors.primary');
+                border-radius: 3px;
+            }
+            /* 预览卡片样式 - 紧凑优化版本 */
+            .preview-card {
+                @apply fixed bg-dark-card rounded-xl shadow-2xl border-2 border-primary/50 p-3 max-w-xs z-50 transform transition-all duration-200 scale-95 opacity-0 pointer-events-none;
+                backdrop-filter: blur(10px);
+                min-width: 260px;
+            }
+            .preview-card.show {
+                @apply scale-100 opacity-100 pointer-events-auto;
+            }
+            .preview-card::before {
+                content: '';
+                @apply absolute -top-2 left-4 w-4 h-4 bg-primary/50 transform rotate-45;
+            }
+            .preview-content {
+                @apply space-y-1.5;
+            }
+            .preview-header {
+                @apply flex justify-between items-center mb-2 pb-2 border-b border-gray-700;
+            }
+            .preview-name {
+                @apply font-medium text-dark-text flex items-center text-sm;
+            }
+            .preview-status {
+                @apply text-xs text-primary flex items-center;
+            }
+            .preview-details {
+                @apply text-xs text-dark-textSecondary space-y-1;
+            }
+            .preview-row {
+                @apply flex justify-between items-center;
+            }
+            .preview-icon {
+                @apply w-3 h-3 mr-1.5 opacity-70 flex items-center justify-center;
+            }
+            .preview-label {
+                @apply flex items-center mr-2;
+            }
+            .preview-value {
+                @apply text-dark-text text-right;
+            }
+            .preview-highlight {
+                animation: glow 2s ease-in-out infinite alternate;
+            }
+            @keyframes glow {
+                from {
+                    box-shadow: 0 0 5px theme('colors.primary'), 0 0 10px theme('colors.primary');
+                }
+                to {
+                    box-shadow: 0 0 10px theme('colors.primary'), 0 0 20px theme('colors.primary');
+                }
+            }
+            /* 丝滑跟随效果 */
+            .preview-smooth {
+                transition: transform 0.1s ease-out, opacity 0.2s ease-out;
+            }
+            /* 任务激活状态 */
+            .future-task-item.active {
+                @apply bg-primary bg-opacity-10 border-primary;
+            }
+            /* 主题切换按钮 */
+            .theme-toggle {
+                z-index: 40;
+                transition: all 0.3s ease;
+            }
+            /* 页面切换相关样式 */
+            .page-container {
+                @apply relative min-h-screen bg-dark-bg flex items-center justify-center p-4 transition-all duration-500 ease-in-out;
+            }
+            .page-container.hidden {
+                @apply opacity-0 pointer-events-none;
+            }
+            .page-container.active {
+                @apply opacity-100 pointer-events-auto;
+            }
+            /* 预加载页面样式 */
+            .preload-frame {
+                @apply absolute inset-0 w-full h-full opacity-0 pointer-events-none;
+                transition: opacity 0.5s ease-in-out;
+            }
+            .preload-frame.active {
+                @apply opacity-100 pointer-events-auto;
+            }
+            /* 手机端优化 */
+            @media (max-width: 640px) {
+                .app-expanded {
+                    padding: 1rem;
+                    max-width: 100%;
+                    margin: 0.5rem;
+                    min-height: auto !important;
+                }
+                .app-compact {
+                    padding: 1rem;
+                    max-width: 100%;
+                    margin: 0.5rem;
+                }
+                .preview-card {
+                    max-width: 85vw;
+                    min-width: 0;
+                    left: 7.5vw !important;
+                    right: 7.5vw;
+                    transform-origin: center;
+                }
+                .preview-card::before {
+                    display: none;
+                }
+                .task-meta {
+                    @apply flex flex-col gap-1;
+                }
+                .task-meta-item {
+                    @apply mr-0;
+                }
+                .time-input-group {
+                    @apply flex-col items-stretch;
+                }
+                .time-input, .time-select {
+                    @apply w-full;
+                }
+                .download-btn, .save-btn {
+                    @apply bottom-4 p-2.5;
+                }
+                .download-btn {
+                    @apply right-4;
+                }
+                .save-btn {
+                    @apply left-4;
+                }
+                .save-status {
+                    @apply bottom-4 left-16;
+                }
+                .modal-content {
+                    @apply max-h-[90vh] overflow-y-auto;
+                }
+                .task-item {
+                    @apply p-3;
+                }
+                .task-title {
+                    @apply text-sm;
+                }
+                .task-meta {
+                    @apply text-xs;
+                }
+                .page-switch-indicator {
+                    @apply top-4 left-4;
+                }
+                .lock-indicator {
+                    @apply top-4 right-4;
+                }
+            }
+        }
+
+        /* 主题变量定义 */
+        :root {
+            /* 暗黑主题变量 */
+            --bg-color: #1e293b;
+            --card-color: #334155;
+            --text-color: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --hover-color: #475569;
+            --border-color: #4b5563;
+            --primary-color: #60a5fa;
+            --priority-high: #ef4444;
+            --priority-medium: #f59e0b;
+            --priority-low: #10b981;
+            --priority-none: #64748b;
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f5f5f5;
+            --card-color: #ffffff;
+            --text-color: #1e293b;
+            --text-secondary: #64748b;
+            --hover-color: #f1f5f9;
+            --border-color: #e2e8f0;
+            --primary-color: #3b82f6;
+            --priority-high: #dc2626;
+            --priority-medium: #d97706;
+            --priority-low: #059669;
+            --priority-none: #6b7280;
+        }
+
+        /* 应用主题变量 */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden; /* 取消横向滚动条 */
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .bg-dark-bg {
+            background-color: var(--bg-color) !important;
+        }
+
+        .bg-dark-card {
+            background-color: var(--card-color) !important;
+        }
+
+        .text-dark-text {
+            color: var(--text-color) !important;
+        }
+
+        .text-dark-textSecondary {
+            color: var(--text-secondary) !important;
+        }
+
+        .bg-dark-hover:hover {
+            background-color: var(--hover-color) !important;
+        }
+
+        .border-gray-700 {
+            border-color: var(--border-color) !important;
+        }
+
+        /* 确保其他元素也支持主题切换 */
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .context-menu {
+            background-color: var(--card-color);
+            border-color: var(--border-color);
+        }
+
+        .preview-card {
+            background-color: var(--card-color);
+            border-color: var(--primary-color);
+        }
+
+        .empty-hover-area {
+            background-color: transparent;
+        }
+
+        .empty-hover-area:hover {
+            background-color: var(--hover-color);
+        }
+
+        /* 系统主题检测备用 */
+        @media (prefers-color-scheme: light) {
+            :root:not([data-theme]) {
+                --bg-color: #f8fafc;
+                --card-color: #ffffff;
+                --text-color: #1e293b;
+                --text-secondary: #64748b;
+                --hover-color: #f1f5f9;
+                --border-color: #e2e8f0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-dark-bg min-h-screen m-0 font-inter text-dark-text overflow-hidden">
+    <!-- 主页面容器 -->
+    <div id="main-page" class="page-container active">
+        <!-- 主题切换按钮 -->
+        <div class="theme-toggle-container fixed top-4 right-4 z-40">
+            <button id="theme-toggle" class="theme-toggle p-2 rounded-lg bg-dark-card border border-gray-700 text-dark-text hover:bg-dark-hover transition-colors shadow-lg" title="切换主题">
+                <i class="fa fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+
+        <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded relative">
+            <!-- 左侧页面切换按钮 -->
+            <div id="page-switch-indicator" class="page-switch-indicator" title="切换到其他页面">
+                <i class="fa fa-exchange"></i>
+            </div>
+            
+            <!-- 右侧锁定状态指示器 -->
+            <div id="lock-indicator" class="lock-indicator" title="当前锁定状态">
+                <i class="fa fa-unlock"></i>
+            </div>
+            
+            <div id="current-time" class="text-center text-2xl font-semibold text-dark-text mb-4"></div>
+            
+            <div id="tasks-container" class="relative min-h-[80px] overflow-hidden">
+                <div id="task-carousel" class="transition-transform duration-500 ease-in-out">
+                </div>
+            </div>
+            
+            <div class="text-sm text-dark-textSecondary mb-2 font-medium text-center empty-hover-area p-2">
+                未来事件
+            </div>
+            
+            <div id="all-tasks" class="mt-0 max-h-0 overflow-hidden hover-expand">
+                <div id="all-tasks-list" class="space-y-2.5 text-sm scrollable-list"></div>
+            </div>
+            
+            <div id="controls-container" class="flex justify-center mt-4 space-x-2 transition-all duration-300 hidden">
+            </div>
+        </div>
+
+        <!-- 预览卡片 - 紧凑优化排版 -->
+        <div id="preview-card" class="preview-card preview-smooth">
+            <div class="preview-content">
+                <div class="preview-header">
+                    <div class="preview-name">
+                        <span id="preview-priority" class="w-2 h-2 rounded-full mr-2"></span>
+                        <span id="preview-name" class="truncate"></span>
+                    </div>
+                    <div id="preview-status" class="preview-status"></div>
+                </div>
+                <div class="preview-details">
+                    <div class="preview-row">
+                        <span class="preview-label">
+                            <i class="fa fa-repeat preview-icon"></i>
+                            <span>重复</span>
+                        </span>
+                        <span id="preview-recurrence" class="preview-value"></span>
+                    </div>
+                    <div class="preview-row">
+                        <span class="preview-label">
+                            <i class="fa fa-clock-o preview-icon"></i>
+                            <span>时长</span>
+                        </span>
+                        <span id="preview-duration" class="preview-value"></span>
+                    </div>
+                    <div class="preview-row">
+                        <span class="preview-label">
+                            <i class="fa fa-calendar preview-icon"></i>
+                            <span>日期</span>
+                        </span>
+                        <span id="preview-date" class="preview-value"></span>
+                    </div>
+                    <div class="preview-row">
+                        <span class="preview-label">
+                            <i class="fa fa-hourglass-start preview-icon"></i>
+                            <span>时间</span>
+                        </span>
+                        <span id="preview-time" class="preview-value"></span>
+                    </div>
+                    <div class="preview-row">
+                        <span class="preview-label">
+                            <i class="fa fa-map-marker preview-icon"></i>
+                            <span>地点</span>
+                        </span>
+                        <span id="preview-location" class="preview-value"></span>
+                    </div>
+                    <div class="preview-row">
+                        <span class="preview-label">
+                            <i class="fa fa-bell preview-icon"></i>
+                            <span>提醒</span>
+                        </span>
+                        <span id="preview-alert" class="preview-value"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右键菜单 -->
+        <div id="main-context-menu" class="context-menu hidden absolute bg-dark-card rounded-lg shadow-lg p-2 w-48 border border-gray-700">
+            <div id="add-task-option" class="px-4 py-2 text-sm text-dark-text hover:bg-dark-hover rounded cursor-pointer">
+                <i class="fa fa-plus mr-2 text-primary"></i>添加新事件
+            </div>
+        </div>
+
+        <div id="task-context-menu" class="context-menu hidden absolute bg-dark-card rounded-lg shadow-lg p-2 w-48 border border-gray-700">
+            <div id="edit-task-option" class="px-4 py-2 text-sm text-dark-text hover:bg-dark-hover rounded cursor-pointer">
+                <i class="fa fa-pencil mr-2 text-primary"></i>编辑事件
+            </div>
+            <div id="delete-task-option" class="px-4 py-2 text-sm text-dark-text hover:bg-dark-hover rounded cursor-pointer">
+                <i class="fa fa-trash mr-2 text-red-500"></i>删除事件
+            </div>
+        </div>
+
+        <!-- 确认删除模态框 -->
+        <div id="confirm-delete-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+            <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
+            <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700 modal-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-dark-text">确认删除</h3>
+                    <button id="close-delete-modal" class="text-dark-textSecondary hover:text-dark-text">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <p class="text-dark-textSecondary mb-6">您确定要删除这个事件吗？此操作无法撤销。</p>
+                
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-delete" class="px-4 py-2 border border-gray-600 rounded-lg text-dark-text hover:bg-dark-hover transition-colors">取消</button>
+                    <button id="confirm-delete" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                        确认删除
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 添加/编辑事件模态框 -->
+        <div id="task-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+            <div class="modal-backdrop absolute inset-0 bg-black bg-opacity-60"></div>
+            <div class="bg-dark-card rounded-xl shadow-xl p-6 w-full max-w-md relative z-10 transform transition-all border border-gray-700 modal-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 id="modal-title" class="text-lg font-semibold text-dark-text">添加新事件</h3>
+                    <button id="close-modal" class="text-dark-textSecondary hover:text-dark-text">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="task-form">
+                    <input type="hidden" id="task-id">
+                    
+                    <div class="mb-4">
+                        <label for="task-name" class="block text-sm font-medium text-dark-textSecondary mb-1">事件名称</label>
+                        <input type="text" id="task-name" name="task-name" required class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="task-priority" class="block text-sm font-medium text-dark-textSecondary mb-1">优先级</label>
+                        <select id="task-priority" name="task-priority" required class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                            <option value="high">高 (红色)</option>
+                            <option value="medium" selected>中 (黄色)</option>
+                            <option value="low">低 (绿色)</option>
+                            <option value="none">无 (灰色)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="display-threshold" class="block text-sm font-medium text-dark-textSecondary mb-1">提前提醒时间</label>
+                        <div class="time-input-group">
+                            <input type="number" id="display-threshold" name="display-threshold" min="1" value="10" class="time-input">
+                            <select id="display-threshold-unit" name="display-threshold-unit" class="time-select">
+                                <option value="minute">分钟</option>
+                                <option value="hour">小时</option>
+                                <option value="day">天</option>
+                                <option value="week">周</option>
+                            </select>
+                        </div>
+                        <p class="text-xs text-primary mt-1">事件开始前多久显示提醒</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-dark-textSecondary mb-2">开始时间</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <input type="date" id="start-date" name="start-date" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <label for="start-date" class="text-xs text-dark-textSecondary">日期</label>
+                            </div>
+                            <div>
+                                <input type="time" id="start-time" name="start-time" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <label for="start-time" class="text-xs text-dark-textSecondary">时间</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-dark-textSecondary mb-2">重复方式</label>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div class="recurrence-option selected" data-type="none">
+                                <div class="font-medium">不重复</div>
+                                <div class="text-xs text-dark-textSecondary">仅一次</div>
+                            </div>
+                            <div class="recurrence-option" data-type="daily">
+                                <div class="font-medium">每天</div>
+                                <div class="text-xs text-dark-textSecondary">每天同一时间</div>
+                            </div>
+                            <div class="recurrence-option" data-type="weekly">
+                                <div class="font-medium">每周</div>
+                                <div class="text-xs text-dark-textSecondary">每周特定日期</div>
+                            </div>
+                            <div class="recurrence-option" data-type="monthly">
+                                <div class="font-medium">每月</div>
+                                <div class="text-xs text-dark-textSecondary">每月特定日期</div>
+                            </div>
+                            <div class="recurrence-option" data-type="custom">
+                                <div class="font-medium">自定义</div>
+                                <div class="text-xs text-dark-textSecondary">按间隔重复</div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="recurrence-type" value="none">
+                    </div>
+                    
+                    <!-- 每周重复选项 -->
+                    <div id="weekly-options" class="mb-4 hidden bg-dark-bg p-3 rounded-lg border border-gray-600">
+                        <label class="block text-sm font-medium text-dark-textSecondary mb-2">每周重复日期</label>
+                        <div class="flex flex-wrap gap-2 mb-1">
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="weekday" value="1" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">一</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="weekday" value="2" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">二</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="weekday" value="3" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">三</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="weekday" value="4" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">四</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="weekday" value="5" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">五</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="weekday" value="6" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">六</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="weekday" value="0" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">日</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 每月重复选项 -->
+                    <div id="monthly-options" class="mb-4 hidden bg-dark-bg p-3 rounded-lg border border-gray-600">
+                        <label class="block text-sm font-medium text-dark-textSecondary mb-2">每月重复日期</label>
+                        <div class="flex flex-wrap gap-2 mb-1">
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="1" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">1</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="2" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">2</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="3" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">3</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="4" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">4</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="5" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">5</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="6" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">6</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="7" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">7</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="8" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">8</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="9" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">9</span>
+                            </label>
+                            <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                <input type="checkbox" name="monthday" value="10" class="hidden peer">
+                                <span class="text-xs peer-checked:text-primary">10</span>
+                            </label>
+                        </div>
+                        <div class="mt-2">
+                            <label class="block text-sm font-medium text-dark-textSecondary mb-1">或按星期几</label>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                    <input type="checkbox" name="monthweekday" value="1" class="hidden peer">
+                                    <span class="text-xs peer-checked:text-primary">一</span>
+                                </label>
+                                <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                    <input type="checkbox" name="monthweekday" value="2" class="hidden peer">
+                                    <span class="text-xs peer-checked:text-primary">二</span>
+                                </label>
+                                <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                    <input type="checkbox" name="monthweekday" value="3" class="hidden peer">
+                                    <span class="text-xs peer-checked:text-primary">三</span>
+                                </label>
+                                <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                    <input type="checkbox" name="monthweekday" value="4" class="hidden peer">
+                                    <span class="text-xs peer-checked:text-primary">四</span>
+                                </label>
+                                <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                    <input type="checkbox" name="monthweekday" value="5" class="hidden peer">
+                                    <span class="text-xs peer-checked:text-primary">五</span>
+                                </label>
+                                <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                    <input type="checkbox" name="monthweekday" value="6" class="hidden peer">
+                                    <span class="text-xs peer-checked:text-primary">六</span>
+                                </label>
+                                <label class="day-checkbox bg-dark-card border border-gray-600 hover:bg-dark-hover cursor-pointer">
+                                    <input type="checkbox" name="monthweekday" value="0" class="hidden peer">
+                                    <span class="text-xs peer-checked:text-primary">日</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 自定义重复选项 -->
+                    <div id="custom-options" class="mb-4 hidden bg-dark-bg p-3 rounded-lg border border-gray-600">
+                        <label class="block text-sm font-medium text-dark-textSecondary mb-2">重复间隔</label>
+                        <div class="time-input-group">
+                            <input type="number" id="interval-count" name="interval-count" min="1" value="1" class="time-input">
+                            <select id="interval-unit" name="interval-unit" class="time-select">
+                                <option value="minute">分钟</option>
+                                <option value="hour">小时</option>
+                                <option value="day">天</option>
+                                <option value="week">周</option>
+                                <option value="month">月</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="task-duration" class="block text-sm font-medium text-dark-textSecondary mb-1">持续时间</label>
+                        <div class="time-input-group">
+                            <input type="number" id="task-duration" name="task-duration" min="1" value="10" class="time-input">
+                            <select id="duration-unit" name="duration-unit" class="time-select">
+                                <option value="minute">分钟</option>
+                                <option value="hour">小时</option>
+                                <option value="day">天</option>
+                                <option value="week">周</option>
+                            </select>
+                        </div>
+                        <p class="text-xs text-primary mt-1">事件进行的时长，将作为进行中事件的倒计时基准</p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" id="cancel-task" class="px-4 py-2 border border-gray-600 rounded-lg text-dark-text hover:bg-dark-hover transition-colors">取消</button>
+                        <button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            保存事件
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 下载按钮 -->
+        <div class="download-container relative">
+            <button id="download-btn" class="download-btn">
+                <i class="fa fa-download"></i>
+            </button>
+            <span class="download-tooltip">保存当前事件到HTML文件</span>
+        </div>
+
+        <!-- 保存按钮 -->
+        <div class="save-container relative">
+            <button id="manual-save-btn" class="save-btn">
+                <i class="fa fa-save"></i>
+            </button>
+            <span class="save-tooltip">手动保存当前数据</span>
+        </div>
+
+        <!-- 保存状态 -->
+        <div id="save-status" class="save-status hidden">
+            <span id="save-status-text">保存中...</span>
+        </div>
+
+        <!-- 通知 -->
+        <div id="notification" class="notification">数据已保存</div>
+    </div>
+
+    <!-- 预加载的页面容器 -->
+    <div id="preloaded-page" class="page-container hidden">
+        <iframe id="preloaded-frame" class="preload-frame" src="163/index.html"></iframe>
+        
+        <!-- 返回按钮 -->
+        <div class="fixed top-4 left-4 z-40">
+            <button id="back-to-main" class="page-switch-indicator active" title="返回主页面">
+                <i class="fa fa-arrow-left"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 页面切换管理器 ====================
+        class PageManager {
+            constructor() {
+                this.currentPage = 'main';
+                this.isTransitioning = false;
+                this.init();
+            }
+
+            // 初始化
+            init() {
+                this.bindEvents();
+                this.preloadPage();
+            }
+
+            // 绑定事件
+            bindEvents() {
+                // 页面切换按钮
+                const pageSwitchIndicator = document.getElementById('page-switch-indicator');
+                if (pageSwitchIndicator) {
+                    pageSwitchIndicator.addEventListener('click', () => {
+                        this.switchToPage('preloaded');
+                    });
+                }
+
+                // 返回按钮
+                const backToMain = document.getElementById('back-to-main');
+                if (backToMain) {
+                    backToMain.addEventListener('click', () => {
+                        this.switchToPage('main');
+                    });
+                }
+            }
+
+            // 预加载页面
+            preloadPage() {
+                const preloadedFrame = document.getElementById('preloaded-frame');
+                if (preloadedFrame) {
+                    preloadedFrame.addEventListener('load', () => {
+                        console.log('预加载页面已加载完成');
+                    });
+                }
+            }
+
+            // 切换页面
+            switchToPage(targetPage) {
+                if (this.isTransitioning || this.currentPage === targetPage) {
+                    return;
+                }
+
+                this.isTransitioning = true;
+
+                const mainPage = document.getElementById('main-page');
+                const preloadedPage = document.getElementById('preloaded-page');
+                const preloadedFrame = document.getElementById('preloaded-frame');
+
+                if (targetPage === 'preloaded') {
+                    // 切换到预加载页面
+                    mainPage.classList.remove('active');
+                    mainPage.classList.add('hidden');
+                    
+                    setTimeout(() => {
+                        preloadedPage.classList.remove('hidden');
+                        preloadedPage.classList.add('active');
+                        preloadedFrame.classList.add('active');
+                        this.currentPage = 'preloaded';
+                        this.isTransitioning = false;
+                        
+                        // 更新页面切换按钮状态
+                        const pageSwitchIndicator = document.getElementById('page-switch-indicator');
+                        if (pageSwitchIndicator) {
+                            pageSwitchIndicator.classList.add('active');
+                        }
+                    }, 50);
+                } else {
+                    // 切换回主页面
+                    preloadedPage.classList.remove('active');
+                    preloadedFrame.classList.remove('active');
+                    
+                    setTimeout(() => {
+                        preloadedPage.classList.add('hidden');
+                        mainPage.classList.remove('hidden');
+                        mainPage.classList.add('active');
+                        this.currentPage = 'main';
+                        this.isTransitioning = false;
+                        
+                        // 更新页面切换按钮状态
+                        const pageSwitchIndicator = document.getElementById('page-switch-indicator');
+                        if (pageSwitchIndicator) {
+                            pageSwitchIndicator.classList.remove('active');
+                        }
+                    }, 50);
+                }
+            }
+        }
+
+        // ==================== 主题管理器 ====================
+        class ThemeManager {
+            constructor() {
+                this.currentTheme = this.getStoredTheme() || this.getSystemTheme();
+                this.init();
+            }
+
+            // 获取系统主题偏好
+            getSystemTheme() {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark';
+                }
+                return 'light';
+            }
+
+            // 获取存储的主题
+            getStoredTheme() {
+                return localStorage.getItem('theme');
+            }
+
+            // 保存主题偏好
+            saveTheme(theme) {
+                localStorage.setItem('theme', theme);
+            }
+
+            // 应用主题
+            applyTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+                this.currentTheme = theme;
+                this.updateThemeIcon();
+                this.saveTheme(theme);
+            }
+
+            // 更新主题图标
+            updateThemeIcon() {
+                const icon = document.getElementById('theme-icon');
+                if (icon) {
+                    if (this.currentTheme === 'dark') {
+                        icon.className = 'fa fa-sun';
+                        icon.title = '切换到浅色模式';
+                    } else {
+                        icon.className = 'fa fa-moon';
+                        icon.title = '切换到深色模式';
+                    }
+                }
+            }
+
+            // 切换主题
+            toggleTheme() {
+                const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+                this.applyTheme(newTheme);
+                showNotification(`已切换到${newTheme === 'dark' ? '深色' : '浅色'}模式`);
+            }
+
+            // 监听系统主题变化
+            watchSystemTheme() {
+                if (window.matchMedia) {
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                        // 只有当用户没有手动设置过主题时才跟随系统
+                        if (!this.getStoredTheme()) {
+                            this.applyTheme(e.matches ? 'dark' : 'light');
+                            showNotification(`已跟随系统切换到${e.matches ? '深色' : '浅色'}模式`);
+                        }
+                    });
+                }
+            }
+
+            // 初始化
+            init() {
+                this.applyTheme(this.currentTheme);
+                this.watchSystemTheme();
+            }
+        }
+
+        // ==================== 时区转换工具 ====================
+        const TimeZoneUtils = {
+            // 判断当前是否处于太平洋夏令时
+            isPDT() {
+                const now = new Date();
+                const year = now.getFullYear();
+                
+                // 太平洋夏令时规则：3月第二个周日 02:00 开始，11月第一个周日 02:00 结束
+                const getDayOfMonth = (year, month, dayOfWeek, occurrence) => {
+                    const firstDay = new Date(year, month, 1);
+                    const firstDayOfWeek = firstDay.getDay();
+                    let offset = dayOfWeek - firstDayOfWeek;
+                    if (offset < 0) offset += 7;
+                    return 1 + offset + (occurrence - 1) * 7;
+                };
+                
+                const marchSecondSunday = getDayOfMonth(year, 2, 0, 2); // 3月第二个周日
+                const novemberFirstSunday = getDayOfMonth(year, 10, 0, 1); // 11月第一个周日
+                
+                const startDST = new Date(year, 2, marchSecondSunday, 2, 0, 0); // 3月开始
+                const endDST = new Date(year, 10, novemberFirstSunday, 2, 0, 0); // 11月结束
+                
+                return now >= startDST && now < endDST;
+            },
+            
+            // 太平洋时间到北京时间的转换
+            PDTtoCST(pdtDate) {
+                const offset = this.isPDT() ? 15 : 16; // 太平洋时间到北京时间：夏令时+15小时，标准时间+16小时
+                return new Date(pdtDate.getTime() + offset * 60 * 60 * 1000);
+            },
+            
+            // 北京时间到太平洋时间的转换
+            CSTtoPDT(cstDate) {
+                const offset = this.isPDT() ? 15 : 16;
+                return new Date(cstDate.getTime() - offset * 60 * 60 * 1000);
+            },
+            
+            // 格式化时间为北京时间显示
+            formatCSTTime(date) {
+                return date.toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            },
+            
+            // 格式化日期为北京时间显示
+            formatCSTDate(date) {
+                const today = new Date();
+                if (date.toDateString() === today.toDateString()) {
+                    return '今天';
+                }
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                if (date.toDateString() === tomorrow.toDateString()) {
+                    return '明天';
+                }
+                return date.toLocaleDateString('zh-CN', { 
+                    month: 'short', 
+                    day: 'numeric', 
+                    weekday: 'short' 
+                });
+            }
+        };
+
+        // ==================== 破晓红石事件规则 ====================
+        const DawnRedstoneRules = {
+            // 日期分组规则（基于PDT日期）
+            getDateGroup(pdtDate) {
+                const day = pdtDate.getDate();
+                const weekday = pdtDate.getDay(); // 0=周日, 1=周一, ..., 6=周六
+                
+                // 第一组：1,7,13,19,25,31日（周一、周二取消）
+                const group1 = [1, 7, 13, 19, 25, 31];
+                if (group1.includes(day)) {
+                    return weekday === 1 || weekday === 2 ? null : 'group1';
+                }
+                
+                // 第二组：3,9,15,21,27日（周二、周三取消）
+                const group2 = [3, 9, 15, 21, 27];
+                if (group2.includes(day)) {
+                    return weekday === 2 || weekday === 3 ? null : 'group2';
+                }
+                
+                // 第三组：5,11,17,23,29日（周三、周四取消）
+                const group3 = [5, 11, 17, 23, 29];
+                if (group3.includes(day)) {
+                    return weekday === 3 || weekday === 4 ? null : 'group3';
+                }
+                
+                return null;
+            },
+            
+            // 获取对应日期组的时间段（太平洋时间）
+            getTimeSlots(group, pdtDate) {
+                const year = pdtDate.getFullYear();
+                const month = pdtDate.getMonth();
+                const day = pdtDate.getDate();
+                
+                switch(group) {
+                    case 'group1':
+                        return [
+                            { 
+                                start: new Date(year, month, day, 7, 48), 
+                                end: new Date(year, month, day, 11, 40) 
+                            },
+                            { 
+                                start: new Date(year, month, day, 13, 48), 
+                                end: new Date(year, month, day, 17, 40) 
+                            },
+                            { 
+                                start: new Date(year, month, day, 19, 48), 
+                                end: new Date(year, month, day, 23, 40) 
+                            }
+                        ];
+                    case 'group2':
+                        return [
+                            { 
+                                start: new Date(year, month, day, 2, 28), 
+                                end: new Date(year, month, day, 6, 20) 
+                            },
+                            { 
+                                start: new Date(year, month, day, 8, 28), 
+                                end: new Date(year, month, day, 12, 20) 
+                            },
+                            { 
+                                start: new Date(year, month, day, 14, 28), 
+                                end: new Date(year, month, day, 18, 20) 
+                            }
+                        ];
+                    case 'group3':
+                        return [
+                            { 
+                                start: new Date(year, month, day, 3, 38), 
+                                end: new Date(year, month, day, 7, 30) 
+                            },
+                            { 
+                                start: new Date(year, month, day, 9, 38), 
+                                end: new Date(year, month, day, 13, 30) 
+                            },
+                            { 
+                                start: new Date(year, month, day, 15, 38), 
+                                end: new Date(year, month, day, 19, 30) 
+                            }
+                        ];
+                    default:
+                        return [];
+                }
+            },
+            
+            // 破晓红石地点映射表
+            getLocation(pdtDate) {
+                const day = pdtDate.getDate();
+                
+                // 云野
+                if (day === 1 || day === 31) return "云野-云野山洞";
+                if (day === 11) return "云野-圣岛";
+                if (day === 21) return "云野-浮石鸟巢";
+                
+                // 雨林
+                if (day === 7) return "雨林-雨林宫殿";
+                if (day === 17) return "雨林-雨林高处";
+                if (day === 27) return "雨林-大树屋";
+                
+                // 霞谷
+                if (day === 3 || day === 13) return "霞谷-圆梦村";
+                if (day === 23) return "霞谷-隐士山谷";
+                
+                // 暮土
+                if (day === 9) return "暮土-暗蟹沙原";
+                if (day === 19) return "暮土-暮土墓园";
+                if (day === 29) return "暮土-失落方舟";
+                
+                // 禁阁
+                if (day === 5 || day === 15 || day === 25) return "禁阁-星漠海滩";
+                
+                return "地点未知";
+            },
+            
+            // 检查破晓红石事件是否在活动时间段
+            isActive(nowCST) {
+                try {
+                    const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
+                    const group = this.getDateGroup(nowPDT);
+                    if (!group) return null;
+                    
+                    const slots = this.getTimeSlots(group, nowPDT);
+                    for (let slot of slots) {
+                        const slotStartCST = TimeZoneUtils.PDTtoCST(slot.start);
+                        const slotEndCST = TimeZoneUtils.PDTtoCST(slot.end);
+                        
+                        if (nowCST >= slotStartCST && nowCST < slotEndCST) {
+                            return {
+                                startTime: slotStartCST,
+                                endTime: slotEndCST,
+                                location: this.getLocation(nowPDT)
+                            };
+                        }
+                    }
+                    return null;
+                } catch (e) {
+                    console.error('检查破晓红石活动状态出错:', e);
+                    return null;
+                }
+            },
+            
+            // 计算破晓红石事件的下一次发生时间
+            getNextOccurrence(nowCST) {
+                try {
+                    // 首先检查当前是否有正在进行的事件
+                    const currentActive = this.isActive(nowCST);
+                    if (currentActive) {
+                        return {
+                            startTime: currentActive.startTime,
+                            location: currentActive.location
+                        };
+                    }
+                    
+                    const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
+                    
+                    // 检查当前PDT日内的所有时间段
+                    const currentGroup = this.getDateGroup(nowPDT);
+                    if (currentGroup) {
+                        const slots = this.getTimeSlots(currentGroup, nowPDT);
+                        for (let slot of slots) {
+                            const slotStartCST = TimeZoneUtils.PDTtoCST(slot.start);
+                            if (slotStartCST > nowCST) {
+                                return {
+                                    startTime: slotStartCST,
+                                    location: this.getLocation(nowPDT)
+                                };
+                            }
+                        }
+                    }
+                    
+                    // 如果当前PDT日内没有找到，检查未来7天
+                    let checkDate = new Date(nowPDT);
+                    for (let i = 1; i <= 7; i++) {
+                        checkDate.setDate(checkDate.getDate() + 1);
+                        const futureGroup = this.getDateGroup(checkDate);
+                        if (futureGroup) {
+                            const slots = this.getTimeSlots(futureGroup, checkDate);
+                            if (slots.length > 0) {
+                                const firstSlotCST = TimeZoneUtils.PDTtoCST(slots[0].start);
+                                return {
+                                    startTime: firstSlotCST,
+                                    location: this.getLocation(checkDate)
+                                };
+                            }
+                        }
+                    }
+                    
+                    // 默认返回7天后
+                    return {
+                        startTime: new Date(nowCST.getTime() + 7 * 24 * 60 * 60 * 1000),
+                        location: "地点未知"
+                    };
+                } catch (e) {
+                    console.error('计算破晓红石下次发生时间出错:', e);
+                    return {
+                        startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
+                        location: "地点未知"
+                    };
+                }
+            }
+        };
+
+        // ==================== 圆梦滑冰事件规则 ====================
+        const DreamSkatingRules = {
+            // 检查圆梦滑冰事件是否在活动时间段
+            isActive(nowCST) {
+                try {
+                    const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
+                    const weekday = nowPDT.getDay(); // 0=周日, 1=周一, ..., 6=周六
+                    const hour = nowPDT.getHours();
+                    const minute = nowPDT.getMinutes();
+                    
+                    // 周二、三、四无事件
+                    if (weekday === 2 || weekday === 3 || weekday === 4) {
+                        return null;
+                    }
+                    
+                    // 计算当前时间是否在活动时间段内
+                    let baseHour;
+                    if (weekday === 5) { // 周五
+                        baseHour = 0; // 太平洋时间00:00 = 北京时间15:00/16:00
+                    } else { // 周六、日、一
+                        baseHour = 10; // 太平洋时间10:00 = 北京时间次日01:00/02:00
+                    }
+                    
+                    // 每2小时进行一次，持续15分钟
+                    const totalMinutes = hour * 60 + minute;
+                    const baseMinutes = baseHour * 60;
+                    const intervalMinutes = 2 * 60; // 2小时间隔
+                    
+                    // 计算当前时间相对于基点的间隔数
+                    const intervals = Math.floor((totalMinutes - baseMinutes) / intervalMinutes);
+                    
+                    if (intervals < 0) {
+                        return null; // 还没到第一个时间段
+                    }
+                    
+                    const slotStartMinutes = baseMinutes + intervals * intervalMinutes;
+                    const slotEndMinutes = slotStartMinutes + 15; // 持续15分钟
+                    
+                    if (totalMinutes >= slotStartMinutes && totalMinutes < slotEndMinutes) {
+                        const slotStartPDT = new Date(nowPDT);
+                        slotStartPDT.setHours(Math.floor(slotStartMinutes / 60), slotStartMinutes % 60, 0, 0);
+                        const slotEndPDT = new Date(nowPDT);
+                        slotEndPDT.setHours(Math.floor(slotEndMinutes / 60), slotEndMinutes % 60, 0, 0);
+                        
+                        return {
+                            startTime: TimeZoneUtils.PDTtoCST(slotStartPDT),
+                            endTime: TimeZoneUtils.PDTtoCST(slotEndPDT)
+                        };
+                    }
+                    
+                    return null;
+                } catch (e) {
+                    console.error('检查圆梦滑冰活动状态出错:', e);
+                    return null;
+                }
+            },
+            
+            // 计算圆梦滑冰事件的下一次发生时间
+            getNextOccurrence(nowCST) {
+                try {
+                    // 首先检查当前是否有正在进行的事件
+                    const currentActive = this.isActive(nowCST);
+                    if (currentActive) {
+                        return {
+                            startTime: currentActive.startTime,
+                            location: "圆梦村"
+                        };
+                    }
+                    
+                    const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
+                    const weekday = nowPDT.getDay();
+                    const hour = nowPDT.getHours();
+                    const minute = nowPDT.getMinutes();
+                    const totalMinutes = hour * 60 + minute;
+                    
+                    // 周二、三、四无事件，跳到下一个有效日期
+                    if (weekday === 2 || weekday === 3 || weekday === 4) {
+                        let nextDate = new Date(nowPDT);
+                        let daysToAdd = 1;
+                        
+                        // 找到下一个有效日期（周五、周六、周日或周一）
+                        while (true) {
+                            nextDate.setDate(nextDate.getDate() + daysToAdd);
+                            const nextWeekday = nextDate.getDay();
+                            if (nextWeekday === 5 || nextWeekday === 6 || nextWeekday === 0 || nextWeekday === 1) {
+                                break;
+                            }
+                            daysToAdd++;
+                        }
+                        
+                        const nextWeekday = nextDate.getDay();
+                        const baseHour = nextWeekday === 5 ? 0 : 10; // 周五00:00，其他10:00
+                        
+                        nextDate.setHours(baseHour, 0, 0, 0);
+                        return {
+                            startTime: TimeZoneUtils.PDTtoCST(nextDate),
+                            location: "圆梦村"
+                        };
+                    }
+                    
+                    // 当前是有效日期，计算下一个时间段
+                    let baseHour;
+                    if (weekday === 5) { // 周五
+                        baseHour = 0;
+                    } else { // 周六、日、一
+                        baseHour = 10;
+                    }
+                    
+                    const baseMinutes = baseHour * 60;
+                    const intervalMinutes = 2 * 60; // 2小时间隔
+                    
+                    // 计算下一个时间段
+                    let nextSlotMinutes;
+                    if (totalMinutes < baseMinutes) {
+                        nextSlotMinutes = baseMinutes; // 还没到第一个时间段
+                    } else {
+                        const intervals = Math.floor((totalMinutes - baseMinutes) / intervalMinutes);
+                        nextSlotMinutes = baseMinutes + (intervals + 1) * intervalMinutes;
+                    }
+                    
+                    // 检查下一个时间段是否在同一天
+                    const nextHour = Math.floor(nextSlotMinutes / 60);
+                    const nextMinute = nextSlotMinutes % 60;
+                    
+                    if (nextHour < 24) {
+                        const nextTimePDT = new Date(nowPDT);
+                        nextTimePDT.setHours(nextHour, nextMinute, 0, 0);
+                        return {
+                            startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
+                            location: "圆梦村"
+                        };
+                    } else {
+                        // 跳到下一天
+                        let nextDate = new Date(nowPDT);
+                        nextDate.setDate(nextDate.getDate() + 1);
+                        let nextWeekday = nextDate.getDay();
+                        
+                        // 如果下一天是无效日期，继续找
+                        while (nextWeekday === 2 || nextWeekday === 3 || nextWeekday === 4) {
+                            nextDate.setDate(nextDate.getDate() + 1);
+                            nextWeekday = nextDate.getDay();
+                        }
+                        
+                        const nextBaseHour = nextWeekday === 5 ? 0 : 10;
+                        nextDate.setHours(nextBaseHour, 0, 0, 0);
+                        return {
+                            startTime: TimeZoneUtils.PDTtoCST(nextDate),
+                            location: "圆梦村"
+                        };
+                    }
+                } catch (e) {
+                    console.error('计算圆梦滑冰下次发生时间出错:', e);
+                    return {
+                        startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
+                        location: "圆梦村"
+                    };
+                }
+            }
+        };
+
+        // ==================== 核心逻辑 ====================
+        
+        // 用于存储外部数据的变量
+        let externalData = null;
+        
+        // 保存状态管理
+        const saveState = {
+            isSaving: false,
+            lastSaved: null,
+            saveAttempts: 0,
+            maxAttempts: 3
+        };
+        
+        // 任务列表锁定状态
+        let isListLocked = false;
+        
+        // 预览卡片状态
+        let previewTimeout = null;
+        let currentPreviewTaskId = null;
+        let isPreviewVisible = false;
+        let mouseX = 0;
+        let mouseY = 0;
+        
+        // 存储当前显示的可见任务
+        let currentVisibleTasks = [];
+        let currentAllTasks = [];
+        
+        // 获取今天的日期字符串
+        function getTodayDate() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 任务数据 - 所有时间使用太平洋时间
+        let tasks = [
+            {
+                id: 1,
+                name: "奶奶饭",
+                startDate: getTodayDate(),
+                startTime: "00:35", // 太平洋时间 00:35 = 北京时间 15:35/16:35
+                displayThreshold: 10,
+                displayThresholdUnit: "minute",
+                priority: "medium",
+                recurrence: {
+                    type: "custom",
+                    count: 2,
+                    unit: "hour",
+                    duration: 10,
+                    durationUnit: "minute"
+                }
+            },
+            {
+                id: 2,
+                name: "间歇泉",
+                startDate: getTodayDate(),
+                startTime: "00:05", // 太平洋时间 00:05 = 北京时间 15:05/16:05
+                displayThreshold: 10,
+                displayThresholdUnit: "minute",
+                priority: "medium",
+                recurrence: {
+                    type: "custom",
+                    count: 2,
+                    unit: "hour",
+                    duration: 10,
+                    durationUnit: "minute"
+                }
+            },
+            {
+                id: 3,
+                name: "海龟",
+                startDate: getTodayDate(),
+                startTime: "00:50", // 太平洋时间 00:50 = 北京时间 15:50/16:50
+                displayThreshold: 10,
+                displayThresholdUnit: "minute",
+                priority: "medium",
+                recurrence: {
+                    type: "custom",
+                    count: 2,
+                    unit: "hour",
+                    duration: 10,
+                    durationUnit: "minute"
+                }
+            },
+            {
+                id: 4,
+                name: "献祭 重置",
+                startDate: getTodayDate(),
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 1,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "weekly",
+                    weekdays: [0],
+                    duration: 1,
+                    durationUnit: "day"
+                }
+            },
+            {
+                id: 5,
+                name: "每日 重置",
+                startDate: getTodayDate(),
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 60,
+                displayThresholdUnit: "minute",
+                priority: "high",
+                recurrence: {
+                    type: "daily",
+                    duration: 5,
+                    durationUnit: "minute"
+                }
+            },
+            {
+                id: 6,
+                name: "AURORA",
+                startDate: getTodayDate(),
+                startTime: "00:10", // 太平洋时间 00:10 = 北京时间 15:10/16:10
+                displayThreshold: 10,
+                displayThresholdUnit: "minute",
+                priority: "low",
+                recurrence: {
+                    type: "custom",
+                    count: 2,
+                    unit: "hour",
+                    duration: 50,
+                    durationUnit: "minute"
+                }
+            },
+            {
+                id: 7,
+                name: "先祖复刻",
+                startDate: "2025-10-09",
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 1,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "custom",
+                    count: 2,
+                    unit: "week",
+                    duration: 4,
+                    durationUnit: "day"
+                }
+            },
+            {
+                id: 8,
+                name: "空间站",
+                startDate: getTodayDate(),
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 1,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "weekly",
+                    weekdays: [4],
+                    duration: 1,
+                    durationUnit: "day"
+                }
+            },
+            {
+                id: 9,
+                name: "迁徙季",
+                startDate: "2025-10-20",
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 3,
+                displayThresholdUnit: "day",
+                priority: "none",
+                recurrence: {
+                    type: "none",
+                    duration: 77,
+                    durationUnit: "day"
+                }
+            },
+            {
+                id: 10,
+                name: "万圣节",
+                startDate: "2025-10-27",
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 3,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "none",
+                    duration: 3,
+                    durationUnit: "week"
+                }
+            },
+            {
+                id: 11,
+                name: "集体 复刻",
+                startDate: "2025-11-17",
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 3,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "none",
+                    duration: 2,
+                    durationUnit: "week"
+                }
+            },
+            {
+                id: 12,
+                name: "复刻 公布",
+                startDate: "2025-10-18",
+                startTime: "11:00", // 太平洋时间 11:00 = 北京时间 次日02:00/03:00
+                displayThreshold: 12,
+                displayThresholdUnit: "hour",
+                priority: "low",
+                recurrence: {
+                    type: "custom",
+                    count: 2,
+                    unit: "week",
+                    duration: 1,
+                    durationUnit: "day"
+                }
+            },
+            {
+                id: 18,
+                name: "家具 轮换",
+                startDate: "2025-10-14",
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 1,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "weekly",
+                    weekdays: [1],
+                    duration: 1,
+                    durationUnit: "day"
+                }
+            },
+            {
+                id: 20,
+                name: "染料商店 重置",
+                startDate: "2025-10-14",
+                startTime: "00:00", // 太平洋时间 00:00 = 北京时间 15:00/16:00
+                displayThreshold: 1,
+                displayThresholdUnit: "day",
+                priority: "low",
+                recurrence: {
+                    type: "weekly",
+                    weekdays: [1],
+                    duration: 1,
+                    durationUnit: "day"
+                }
+            },
+            {
+                id: 19,
+                name: "破晓 红石",
+                startDate: getTodayDate(),
+                startTime: "07:48", // 太平洋时间，对应第一组的第一个时间段
+                displayThreshold: 2,
+                displayThresholdUnit: "hour",
+                priority: "high",
+                recurrence: {
+                    type: "custom_complex",
+                    pattern: "dawn_redstone",
+                    duration: 232,
+                    durationUnit: "minute"
+                }
+            },
+            {
+                id: 21,
+                name: "圆梦 滑冰",
+                startDate: getTodayDate(),
+                startTime: "10:00", // 太平洋时间 10:00 = 北京时间 次日01:00/02:00
+                displayThreshold: 15,
+                displayThresholdUnit: "minute",
+                priority: "none",
+                recurrence: {
+                    type: "custom_complex",
+                    pattern: "dream_skating",
+                    duration: 15,
+                    durationUnit: "minute"
+                }
+            }
+        ];
+
+        // 当前操作的事件ID
+        let currentTaskId = null;
+
+        // DOM元素
+        const currentTimeEl = document.getElementById('current-time');
+        const taskCarousel = document.getElementById('task-carousel');
+        const allTasksEl = document.getElementById('all-tasks');
+        const allTasksListEl = document.getElementById('all-tasks-list');
+        const appContainer = document.getElementById('app-container');
+        const controlsContainer = document.getElementById('controls-container');
+        const mainContextMenu = document.getElementById('main-context-menu');
+        const taskContextMenu = document.getElementById('task-context-menu');
+        const addTaskOption = document.getElementById('add-task-option');
+        const editTaskOption = document.getElementById('edit-task-option');
+        const deleteTaskOption = document.getElementById('delete-task-option');
+        const taskModal = document.getElementById('task-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const closeModal = document.getElementById('close-modal');
+        const cancelTask = document.getElementById('cancel-task');
+        const taskForm = document.getElementById('task-form');
+        const taskIdInput = document.getElementById('task-id');
+        const displayThresholdInput = document.getElementById('display-threshold');
+        const displayThresholdUnitInput = document.getElementById('display-threshold-unit');
+        const confirmDeleteModal = document.getElementById('confirm-delete-modal');
+        const closeDeleteModal = document.getElementById('close-delete-modal');
+        const cancelDelete = document.getElementById('cancel-delete');
+        const confirmDelete = document.getElementById('confirm-delete');
+        const recurrenceTypeInput = document.getElementById('recurrence-type');
+        const weeklyOptions = document.getElementById('weekly-options');
+        const monthlyOptions = document.getElementById('monthly-options');
+        const customOptions = document.getElementById('custom-options');
+        const startDateInput = document.getElementById('start-date');
+        const startTimeInput = document.getElementById('start-time');
+        const intervalCountInput = document.getElementById('interval-count');
+        const intervalUnitInput = document.getElementById('interval-unit');
+        const taskDurationInput = document.getElementById('task-duration');
+        const durationUnitInput = document.getElementById('duration-unit');
+        const weekdayCheckboxes = document.querySelectorAll('input[name="weekday"]');
+        const monthdayCheckboxes = document.querySelectorAll('input[name="monthday"]');
+        const monthweekdayCheckboxes = document.querySelectorAll('input[name="monthweekday"]');
+        const recurrenceOptions = document.querySelectorAll('.recurrence-option');
+        const downloadBtn = document.getElementById('download-btn');
+        const manualSaveBtn = document.getElementById('manual-save-btn');
+        const lockIndicator = document.getElementById('lock-indicator');
+        const pageSwitchIndicator = document.getElementById('page-switch-indicator');
+        const emptyHoverArea = document.querySelector('.empty-hover-area');
+        const previewCard = document.getElementById('preview-card');
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        // 转换时间单位为毫秒
+        function convertToMilliseconds(value, unit) {
+            const units = {
+                minute: 60 * 1000,
+                hour: 60 * 60 * 1000,
+                day: 24 * 60 * 60 * 1000,
+                week: 7 * 24 * 60 * 60 * 1000,
+                month: 30 * 24 * 60 * 60 * 1000
+            };
+            return value * (units[unit] || units.minute);
+        }
+
+        // 转换毫秒为最适合的单位
+        function convertFromMilliseconds(ms) {
+            if (ms >= 30 * 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (30 * 24 * 60 * 60 * 1000)), unit: 'month', text: '月' };
+            } else if (ms >= 7 * 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (7 * 24 * 60 * 60 * 1000)), unit: 'week', text: '周' };
+            } else if (ms >= 24 * 60 * 60 * 1000) {
+                return { value: Math.round(ms / (24 * 60 * 60 * 1000)), unit: 'day', text: '天' };
+            } else if (ms >= 60 * 60 * 1000) {
+                return { value: Math.round(ms / (60 * 60 * 1000)), unit: 'hour', text: '小时' };
+            } else {
+                return { value: Math.round(ms / (60 * 1000)), unit: 'minute', text: '分钟' };
+            }
+        }
+
+        // 格式化倒计时显示
+        function formatCountdown(ms) {
+            if (ms < 0) return "已开始";
+            
+            const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((ms % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+            
+            if (days > 0) {
+                return `${days}天${hours}时`;
+            } else if (hours > 0) {
+                return `${hours}时${minutes}分`;
+            } else if (minutes > 0) {
+                return `${minutes}分${seconds}秒`;
+            } else {
+                return `${seconds}秒`;
+            }
+        }
+
+        // 从localStorage加载数据
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('timeProjectReminderTasks');
+                if (savedData) {
+                    return JSON.parse(savedData);
+                }
+            } catch (e) {
+                console.error('Failed to load from localStorage:', e);
+                showNotification('加载数据失败: ' + e.message, true);
+            }
+            return null;
+        }
+
+        // 保存数据到localStorage
+        function saveToLocalStorage(data, retry = 0) {
+            if (saveState.isSaving) {
+                if (retry < saveState.maxAttempts) {
+                    return new Promise(resolve => {
+                        setTimeout(() => {
+                            saveToLocalStorage(data, retry + 1)
+                                .then(resolve)
+                                .catch(resolve);
+                        }, 300);
+                    });
+                }
+                return Promise.resolve(false);
+            }
+            
+            saveState.isSaving = true;
+            showSaveStatus(true);
+            
+            return new Promise(resolve => {
+                try {
+                    if (!data || !Array.isArray(data)) {
+                        throw new Error('无效的数据格式');
+                    }
+                    
+                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(data));
+                    
+                    saveState.lastSaved = new Date();
+                    saveState.saveAttempts = 0;
+                    saveState.isSaving = false;
+                    
+                    showSaveStatus(false, true);
+                    showNotification('数据已成功保存');
+                    resolve(true);
+                } catch (e) {
+                    console.error('Failed to save to localStorage:', e);
+                    
+                    saveState.saveAttempts++;
+                    saveState.isSaving = false;
+                    
+                    showSaveStatus(false, false);
+                    showNotification('保存失败: ' + e.message, true);
+                    
+                    if (saveState.saveAttempts >= saveState.maxAttempts) {
+                        if (confirm('多次保存失败，是否导出数据以防止丢失？')) {
+                            downloadAsHtml();
+                        }
+                    }
+                    
+                    resolve(false);
+                }
+            });
+        }
+
+        // 显示保存状态指示器
+        function showSaveStatus(isSaving, success = false) {
+            const statusEl = document.getElementById('save-status');
+            const statusTextEl = document.getElementById('save-status-text');
+            
+            if (isSaving) {
+                statusTextEl.textContent = '保存中...';
+                statusEl.classList.remove('hidden', 'text-green-500', 'text-red-500');
+                statusEl.classList.add('text-primary');
+            } else {
+                if (success) {
+                    statusTextEl.textContent = '保存成功';
+                    statusEl.classList.remove('hidden', 'text-primary', 'text-red-500');
+                    statusEl.classList.add('text-green-500');
+                    
+                    setTimeout(() => {
+                        statusEl.classList.add('hidden');
+                    }, 2000);
+                } else {
+                    statusTextEl.textContent = '保存失败';
+                    statusEl.classList.remove('hidden', 'text-primary', 'text-green-500');
+                    statusEl.classList.add('text-red-500');
+                }
+            }
+        }
+
+        // 显示通知
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            
+            if (isError) {
+                notification.classList.add('error');
+            } else {
+                notification.classList.remove('error');
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 计算事件的下一次发生时间 - 基于太平洋时间计算
+        function getNextOccurrence(task, nowCST) {
+            try {
+                // 破晓红石特殊处理
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                    return DawnRedstoneRules.getNextOccurrence(nowCST);
+                }
+                
+                // 圆梦滑冰特殊处理
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
+                    return DreamSkatingRules.getNextOccurrence(nowCST);
+                }
+                
+                // 将当前时间转换为太平洋时间进行计算
+                const nowPDT = TimeZoneUtils.CSTtoPDT(nowCST);
+                
+                // 解析开始时间（太平洋时间）
+                const [startHour, startMinute] = task.startTime.split(':').map(Number);
+                let nextTimePDT = new Date(nowPDT);
+                nextTimePDT.setHours(startHour, startMinute, 0, 0);
+                
+                // 解析开始日期
+                const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
+                const initialStartPDT = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
+                
+                if (task.recurrence.type === "none") {
+                    // 不重复事件，直接返回开始时间
+                    return {
+                        startTime: TimeZoneUtils.PDTtoCST(initialStartPDT),
+                        location: ""
+                    };
+                }
+                
+                if (task.recurrence.type === "daily") {
+                    // 每天重复
+                    if (nextTimePDT <= nowPDT) {
+                        nextTimePDT.setDate(nextTimePDT.getDate() + 1);
+                    }
+                    return {
+                        startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
+                        location: ""
+                    };
+                }
+                
+                if (task.recurrence.type === "weekly") {
+                    // 每周重复
+                    const todayWeekday = nowPDT.getDay();
+                    let daysToAdd = 0;
+                    let found = false;
+                    
+                    if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                        for (let i = 0; i < 7; i++) {
+                            const checkDay = (todayWeekday + i) % 7;
+                            if (task.recurrence.weekdays.includes(checkDay)) {
+                                daysToAdd = i;
+                                found = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!found) {
+                            daysToAdd = 7;
+                        }
+                        
+                        nextTimePDT.setDate(nextTimePDT.getDate() + daysToAdd);
+                        
+                        // 检查是否正在进行中
+                        const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                        const nextTimeCST = TimeZoneUtils.PDTtoCST(nextTimePDT);
+                        
+                        if (nextTimeCST <= nowCST && nowCST < nextTimeCST.getTime() + durationMs) {
+                            return {
+                                startTime: nextTimeCST,
+                                location: ""
+                            };
+                        }
+                        
+                        if (nextTimeCST <= nowCST) {
+                            nextTimePDT.setDate(nextTimePDT.getDate() + 7);
+                        }
+                    }
+                    
+                    return {
+                        startTime: TimeZoneUtils.PDTtoCST(nextTimePDT),
+                        location: ""
+                    };
+                }
+                
+                if (task.recurrence.type === "custom") {
+                    // 自定义间隔重复
+                    const intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
+                    const timeDiff = nowPDT - initialStartPDT;
+                    const intervals = Math.floor(timeDiff / intervalMs);
+                    
+                    const lastOccurrencePDT = new Date(initialStartPDT.getTime() + intervals * intervalMs);
+                    const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    
+                    const lastOccurrenceCST = TimeZoneUtils.PDTtoCST(lastOccurrencePDT);
+                    
+                    if (nowCST <= lastOccurrenceCST.getTime() + durationMs) {
+                        return {
+                            startTime: lastOccurrenceCST,
+                            location: ""
+                        };
+                    }
+                    
+                    const nextOccurrencePDT = new Date(lastOccurrencePDT.getTime() + intervalMs);
+                    return {
+                        startTime: TimeZoneUtils.PDTtoCST(nextOccurrencePDT),
+                        location: ""
+                    };
+                }
+                
+                // 默认返回1小时后
+                return {
+                    startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
+                    location: ""
+                };
+                
+            } catch (e) {
+                console.error('计算下次发生时间出错:', task.name, e);
+                return {
+                    startTime: new Date(nowCST.getTime() + 60 * 60 * 1000),
+                    location: ""
+                };
+            }
+        }
+
+        // 获取事件状态信息 - 修复状态计算逻辑
+        function getTaskStatus(task, nowCST) {
+            try {
+                // 特殊处理破晓红石和圆梦滑冰事件
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                    const activeInfo = DawnRedstoneRules.isActive(nowCST);
+                    if (activeInfo) {
+                        // 当前正在进行破晓红石事件
+                        const timeLeft = activeInfo.endTime - nowCST;
+                        const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+                        const displayStartTimeCST = new Date(activeInfo.startTime.getTime() - thresholdMs);
+                        
+                        return {
+                            status: "ongoing",
+                            timeText: `正在进行`,
+                            countdownMs: timeLeft,
+                            countdownText: formatCountdown(timeLeft),
+                            minutes: Math.ceil(timeLeft / (1000 * 60)),
+                            startTime: activeInfo.startTime,
+                            endTime: activeInfo.endTime,
+                            displayStartTime: displayStartTimeCST,
+                            displayEndTime: activeInfo.endTime,
+                            location: activeInfo.location
+                        };
+                    } else {
+                        const nextOccurrence = DawnRedstoneRules.getNextOccurrence(nowCST);
+                        if (!nextOccurrence || !nextOccurrence.startTime) {
+                            throw new Error('无法获取破晓红石下次发生时间');
+                        }
+                        
+                        const nextStartCST = nextOccurrence.startTime;
+                        const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                        const endTimeCST = new Date(nextStartCST.getTime() + durationMs);
+                        const timeUntilStart = nextStartCST - nowCST;
+                        const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+                        const displayStartTimeCST = new Date(nextStartCST.getTime() - thresholdMs);
+                        
+                        const isInDisplayRange = nowCST >= displayStartTimeCST;
+                        
+                        if (isInDisplayRange) {
+                            const converted = convertFromMilliseconds(timeUntilStart);
+                            return {
+                                status: "upcoming",
+                                timeText: `${converted.value}${converted.text}后开始`,
+                                countdownMs: timeUntilStart,
+                                countdownText: formatCountdown(timeUntilStart),
+                                minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                                startTime: nextStartCST,
+                                endTime: endTimeCST,
+                                displayStartTime: displayStartTimeCST,
+                                displayEndTime: endTimeCST,
+                                location: nextOccurrence.location
+                            };
+                        } else {
+                            const converted = convertFromMilliseconds(timeUntilStart);
+                            return {
+                                status: "future",
+                                timeText: `${converted.value}${converted.text}后开始`,
+                                countdownMs: timeUntilStart,
+                                countdownText: formatCountdown(timeUntilStart),
+                                minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                                startTime: nextStartCST,
+                                endTime: endTimeCST,
+                                displayStartTime: displayStartTimeCST,
+                                displayEndTime: endTimeCST,
+                                location: nextOccurrence.location
+                            };
+                        }
+                    }
+                }
+                
+                // 特殊处理圆梦滑冰事件
+                if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
+                    const activeInfo = DreamSkatingRules.isActive(nowCST);
+                    if (activeInfo) {
+                        // 当前正在进行圆梦滑冰事件
+                        const timeLeft = activeInfo.endTime - nowCST;
+                        const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+                        const displayStartTimeCST = new Date(activeInfo.startTime.getTime() - thresholdMs);
+                        
+                        return {
+                            status: "ongoing",
+                            timeText: `正在进行`,
+                            countdownMs: timeLeft,
+                            countdownText: formatCountdown(timeLeft),
+                            minutes: Math.ceil(timeLeft / (1000 * 60)),
+                            startTime: activeInfo.startTime,
+                            endTime: activeInfo.endTime,
+                            displayStartTime: displayStartTimeCST,
+                            displayEndTime: activeInfo.endTime,
+                            location: "圆梦村"
+                        };
+                    } else {
+                        const nextOccurrence = DreamSkatingRules.getNextOccurrence(nowCST);
+                        if (!nextOccurrence || !nextOccurrence.startTime) {
+                            throw new Error('无法获取圆梦滑冰下次发生时间');
+                        }
+                        
+                        const nextStartCST = nextOccurrence.startTime;
+                        const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                        const endTimeCST = new Date(nextStartCST.getTime() + durationMs);
+                        const timeUntilStart = nextStartCST - nowCST;
+                        const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+                        const displayStartTimeCST = new Date(nextStartCST.getTime() - thresholdMs);
+                        
+                        const isInDisplayRange = nowCST >= displayStartTimeCST;
+                        
+                        if (isInDisplayRange) {
+                            const converted = convertFromMilliseconds(timeUntilStart);
+                            return {
+                                status: "upcoming",
+                                timeText: `${converted.value}${converted.text}后开始`,
+                                countdownMs: timeUntilStart,
+                                countdownText: formatCountdown(timeUntilStart),
+                                minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                                startTime: nextStartCST,
+                                endTime: endTimeCST,
+                                displayStartTime: displayStartTimeCST,
+                                displayEndTime: endTimeCST,
+                                location: "圆梦村"
+                            };
+                        } else {
+                            const converted = convertFromMilliseconds(timeUntilStart);
+                            return {
+                                status: "future",
+                                timeText: `${converted.value}${converted.text}后开始`,
+                                countdownMs: timeUntilStart,
+                                countdownText: formatCountdown(timeUntilStart),
+                                minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                                startTime: nextStartCST,
+                                endTime: endTimeCST,
+                                displayStartTime: displayStartTimeCST,
+                                displayEndTime: endTimeCST,
+                                location: "圆梦村"
+                            };
+                        }
+                    }
+                }
+                
+                // 普通事件处理
+                const nextOccurrence = getNextOccurrence(task, nowCST);
+                if (!nextOccurrence || !nextOccurrence.startTime) {
+                    throw new Error('无法获取下次发生时间');
+                }
+                
+                const nextStartCST = nextOccurrence.startTime;
+                const location = nextOccurrence.location || "";
+                
+                let durationMs, endTimeCST;
+                
+                durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                endTimeCST = new Date(nextStartCST.getTime() + durationMs);
+                
+                // 修正阈值计算
+                const thresholdMs = convertToMilliseconds(task.displayThreshold, task.displayThresholdUnit);
+                const displayStartTimeCST = new Date(nextStartCST.getTime() - thresholdMs);
+                
+                const isInDisplayRange = nowCST >= displayStartTimeCST;
+                const isOngoing = nowCST >= nextStartCST && nowCST < endTimeCST;
+                const timeUntilStart = nextStartCST - nowCST;
+                
+                if (task.recurrence.type === "none" && nowCST > endTimeCST) {
+                    return {
+                        status: "completed",
+                        timeText: "已完成",
+                        countdownMs: 0,
+                        countdownText: "已完成",
+                        minutes: Infinity,
+                        startTime: nextStartCST,
+                        endTime: endTimeCST,
+                        displayStartTime: displayStartTimeCST,
+                        displayEndTime: endTimeCST,
+                        location: location
+                    };
+                }
+                
+                if (isOngoing) {
+                    const timeLeft = endTimeCST - nowCST;
+                    const converted = convertFromMilliseconds(timeLeft);
+                    return {
+                        status: "ongoing",
+                        timeText: `正在进行`,
+                        countdownMs: timeLeft,
+                        countdownText: formatCountdown(timeLeft),
+                        minutes: Math.ceil(timeLeft / (1000 * 60)),
+                        startTime: nextStartCST,
+                        endTime: endTimeCST,
+                        displayStartTime: displayStartTimeCST,
+                        displayEndTime: endTimeCST,
+                        location: location
+                    };
+                } else if (isInDisplayRange) {
+                    const converted = convertFromMilliseconds(timeUntilStart);
+                    return {
+                        status: "upcoming",
+                        timeText: `${converted.value}${converted.text}后开始`,
+                        countdownMs: timeUntilStart,
+                        countdownText: formatCountdown(timeUntilStart),
+                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                        startTime: nextStartCST,
+                        endTime: endTimeCST,
+                        displayStartTime: displayStartTimeCST,
+                        displayEndTime: endTimeCST,
+                        location: location
+                    };
+                } else {
+                    const converted = convertFromMilliseconds(timeUntilStart);
+                    return {
+                        status: "future",
+                        timeText: `${converted.value}${converted.text}后开始`,
+                        countdownMs: timeUntilStart,
+                        countdownText: formatCountdown(timeUntilStart),
+                        minutes: Math.ceil(timeUntilStart / (1000 * 60)),
+                        startTime: nextStartCST,
+                        endTime: endTimeCST,
+                        displayStartTime: displayStartTimeCST,
+                        displayEndTime: endTimeCST,
+                        location: location
+                    };
+                }
+            } catch (e) {
+                console.error('计算任务状态出错:', task.name, e);
+                const defaultTime = new Date();
+                return {
+                    status: "future",
+                    timeText: "时间计算中",
+                    countdownMs: 0,
+                    countdownText: "--",
+                    minutes: Infinity,
+                    startTime: defaultTime,
+                    endTime: new Date(defaultTime.getTime() + 60 * 60 * 1000),
+                    displayStartTime: defaultTime,
+                    displayEndTime: new Date(defaultTime.getTime() + 60 * 60 * 1000),
+                    location: ""
+                };
+            }
+        }
+
+        // 过滤出需要显示的事件
+        function getVisibleTasks() {
+            const nowCST = new Date();
+            return tasks
+                .map(task => {
+                    const status = getTaskStatus(task, nowCST);
+                    return {
+                        ...task,
+                        ...status
+                    };
+                })
+                .filter(task => {
+                    if (task.priority === "none") {
+                        return false;
+                    }
+                    
+                    return task.status !== "completed" && 
+                           (task.status === "ongoing" || task.status === "upcoming");
+                })
+                .sort((a, b) => {
+                    const priorityOrder = { high: 3, medium: 2, low: 1 };
+                    
+                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                        return priorityOrder[b.priority] - priorityOrder[a.priority];
+                    }
+                    
+                    if (a.status === "ongoing" && b.status !== "ongoing") return -1;
+                    if (a.status !== "ongoing" && b.status === "ongoing") return 1;
+                    
+                    return a.minutes - b.minutes;
+                });
+        }
+
+        // 获取所有事件（用于悬停显示）
+        function getAllTasksWithStatus() {
+            const nowCST = new Date();
+            return tasks
+                .map(task => {
+                    try {
+                        const status = getTaskStatus(task, nowCST);
+                        return {
+                            ...task,
+                            ...status
+                        };
+                    } catch (e) {
+                        console.error('计算任务状态出错:', task.name, e);
+                        return {
+                            ...task,
+                            status: "future",
+                            timeText: "时间计算中",
+                            countdownMs: 0,
+                            countdownText: "--",
+                            minutes: Infinity,
+                            startTime: new Date(),
+                            endTime: new Date(),
+                            displayStartTime: new Date(),
+                            displayEndTime: new Date(),
+                            location: ""
+                        };
+                    }
+                })
+                .filter(task => task.status !== "completed")
+                .sort((a, b) => {
+                    if (a.priority === "none" && b.priority !== "none") return 1;
+                    if (a.priority !== "none" && b.priority === "none") return -1;
+                    
+                    const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
+                    
+                    if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
+                        return priorityOrder[b.priority] - priorityOrder[a.priority];
+                    }
+                    
+                    return (a.startTime || new Date()) - (b.startTime || new Date());
+                });
+        }
+
+        // 创建事件元素
+        function createTaskElement(task) {
+            const taskEl = document.createElement('div');
+            const baseClass = "task-item p-4 rounded-xl mb-3 task-transition bg-dark-bg shadow-sm mx-auto max-w-md";
+            
+            taskEl.className = baseClass;
+            taskEl.dataset.taskId = task.id;
+            
+            let recurrenceText = "";
+            if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
+                recurrenceText = "红石规则";
+            } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dream_skating") {
+                recurrenceText = "滑冰规则";
+            } else {
+                switch(task.recurrence.type) {
+                    case "none":
+                        recurrenceText = "不重复";
+                        break;
+                    case "daily":
+                        recurrenceText = "每天";
+                        break;
+                    case "weekly":
+                        const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        const selectedDays = task.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
+                        recurrenceText = `每周${selectedDays}`;
+                        break;
+                    case "monthly":
+                        const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        if (task.recurrence.weekdays && task.recurrence.weekdays.length > 0) {
+                            const selectedWeekDays = task.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
+                            recurrenceText = `每月${selectedWeekDays}`;
+                        } else if (task.recurrence.days && task.recurrence.days.length > 0) {
+                            const selectedDays = task.recurrence.days?.join(', ') || "";
+                            recurrenceText = `每月${selectedDays}日`;
+                        }
+                        break;
+                    case "custom":
+                        const unitNames = {
+                            "minute": "分钟",
+                            "hour": "小时",
+                            "day": "天",
+                            "week": "周",
+                            "month": "月"
+                        };
+                        recurrenceText = `每${task.recurrence.count}${unitNames[task.recurrence.unit]}`;
+                        break;
+                }
+            }
+            
+            const durationUnitNames = {
+                "minute": "分钟",
+                "hour": "小时",
+                "day": "天",
+                "week": "周"
+            };
+            const durationText = `${task.recurrence.duration}${durationUnitNames[task.recurrence.durationUnit]}`;
+            
+            // 使用北京时间显示
+            const dateText = TimeZoneUtils.formatCSTDate(task.startTime);
+            const startTimeText = TimeZoneUtils.formatCSTTime(task.startTime);
+            const endTimeText = TimeZoneUtils.formatCSTTime(task.endTime);
+            
+            const ongoingIndicator = task.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            
+            const countdownBadge = `<span class="countdown ml-2">${task.countdownText}</span>`;
+            
+            const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
+            
+            // 添加地点显示
+            const locationText = task.location ? `<span class="task-meta-item"><i class="fa fa-map-marker mr-1 opacity-70"></i>${task.location}</span>` : '';
+            
+            taskEl.innerHTML = `
+                <div class="flex justify-between items-center task-title">
+                    <div class="font-medium text-dark-text flex items-center">
+                        <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
+                        ${task.name}
+                    </div>
+                    <div class="text-sm text-primary flex items-center">
+                        ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText}</span>${countdownBadge}
+                    </div>
+                </div>
+                <div class="text-xs text-dark-textSecondary task-meta flex flex-col sm:flex-row sm:justify-between gap-1">
+                    <span class="task-meta-item"><i class="fa fa-repeat mr-1 opacity-70"></i>${recurrenceText}</span>
+                    <span class="task-meta-item"><i class="fa fa-clock-o mr-1 opacity-70"></i>持续 ${durationText}</span>
+                    <span class="task-meta-item"><i class="fa fa-calendar mr-1 opacity-70"></i>${dateText}</span>
+                    <span class="task-meta-item"><i class="fa fa-hourglass-start mr-1 opacity-70"></i>${startTimeText} - ${endTimeText}</span>
+                    ${locationText}
+                </div>
+            `;
+            
+            taskEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                currentTaskId = task.id;
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                taskContextMenu.style.left = `${x}px`;
+                taskContextMenu.style.top = `${y}px`;
+                taskContextMenu.classList.remove('hidden');
+            });
+            
+            return taskEl;
+        }
+
+        // 为未来事件列表中的任务添加点击交互
+        function addClickInteractionToFutureTask(element, task) {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation(); // 防止事件冒泡
+                
+                // 如果点击的是同一个任务，则切换显示状态
+                if (currentPreviewTaskId === task.id && isPreviewVisible) {
+                    hidePreviewCard();
+                } else {
+                    // 显示新的预览卡片
+                    showPreviewCard(task, e.clientX, e.clientY);
+                }
+            });
+            
+            // 为破晓红石事件添加双击跳转功能
+            if (task.name === "破晓 红石") {
+                element.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    // 跳转到 HHS.html
+                    window.open('HHS.html', '_self');
+                });
+            }
+        }
+
+        // 创建缩略事件元素
+        function createMiniTaskElement(task) {
+            const taskEl = document.createElement('div');
+            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover future-task-item";
+            
+            taskEl.className = baseClass;
+            taskEl.dataset.taskId = task.id;
+            
+            const ongoingIndicator = task.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            
+            const countdownBadge = task.countdownText ? `<span class="countdown ml-2">${task.countdownText}</span>` : '';
+            
+            const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
+            
+            // 使用北京时间显示
+            const timeDisplay = task.status === 'ongoing' ? '进行中' : 
+                              TimeZoneUtils.formatCSTTime(task.startTime);
+            
+            // 添加地点显示
+            const locationText = task.location ? `<div class="text-xs text-dark-textSecondary truncate">${task.location}</div>` : '';
+            
+            taskEl.innerHTML = `
+                <div class="flex items-center flex-1 min-w-0">
+                    <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm truncate">${task.name}</div>
+                        <div class="text-xs text-primary flex items-center">
+                            ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText || '即将开始'}</span>${countdownBadge}
+                        </div>
+                        ${locationText}
+                    </div>
+                </div>
+                <div class="text-xs text-dark-textSecondary whitespace-nowrap ml-2">
+                    ${timeDisplay}
+                </div>
+            `;
+            
+            // 为未来事件列表中的任务添加点击交互
+            addClickInteractionToFutureTask(taskEl, task);
+            
+            taskEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                hideAllContextMenus();
+                
+                currentTaskId = task.id;
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                taskContextMenu.style.left = `${x}px`;
+                taskContextMenu.style.top = `${y}px`;
+                taskContextMenu.classList.remove('hidden');
+            });
+            
+            return taskEl;
+        }
+
+        // 显示预览卡片
+        function showPreviewCard(task, x, y) {
+            // 先移除所有任务的激活样式
+            document.querySelectorAll('.future-task-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 为当前点击的任务添加激活样式
+            const clickedTask = document.querySelector(`.future-task-item[data-task-id="${task.id}"]`);
+            if (clickedTask) {
+                clickedTask.classList.add('active');
+            }
+            
+            let currentTask = currentAllTasks.find(t => t.id === task.id);
+            
+            if (!currentTask) return;
+            
+            // 生成重复方式文本
+            let recurrenceText = "";
+            if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dawn_redstone") {
+                recurrenceText = "红石规则";
+            } else if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dream_skating") {
+                recurrenceText = "滑冰规则";
+            } else {
+                switch(currentTask.recurrence.type) {
+                    case "none":
+                        recurrenceText = "不重复";
+                        break;
+                    case "daily":
+                        recurrenceText = "每天";
+                        break;
+                    case "weekly":
+                        const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        const selectedDays = currentTask.recurrence.weekdays?.map(day => dayNames[day]).join(', ') || "";
+                        recurrenceText = `每周${selectedDays}`;
+                        break;
+                    case "monthly":
+                        const monthDayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+                        if (currentTask.recurrence.weekdays && currentTask.recurrence.weekdays.length > 0) {
+                            const selectedWeekDays = currentTask.recurrence.weekdays?.map(day => monthDayNames[day]).join(', ') || "";
+                            recurrenceText = `每月${selectedWeekDays}`;
+                        } else if (currentTask.recurrence.days && currentTask.recurrence.days.length > 0) {
+                            const selectedDays = currentTask.recurrence.days?.join(', ') || "";
+                            recurrenceText = `每月${selectedDays}日`;
+                        }
+                        break;
+                    case "custom":
+                        const unitNames = {
+                            "minute": "分钟",
+                            "hour": "小时",
+                            "day": "天",
+                            "week": "周",
+                            "month": "月"
+                        };
+                        recurrenceText = `每${currentTask.recurrence.count}${unitNames[currentTask.recurrence.unit]}`;
+                        break;
+                }
+            }
+            
+            // 生成持续时间文本
+            const durationUnitNames = {
+                "minute": "分钟",
+                "hour": "小时",
+                "day": "天",
+                "week": "周"
+            };
+            const durationText = `${currentTask.recurrence.duration}${durationUnitNames[currentTask.recurrence.durationUnit]}`;
+            
+            // 使用北京时间显示
+            const dateText = TimeZoneUtils.formatCSTDate(currentTask.startTime);
+            const startTimeText = TimeZoneUtils.formatCSTTime(currentTask.startTime);
+            const endTimeText = TimeZoneUtils.formatCSTTime(currentTask.endTime);
+            const timeRangeText = `${startTimeText} - ${endTimeText}`;
+            
+            // 生成提醒文本
+            const alertText = `提前${currentTask.displayThreshold} ${currentTask.displayThresholdUnit === 'minute' ? '分钟' : currentTask.displayThresholdUnit === 'hour' ? '小时' : currentTask.displayThresholdUnit === 'day' ? '天' : '周'}提醒`;
+            
+            // 更新预览卡片内容
+            document.getElementById('preview-priority').className = `w-2 h-2 rounded-full mr-2 bg-priority-${currentTask.priority}`;
+            document.getElementById('preview-name').textContent = currentTask.name;
+            
+            const statusIndicator = currentTask.status === "ongoing" ? 
+                '<span class="inline-block w-2 h-2 bg-priority-high rounded-full ongoing-indicator mr-1"></span>' : '';
+            const statusTextClass = currentTask.status === "ongoing" ? "ongoing-text" : "";
+            document.getElementById('preview-status').innerHTML = `${statusIndicator}<span class="${statusTextClass}">${currentTask.timeText}</span>`;
+            
+            document.getElementById('preview-recurrence').textContent = recurrenceText;
+            document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
+            document.getElementById('preview-date').textContent = dateText;
+            document.getElementById('preview-time').textContent = timeRangeText;
+            document.getElementById('preview-location').textContent = currentTask.location || "无特定地点";
+            document.getElementById('preview-alert').textContent = alertText;
+            
+            // 设置卡片位置
+            updatePreviewCardPosition(x, y);
+            
+            // 显示卡片并添加高亮动画
+            previewCard.classList.add('show', 'preview-highlight');
+            currentPreviewTaskId = currentTask.id;
+            isPreviewVisible = true;
+        }
+        
+        // 更新预览卡片位置
+        function updatePreviewCardPosition(x, y) {
+            const cardWidth = previewCard.offsetWidth;
+            const cardHeight = previewCard.offsetHeight;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            
+            let finalX = x + 15;
+            let finalY = y + 15;
+            
+            // 确保卡片不会超出视口
+            if (finalX + cardWidth > viewportWidth - 10) {
+                finalX = x - cardWidth - 15;
+            }
+            if (finalY + cardHeight > viewportHeight - 10) {
+                finalY = viewportHeight - cardHeight - 10;
+            }
+            
+            // 确保卡片不会超出视口顶部
+            if (finalY < 10) {
+                finalY = 10;
+            }
+            
+            previewCard.style.left = `${finalX}px`;
+            previewCard.style.top = `${finalY}px`;
+        }
+        
+        // 隐藏预览卡片
+        function hidePreviewCard() {
+            // 移除所有任务的激活样式
+            document.querySelectorAll('.future-task-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            previewCard.classList.remove('show', 'preview-highlight');
+            currentPreviewTaskId = null;
+            isPreviewVisible = false;
+        }
+        
+        // 切换任务列表锁定状态
+        function toggleListLock() {
+            isListLocked = !isListLocked;
+            const icon = lockIndicator.querySelector('i');
+            
+            if (isListLocked) {
+                icon.classList.remove('fa-unlock');
+                icon.classList.add('fa-lock');
+                lockIndicator.classList.add('locked');
+                allTasksEl.style.maxHeight = '500px';
+                showNotification('任务列表已锁定显示');
+            } else {
+                icon.classList.remove('fa-lock');
+                icon.classList.add('fa-unlock');
+                lockIndicator.classList.remove('locked');
+                allTasksEl.style.maxHeight = '0';
+                showNotification('任务列表已解锁');
+            }
+        }
+
+        // 修改悬停展开逻辑 - 在任意位置悬停都能展开列表
+        function handleAnywhereHover() {
+            if (!isListLocked) {
+                allTasksEl.style.maxHeight = '500px';
+            }
+        }
+
+        // 修改离开逻辑 - 只有当鼠标离开整个应用容器时才收起
+        function handleAppContainerLeave() {
+            if (!isListLocked) {
+                allTasksEl.style.maxHeight = '0';
+            }
+        }
+
+        // 更新事件显示
+        function updateTasks() {
+            currentVisibleTasks = getVisibleTasks();
+            currentAllTasks = getAllTasksWithStatus();
+            const hasVisibleContent = currentVisibleTasks.length > 0 || currentAllTasks.length > 0;
+            
+            taskCarousel.innerHTML = '';
+            
+            if (currentVisibleTasks.length === 0) {
+                taskCarousel.innerHTML = `
+                    <div class="text-center py-4 text-dark-textSecondary">
+                        目前没有即将开始的事件
+                    </div>
+                `;
+            } else {
+                currentVisibleTasks.forEach(task => {
+                    const taskEl = createTaskElement(task);
+                    taskCarousel.appendChild(taskEl);
+                });
+            }
+            
+            updateAllTasksList();
+            adjustContainerSize(hasVisibleContent);
+        }
+
+        // 更新所有事件列表
+        function updateAllTasksList() {
+            const allTasks = getAllTasksWithStatus();
+            allTasksListEl.innerHTML = '';
+            
+            if (allTasks.length === 0) {
+                allTasksListEl.innerHTML = `
+                    <div class="text-center py-4 text-dark-textSecondary text-sm">
+                        暂无未来事件
+                    </div>
+                `;
+                return;
+            }
+            
+            allTasks.forEach(task => {
+                const taskEl = createMiniTaskElement(task);
+                allTasksListEl.appendChild(taskEl);
+            });
+        }
+
+        // 调整容器大小和样式
+        function adjustContainerSize(hasContent) {
+            if (hasContent) {
+                appContainer.classList.remove('app-compact');
+                appContainer.classList.add('app-expanded');
+                controlsContainer.classList.remove('opacity-0', 'pointer-events-none', 'h-0');
+                
+                const height = currentVisibleTasks.length > 0 ? 
+                    120 + currentVisibleTasks.length * 100 : 120;
+                
+                appContainer.style.minHeight = `${height}px`;
+            } else {
+                appContainer.classList.remove('app-expanded');
+                appContainer.classList.add('app-compact');
+                controlsContainer.classList.add('opacity-0', 'pointer-events-none', 'h-0');
+                appContainer.style.minHeight = '120px';
+            }
+        }
+
+        // 显示对应的重复选项面板
+        function showRecurrenceOptions(type) {
+            weeklyOptions.classList.add('hidden');
+            monthlyOptions.classList.add('hidden');
+            customOptions.classList.add('hidden');
+            
+            if (type === 'weekly') {
+                weeklyOptions.classList.remove('hidden');
+            } else if (type === 'monthly') {
+                monthlyOptions.classList.remove('hidden');
+            } else if (type === 'custom') {
+                customOptions.classList.remove('hidden');
+            }
+        }
+
+        // 验证表单数据
+        function validateFormData(recurrenceType) {
+            if (recurrenceType === 'weekly') {
+                const checkedDays = Array.from(weekdayCheckboxes).filter(cb => cb.checked);
+                if (checkedDays.length === 0) {
+                    alert('请至少选择一个星期几');
+                    return false;
+                }
+            } else if (recurrenceType === 'monthly') {
+                const checkedDays = Array.from(monthdayCheckboxes).filter(cb => cb.checked);
+                const checkedWeekDays = Array.from(monthweekdayCheckboxes).filter(cb => cb.checked);
+                if (checkedDays.length === 0 && checkedWeekDays.length === 0) {
+                    alert('请至少选择一个日期或星期几');
+                    return false;
+                }
+            } else if (recurrenceType === 'custom') {
+                const count = parseInt(intervalCountInput.value) || 0;
+                if (count < 1) {
+                    alert('间隔计数必须大于0');
+                    return false;
+                }
+            }
+            
+            const threshold = parseInt(displayThresholdInput.value) || 0;
+            if (threshold < 1) {
+                alert('提前提醒时间必须大于0');
+                return false;
+            }
+            
+            const duration = parseInt(taskDurationInput.value) || 0;
+            if (duration < 1) {
+                alert('持续时间必须大于0');
+                return false;
+            }
+            
+            return true;
+        }
+
+        // 添加新事件
+        async function addNewTask(taskData) {
+            const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
+            
+            let newTask = {
+                id: newId,
+                name: taskData.name,
+                startDate: taskData.startDate || new Date().toISOString().split('T')[0],
+                startTime: taskData.startTime || new Date().toTimeString().split(':').slice(0, 2).join(':'),
+                displayThreshold: parseInt(taskData.displayThreshold) || 10,
+                displayThresholdUnit: taskData.displayThresholdUnit || "minute",
+                priority: taskData.priority,
+                recurrence: {
+                    duration: parseInt(taskData.duration) || 10,
+                    durationUnit: taskData.durationUnit || "minute",
+                    type: taskData.recurrenceType
+                }
+            };
+            
+            switch(taskData.recurrenceType) {
+                case "weekly":
+                    newTask.recurrence.weekdays = taskData.weekdays ? 
+                        taskData.weekdays.map(Number) : [1];
+                    break;
+                case "monthly":
+                    if (taskData.monthweekdays && taskData.monthweekdays.length > 0) {
+                        newTask.recurrence.weekdays = taskData.monthweekdays.map(Number);
+                    } else if (taskData.monthdays && taskData.monthdays.length > 0) {
+                        newTask.recurrence.days = taskData.monthdays.map(Number);
+                    }
+                    break;
+                case "custom":
+                    newTask.recurrence.count = parseInt(taskData.intervalCount) || 1;
+                    newTask.recurrence.unit = taskData.intervalUnit || "day";
+                    break;
+            }
+            
+            tasks.push(newTask);
+            const saveSuccess = await saveToLocalStorage(tasks);
+            if (saveSuccess) {
+                updateTasks();
+            } else {
+                tasks.pop();
+                alert('添加事件失败，请重试');
+            }
+        }
+
+        // 更新现有事件
+        async function updateExistingTask(taskData) {
+            const taskIndex = tasks.findIndex(t => t.id === parseInt(taskData.id));
+            if (taskIndex === -1) return;
+            
+            const originalTask = {...tasks[taskIndex]};
+            
+            tasks[taskIndex].name = taskData.name;
+            tasks[taskIndex].startDate = taskData.startDate;
+            tasks[taskIndex].startTime = taskData.startTime;
+            tasks[taskIndex].displayThreshold = parseInt(taskData.displayThreshold) || 10;
+            tasks[taskIndex].displayThresholdUnit = taskData.displayThresholdUnit || "minute";
+            tasks[taskIndex].priority = taskData.priority;
+            tasks[taskIndex].recurrence.duration = parseInt(taskData.duration) || 10;
+            tasks[taskIndex].recurrence.durationUnit = taskData.durationUnit || "minute";
+            tasks[taskIndex].recurrence.type = taskData.recurrenceType;
+            
+            delete tasks[taskIndex].recurrence.weekdays;
+            delete tasks[taskIndex].recurrence.days;
+            delete tasks[taskIndex].recurrence.count;
+            delete tasks[taskIndex].recurrence.unit;
+            
+            switch(taskData.recurrenceType) {
+                case "weekly":
+                    tasks[taskIndex].recurrence.weekdays = taskData.weekdays ? 
+                        taskData.weekdays.map(Number) : [1];
+                    break;
+                case "monthly":
+                    if (taskData.monthweekdays && taskData.monthweekdays.length > 0) {
+                        tasks[taskIndex].recurrence.weekdays = taskData.monthweekdays.map(Number);
+                    } else if (taskData.monthdays && taskData.monthdays.length > 0) {
+                        tasks[taskIndex].recurrence.days = taskData.monthdays.map(Number);
+                    }
+                    break;
+                case "custom":
+                    tasks[taskIndex].recurrence.count = parseInt(taskData.intervalCount) || 1;
+                    tasks[taskIndex].recurrence.unit = taskData.intervalUnit || "day";
+                    break;
+            }
+            
+            const saveSuccess = await saveToLocalStorage(tasks);
+            if (saveSuccess) {
+                updateTasks();
+            } else {
+                tasks[taskIndex] = originalTask;
+                alert('更新事件失败，请重试');
+            }
+        }
+
+        // 删除事件
+        async function deleteTask(taskId) {
+            const taskToDelete = tasks.find(t => t.id === taskId);
+            if (!taskToDelete) return;
+            
+            tasks = tasks.filter(task => task.id !== taskId);
+            
+            const saveSuccess = await saveToLocalStorage(tasks);
+            if (saveSuccess) {
+                updateTasks();
+            } else {
+                tasks.push(taskToDelete);
+                alert('删除事件失败，请重试');
+            }
+        }
+
+        // 显示添加事件模态框
+        function showAddTaskModal() {
+            modalTitle.textContent = "添加新事件";
+            taskForm.reset();
+            taskIdInput.value = "";
+            
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
+            
+            startDateInput.value = dateStr;
+            startTimeInput.value = timeStr;
+            displayThresholdInput.value = 10;
+            displayThresholdUnitInput.value = "minute";
+            taskDurationInput.value = 10;
+            durationUnitInput.value = "minute";
+            
+            recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.recurrence-option[data-type="none"]').classList.add('selected');
+            recurrenceTypeInput.value = "none";
+            showRecurrenceOptions("none");
+            
+            taskModal.classList.remove('hidden');
+            hideAllContextMenus();
+        }
+
+        // 显示编辑事件模态框
+        function showEditTaskModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            modalTitle.textContent = "编辑事件";
+            taskIdInput.value = task.id;
+            document.getElementById('task-name').value = task.name;
+            document.getElementById('task-priority').value = task.priority;
+            document.getElementById('task-duration').value = task.recurrence.duration;
+            document.getElementById('duration-unit').value = task.recurrence.durationUnit || "minute";
+            document.getElementById('start-date').value = task.startDate;
+            document.getElementById('start-time').value = task.startTime;
+            document.getElementById('display-threshold').value = task.displayThreshold;
+            document.getElementById('display-threshold-unit').value = task.displayThresholdUnit || "minute";
+            
+            const recurrenceType = task.recurrence.type || "none";
+            recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
+            const selectedOption = document.querySelector(`.recurrence-option[data-type="${recurrenceType}"]`) || 
+                                  document.querySelector('.recurrence-option[data-type="none"]');
+            selectedOption.classList.add('selected');
+            recurrenceTypeInput.value = recurrenceType;
+            
+            weekdayCheckboxes.forEach(checkbox => checkbox.checked = false);
+            monthdayCheckboxes.forEach(checkbox => checkbox.checked = false);
+            monthweekdayCheckboxes.forEach(checkbox => checkbox.checked = false);
+            
+            intervalCountInput.value = 1;
+            intervalUnitInput.value = "day";
+            
+            if (recurrenceType === "weekly" && task.recurrence.weekdays) {
+                task.recurrence.weekdays.forEach(day => {
+                    const checkbox = document.querySelector(`input[name="weekday"][value="${day}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            } else if (recurrenceType === "monthly") {
+                if (task.recurrence.weekdays) {
+                    task.recurrence.weekdays.forEach(day => {
+                        const checkbox = document.querySelector(`input[name="monthweekday"][value="${day}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                } else if (task.recurrence.days) {
+                    task.recurrence.days.forEach(day => {
+                        const checkbox = document.querySelector(`input[name="monthday"][value="${day}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                }
+            } else if (recurrenceType === "custom") {
+                intervalCountInput.value = task.recurrence.count || 1;
+                intervalUnitInput.value = task.recurrence.unit || "day";
+            }
+            
+            showRecurrenceOptions(recurrenceType);
+            taskModal.classList.remove('hidden');
+            hideAllContextMenus();
+        }
+
+        // 显示确认删除模态框
+        function showConfirmDeleteModal(taskId) {
+            currentTaskId = taskId;
+            confirmDeleteModal.classList.remove('hidden');
+            hideAllContextMenus();
+        }
+
+        // 隐藏所有右键菜单
+        function hideAllContextMenus() {
+            mainContextMenu.classList.add('hidden');
+            taskContextMenu.classList.add('hidden');
+        }
+
+        // 隐藏事件模态框
+        function hideTaskModal() {
+            taskModal.classList.add('hidden');
+        }
+
+        // 隐藏确认删除模态框
+        function hideConfirmDeleteModal() {
+            confirmDeleteModal.classList.add('hidden');
+        }
+
+        // 下载为HTML文件功能
+        function downloadAsHtml() {
+            try {
+                const dataToSave = { tasks: tasks };
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = document.documentElement.outerHTML;
+                
+                const elementsWithStyles = tempDiv.querySelectorAll('[style]');
+                elementsWithStyles.forEach(el => {
+                    if (el.style.transform) {
+                        const transform = el.style.transform;
+                        el.removeAttribute('style');
+                        el.style.transform = transform;
+                    } else {
+                        el.removeAttribute('style');
+                    }
+                });
+                
+                const appContainer = tempDiv.querySelector('#app-container');
+                if (appContainer) {
+                    appContainer.className = 'bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-compact';
+                }
+                
+                const scripts = tempDiv.querySelectorAll('script');
+                scripts.forEach(script => {
+                    if (script.textContent.includes('let externalData = null;')) {
+                        const newContent = script.textContent.replace(
+                            'let externalData = null;',
+                            `let externalData = ${JSON.stringify(dataToSave, null, 2)};`
+                        );
+                        script.textContent = newContent;
+                    }
+                });
+                
+                const body = tempDiv.querySelector('body');
+                if (body) {
+                    body.className = 'bg-dark-bg min-h-screen flex items-center justify-center p-4 font-inter text-dark-text m-0';
+                }
+                
+                const updatedHtml = '<!DOCTYPE html>' + tempDiv.innerHTML;
+                
+                const blob = new Blob([updatedHtml], { 
+                    type: 'text/html; charset=utf-8' 
+                });
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                a.download = `Sky 事件 时间_${dateStr}.html`;
+                
+                a.href = url;
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+                
+                showNotification('数据已导出为HTML文件');
+            } catch (e) {
+                console.error('下载失败:', e);
+                showNotification('导出HTML文件失败: ' + e.message, true);
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
+            
+            startDateInput.value = dateStr;
+            startTimeInput.value = timeStr;
+            
+            // 初始化页面管理器
+            const pageManager = new PageManager();
+            
+            // 初始化主题管理器
+            const themeManager = new ThemeManager();
+            
+            // 绑定主题切换按钮
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    themeManager.toggleTheme();
+                });
+            }
+            
+            // 初始化重复选项点击事件
+            recurrenceOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    recurrenceOptions.forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    const type = option.getAttribute('data-type');
+                    recurrenceTypeInput.value = type;
+                    showRecurrenceOptions(type);
+                });
+            });
+            
+            // 检查是否有外部数据并加载
+            const savedData = loadFromLocalStorage();
+            if (savedData && savedData.tasks) {
+                tasks = savedData.tasks;
+            } else {
+                // 保存初始任务列表
+                saveToLocalStorage(tasks);
+            }
+            
+            // 初始化按钮事件
+            downloadBtn.addEventListener('click', downloadAsHtml);
+            manualSaveBtn.addEventListener('click', async () => {
+                await saveToLocalStorage(tasks);
+            });
+            
+            // 初始化悬停空白区域事件
+            emptyHoverArea.addEventListener('click', toggleListLock);
+            
+            // 修改悬停展开逻辑 - 在整个应用容器上监听
+            appContainer.addEventListener('mouseenter', handleAnywhereHover);
+            appContainer.addEventListener('mouseleave', handleAppContainerLeave);
+            
+            // 为右键菜单选项添加点击事件
+            addTaskOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showAddTaskModal();
+            });
+
+            editTaskOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentTaskId !== null) {
+                    showEditTaskModal(currentTaskId);
+                }
+            });
+
+            deleteTaskOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentTaskId !== null) {
+                    showConfirmDeleteModal(currentTaskId);
+                }
+            });
+            
+            // 点击其他地方隐藏预览卡片
+            document.addEventListener('click', (e) => {
+                // 如果点击的不是预览卡片本身，也不是未来事件列表中的任务，则关闭预览卡片
+                if (!previewCard.contains(e.target) && !e.target.closest('.future-task-item')) {
+                    hidePreviewCard();
+                }
+            });
+            
+            // 保持原有的鼠标移动跟踪以实现丝滑跟随
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                
+                if (isPreviewVisible) {
+                    updatePreviewCardPosition(mouseX, mouseY);
+                }
+            });
+            
+            // 应用容器右键菜单事件
+            appContainer.addEventListener('contextmenu', (e) => {
+                if (!e.target.closest('.task-item') && !e.target.closest('[data-task-id]')) {
+                    e.preventDefault();
+                    hideAllContextMenus();
+                    
+                    const x = e.clientX;
+                    const y = e.clientY;
+                    
+                    mainContextMenu.style.left = `${x}px`;
+                    mainContextMenu.style.top = `${y}px`;
+                    mainContextMenu.classList.remove('hidden');
+                }
+            });
+
+            // 点击其他地方隐藏右键菜单
+            document.addEventListener('click', hideAllContextMenus);
+
+            // 关闭模态框事件
+            closeModal.addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideTaskModal();
+            });
+            
+            cancelTask.addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideTaskModal();
+            });
+            
+            taskModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideTaskModal();
+            });
+
+            // 关闭确认删除模态框事件
+            closeDeleteModal.addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideConfirmDeleteModal();
+            });
+            
+            cancelDelete.addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideConfirmDeleteModal();
+            });
+            
+            confirmDeleteModal.querySelector('.modal-backdrop').addEventListener('click', (e) => {
+                e.stopPropagation();
+                hideConfirmDeleteModal();
+            });
+
+            // 确认删除事件
+            confirmDelete.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (currentTaskId !== null) {
+                    await deleteTask(currentTaskId);
+                    currentTaskId = null;
+                    hideConfirmDeleteModal();
+                }
+            });
+
+            // 表单提交事件
+            taskForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const formData = {
+                    id: document.getElementById('task-id').value,
+                    name: document.getElementById('task-name').value,
+                    startDate: document.getElementById('start-date').value,
+                    startTime: document.getElementById('start-time').value,
+                    displayThreshold: document.getElementById('display-threshold').value,
+                    displayThresholdUnit: document.getElementById('display-threshold-unit').value,
+                    priority: document.getElementById('task-priority').value,
+                    recurrenceType: recurrenceTypeInput.value,
+                    duration: document.getElementById('task-duration').value,
+                    durationUnit: document.getElementById('duration-unit').value,
+                    intervalCount: document.getElementById('interval-count').value,
+                    intervalUnit: document.getElementById('interval-unit').value,
+                    weekdays: Array.from(weekdayCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value),
+                    monthdays: Array.from(monthdayCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value),
+                    monthweekdays: Array.from(monthweekdayCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value)
+                };
+                
+                if (!validateFormData(formData.recurrenceType)) {
+                    return;
+                }
+                
+                if (formData.id) {
+                    await updateExistingTask(formData);
+                } else {
+                    await addNewTask(formData);
+                }
+                
+                hideTaskModal();
+            });
+
+            // 初始化显示
+            updateCurrentTime();
+            updateTasks();
+        });
+
+        // 更新当前时间显示
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleTimeString('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 每秒更新时间
+        setInterval(updateCurrentTime, 1000);
+        
+        // 每秒更新一次事件状态
+        setInterval(updateTasks, 1000);
+    </script>
+</body>
+</html>

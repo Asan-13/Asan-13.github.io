@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光·遇 事件 管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./libs/@supabase/supabase-js/dist/umd/supabase.js"></script>
+    <link href="./libs/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        priority: {
+                            high: '#ef4444',    // 红色表示高优先级
+                            medium: '#f59e0b',  // 黄色表示中优先级
+                            low: '#10b981',     // 绿色表示低优先级
+                            none: '#64748b'     // 灰色表示无优先级
+                        },
+                        primary: '#60a5fa',   // 稍浅的蓝色
+                        secondary: '#94a3b8', // 稍浅的灰色
+                        dark: {
+                            bg: '#1e293b',      // 主背景色
+                            card: '#334155',    // 卡片背景色
+                            cardAlt: '#2d3748', // 交替卡片背景色
+                            hover: '#475569',   // 悬停状态颜色
+                            text: '#f8fafc',    // 主要文本色
+                            textSecondary: '#cbd5e1' // 次要文本色
+                        }
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .task-transition {
+                transition: all 0.5s ease-in-out;
+            }
+            .hover-expand {
+                transition: max-height 0.5s ease-in-out;
+            }
+            .context-menu {
+                z-index: 1000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            }
+            .modal-backdrop {
+                backdrop-filter: blur(2px);
+            }
+            .app-compact {
+                padding: 1.5rem;
+                min-height: auto !important;
+                width: auto !important;
+                max-width: 280px;
+            }
+            .app-expanded {
+                padding: 2rem;
+                width: auto !important;
+                max-width: 520px;
+            }
+            .task-item {
+                cursor: pointer;
+            }
+            .day-checkbox {
+                width: 1.5rem;
+                height: 1.5rem;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .recurrence-option {
+                @apply p-3 border border-gray-600 rounded-lg cursor-pointer transition-all hover:border-primary;
+            }
+            .recurrence-option.selected {
+                @apply border-primary bg-primary/10;
+            }
+            .ongoing-indicator {
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.6; }
+                100% { opacity: 1; }
+            }
+            .time-input-group {
+                @apply flex items-center gap-3;
+            }
+            .time-input {
+                @apply w-20 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+            }
+            .time-select {
+                @apply flex-1 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+            }
+            .countdown {
+                @apply text-xs font-medium px-2 py-0.5 rounded-lg bg-primary/10 text-primary;
+            }
+            /* 排序样式 */
+            .sortable {
+                cursor: pointer;
+                user-select: none;
+                position: relative;
+            }
+            .sortable:hover {
+                background-color: rgba(0, 0, 0, 0.1);
+            }
+            .notification {
+                @apply fixed top-4 right-4 bg-primary text-white px-4 py-2 rounded-lg shadow-lg z-50 transform transition-all duration-300 translate-x-full;
+            }
+            .notification.show {
+                @apply translate-x-0;
+            }
+            .notification.error {
+                @apply bg-red-500;
+            }
+            .login-container {
+                @apply flex items-center justify-center min-h-screen bg-dark-bg;
+            }
+            .login-container.hidden {
+                display: none !important;
+            }
+            .hidden {
+                display: none !important;
+            }
+            .login-card {
+                @apply bg-dark-card rounded-2xl shadow-xl p-8 max-w-md w-full border border-gray-700;
+            }
+            .admin-container {
+                @apply p-6 max-w-7xl mx-auto;
+            }
+            .data-table {
+                @apply w-full bg-dark-card rounded-xl shadow-lg border border-gray-700 overflow-hidden;
+            }
+            .data-table th {
+                @apply bg-dark-hover text-left py-2 px-4 text-sm font-semibold text-dark-textSecondary;
+            }
+            .data-table td {
+                @apply py-2 px-4 text-sm border-t border-gray-700;
+            }
+            .action-btn {
+                @apply p-2 rounded-lg text-sm transition-colors;
+            }
+            .edit-btn {
+                @apply text-primary hover:bg-primary/10;
+            }
+            /* 状态样式 */
+            .status-ongoing {
+                background-color: var(--status-ongoing);
+            }
+            
+            .status-not-started {
+                background-color: var(--status-not-started);
+            }
+            
+            .status-ended {
+                background-color: var(--status-ended);
+            }
+        }
+    </style>
+    
+    <style>
+        /* 主题变量定义 */
+        :root {
+            /* 暗色主题 */
+            --bg-color: #1e293b;
+            --card-color: #334155;
+            --card-alt-color: #2d3748;
+            --text-color: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border-color: #475569;
+            --primary-color: #60a5fa;
+            --hover-color: #475569;
+            
+            /* 优先级颜色 */
+            --priority-high: #ef4444;
+            --priority-medium: #f59e0b;
+            --priority-low: #10b981;
+            --priority-none: #64748b;
+            
+            /* 状态颜色 */
+            --status-ongoing: #10b981;
+            --status-not-started: #3b82f6;
+            --status-ended: #64748b;
+        }
+        
+        /* 浅色主题 (未实现切换) */
+        [data-theme="light"] {
+            /* 樱花配色 - 浅色主题 */
+            --bg-color: #FFF5F7;
+            --card-color: #FFFFFF;
+            --card-alt-color: #FFF0F3;
+            --text-color: #3D1A2D;
+            --text-secondary: #8A4A62;
+            --border-color: #FFD6E0;
+            --primary-color: #FFB7C5;
+            --hover-color: #FFF0F3;
+        }
+        
+        /* 全局样式 */
+        body {
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
+            font-family: 'Inter', system-ui, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+        }
+        
+        .bg-dark-bg {
+            background-color: var(--bg-color) !important;
+        }
+        
+        .bg-dark-card {
+            background-color: var(--card-color) !important;
+        }
+        
+        .bg-dark-card-alt {
+            background-color: var(--card-alt-color) !important;
+        }
+        
+        .text-dark-text {
+            color: var(--text-color) !important;
+        }
+        
+        .text-dark-textSecondary {
+            color: var(--text-secondary) !important;
+        }
+        
+        .bg-dark-hover:hover {
+            background-color: var(--hover-color) !important;
+        }
+        
+        .border-gray-700 {
+            border-color: var(--border-color) !important;
+        }
+        
+        /* 管理容器样式 */
+        .admin-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* 表格样式优化 */
+        table {
+            width: 100%;
+        }
+        
+        .data-table {
+            overflow-x: auto;
+        }
+        
+        /* 通知组件样式 */
+        .notification {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background-color: #60a5fa;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.error {
+            background-color: #ef4444;
+        }
+        
+        /* 保存状态指示器 */
+        #save-status {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            background-color: #10b981;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        #save-status.visible {
+            opacity: 1;
+        }
+        
+        /* 优先级标签样式 */
+        .priority-tag {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .priority-high {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--priority-high);
+        }
+        
+        .priority-medium {
+            background-color: rgba(245, 158, 11, 0.2);
+            color: var(--priority-medium);
+        }
+        
+        .priority-low {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--priority-low);
+        }
+        
+        .priority-none {
+            background-color: rgba(100, 116, 139, 0.2);
+            color: var(--priority-none);
+        }
+        
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6;
+        }
+    </style>
+</head>
+<body class="bg-[#0B132B] min-h-screen text-gray-200 font-sans">
+    <!-- 登录界面 -->
+    <div id="login-container" class="login-container">
+        <div class="login-card">
+            <div class="text-center mb-6">
+                <i class="fa fa-calendar-check-o text-primary text-4xl mb-3"></i>
+                <h2 class="text-3xl font-bold text-primary">Sky 管理后台</h2>
+                <p class="text-gray-400 mt-2">请输入密码登录</p>
+            </div>
+            <form id="login-form" class="space-y-4">
+                <div class="relative">
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-1">密码</label>
+                    <div class="relative">
+                        <input type="password" id="password" name="password" required class="w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="输入管理密码">
+                        <button type="button" id="toggle-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white font-medium py-3 px-6 rounded-lg shadow-lg hover:shadow-xl hover:opacity-95 transition-all duration-300 transform hover:scale-[1.02]">
+                    <i class="fa fa-sign-in mr-2"></i> 登录管理后台
+                </button>
+            </form>
+            <p id="login-error" class="mt-4 text-center text-red-500 text-sm bg-red-500/10 p-3 rounded-lg hidden">密码错误，请重试</p>
+        </div>
+    </div>
+
+    <!-- 管理后台界面 -->
+    <div id="admin-container" class="admin-container hidden">
+        <!-- 页面顶部导航栏 -->
+        <header class="bg-gray-800/80 backdrop-blur-md shadow-lg border-b border-gray-700 mb-6">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <i class="fa fa-calendar-check-o text-primary text-2xl"></i>
+                        <h1 class="text-2xl font-bold text-primary">Sky 事件 时间 管理</h1>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <a href="./index.html" target="_blank" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-md">
+                            <i class="fa fa-eye"></i>
+                            <span>查看前端</span>
+                        </a>
+                        <button id="add-task-btn" class="bg-primary text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-[1.02]">
+                            <i class="fa fa-plus"></i>
+                            <span>添加事件</span>
+                        </button>
+                        <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-md hover:shadow-lg">
+                            <i class="fa fa-sign-out"></i>
+                            <span>退出</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- 数据表格 -->
+            <div class="bg-gray-800/60 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-gray-700">
+                <div class="p-4 border-b border-gray-700 bg-gray-800/80">
+                    <h2 class="text-xl font-semibold">事件列表</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full data-table">
+                        <thead class="bg-gray-800/90">
+                            <tr>
+                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="sequence">序号</th>
+                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="name">事件名称</th>
+                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="priority">优先级</th>
+                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="startDate">开始时间</th>
+                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="duration">持续时间</th>
+                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">地点</th>
+                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="displayThreshold">显示阈值</th>
+                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">重复类型</th>
+                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">状态</th>
+                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasks-table-body">
+                            <!-- 数据将通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑任务模态框 -->
+    <div id="task-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="modal-backdrop absolute inset-0 bg-black/50"></div>
+        <div class="bg-dark-card rounded-xl shadow-2xl p-6 w-full max-w-2xl relative z-10 overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="modal-title" class="text-xl font-semibold">添加新事件</h2>
+                <button id="close-modal" class="text-dark-textSecondary hover:text-dark-text text-2xl">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="task-name" class="block text-sm font-medium text-dark-textSecondary mb-1">事件名称 *</label>
+                        <input type="text" id="task-name" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                    
+                    <div>
+                        <label for="task-priority" class="block text-sm font-medium text-dark-textSecondary mb-1">优先级 *</label>
+                        <select id="task-priority" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            <option value="high">高优先级</option>
+                            <option value="medium">中优先级</option>
+                            <option value="low">低优先级</option>
+                            <option value="none">无优先级</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="task-start-date" class="block text-sm font-medium text-dark-textSecondary mb-1">开始日期 *</label>
+                        <input type="date" id="task-start-date" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                    
+                    <div>
+                        <label for="task-start-time" class="block text-sm font-medium text-dark-textSecondary mb-1">开始时间 *</label>
+                        <input type="time" id="task-start-time" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="task-display-threshold" class="block text-sm font-medium text-dark-textSecondary mb-1">显示阈值 *</label>
+                        <input type="number" id="task-display-threshold" min="1" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                    
+                    <div>
+                        <label for="task-display-threshold-unit" class="block text-sm font-medium text-dark-textSecondary mb-1">显示阈值单位 *</label>
+                        <select id="task-display-threshold-unit" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            <option value="minute">分钟</option>
+                            <option value="hour">小时</option>
+                            <option value="day">天</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="task-duration" class="block text-sm font-medium text-dark-textSecondary mb-1">持续时间 *</label>
+                        <input type="number" id="task-duration" min="1" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                    </div>
+                    
+                    <div>
+                        <label for="task-duration-unit" class="block text-sm font-medium text-dark-textSecondary mb-1">持续时间单位 *</label>
+                        <select id="task-duration-unit" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" required>
+                            <option value="minute">分钟</option>
+                            <option value="hour">小时</option>
+                            <option value="day">天</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-dark-textSecondary mb-2">重复类型 *</label>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <div class="recurrence-option selected" data-type="none">
+                            <i class="fa fa-calendar-o mr-2"></i>
+                            <span>不重复</span>
+                        </div>
+                        <div class="recurrence-option" data-type="daily">
+                            <i class="fa fa-repeat mr-2"></i>
+                            <span>每天</span>
+                        </div>
+                        <div class="recurrence-option" data-type="weekly">
+                            <i class="fa fa-calendar-week mr-2"></i>
+                            <span>每周</span>
+                        </div>
+                        <div class="recurrence-option" data-type="monthly">
+                            <i class="fa fa-calendar mr-2"></i>
+                            <span>每月</span>
+                        </div>
+                        <div class="recurrence-option" data-type="custom">
+                            <i class="fa fa-cog mr-2"></i>
+                            <span>自定义</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="task-recurrence-type" value="none">
+                </div>
+                
+                <!-- 每周重复选项 -->
+                <div id="weekly-options" class="mb-4 hidden">
+                    <label class="block text-sm font-medium text-dark-textSecondary mb-2">重复星期</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" name="weekdays" value="1" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                            <span>一</span>
+                        </label>
+                        <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" name="weekdays" value="2" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                            <span>二</span>
+                        </label>
+                        <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" name="weekdays" value="3" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                            <span>三</span>
+                        </label>
+                        <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" name="weekdays" value="4" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                            <span>四</span>
+                        </label>
+                        <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" name="weekdays" value="5" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                            <span>五</span>
+                        </label>
+                        <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" name="weekdays" value="6" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                            <span>六</span>
+                        </label>
+                        <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                            <input type="checkbox" name="weekdays" value="0" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                            <span>日</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- 每月重复选项 -->
+                <div id="monthly-options" class="mb-4 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-dark-textSecondary mb-2">每月日期</label>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                    <input type="checkbox" name="monthdays" value="1" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                                    <span>1日</span>
+                                </label>
+                                <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                    <input type="checkbox" name="monthdays" value="15" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                                    <span>15日</span>
+                                </label>
+                                <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                    <input type="checkbox" name="monthdays" value="last" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                                    <span>最后一天</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-dark-textSecondary mb-2">每月星期</label>
+                            <div class="flex flex-wrap gap-2">
+                                <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                    <input type="checkbox" name="monthweekdays" value="1" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                                    <span>第一个周一</span>
+                                </label>
+                                <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                    <input type="checkbox" name="monthweekdays" value="3" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                                    <span>第一个周三</span>
+                                </label>
+                                <label class="flex items-center gap-1 p-2 border border-gray-600 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                                    <input type="checkbox" name="monthweekdays" value="5" class="w-4 h-4 text-primary bg-dark-bg border-gray-600 rounded focus:ring-primary">
+                                    <span>第一个周五</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 自定义重复选项 -->
+                <div id="custom-options" class="mb-4 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="custom-interval-count" class="block text-sm font-medium text-dark-textSecondary mb-1">重复间隔</label>
+                            <input type="number" id="custom-interval-count" min="1" value="1" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="custom-interval-unit" class="block text-sm font-medium text-dark-textSecondary mb-1">间隔单位</label>
+                            <select id="custom-interval-unit" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="day">天</option>
+                                <option value="week">周</option>
+                                <option value="month">月</option>
+                                <option value="year">年</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" id="cancel-btn" class="px-4 py-2 border border-gray-600 rounded-lg text-dark-text hover:bg-dark-hover transition-colors">
+                        取消
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                        保存事件
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div id="delete-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden">
+        <div class="modal-backdrop absolute inset-0 bg-black/50"></div>
+        <div class="bg-dark-card rounded-xl shadow-2xl p-6 w-full max-w-md relative z-10">
+            <h2 class="text-xl font-semibold mb-4">确认删除</h2>
+            <p class="mb-6">确定要删除这个事件吗？云端不会被删除。</p>
+            <div class="flex justify-end gap-3">
+                <button id="cancel-delete" class="px-4 py-2 border border-gray-600 rounded-lg text-dark-text hover:bg-dark-hover transition-colors">
+                    取消
+                </button>
+                <button id="confirm-delete" class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium">
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知组件 -->
+    <div id="notification" class="notification">
+        <span id="notification-text"></span>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Supabase 配置
+        let supabaseUrl = localStorage.getItem('supabaseUrl_163') || 'https://prusinqhwaduefiuqkwt.supabase.co';
+        let supabaseKey = localStorage.getItem('supabaseKey_163') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydXNpbnFod2FkdWVmaXVxa3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMTI5OTYsImV4cCI6MjA3OTU4ODk5Nn0.X__p8sP8ZdaOBGsbFWnhAdgLnjTXN-Y8YMVL5csVQ2Y';
+        let supabase;
+
+        // 初始化 Supabase
+        function initSupabase() {
+            try {
+                // 检查域名是否有效
+                const isValidDomain = supabaseUrl && supabaseUrl.includes('.supabase.co');
+                if (!isValidDomain) {
+                    supabase = null;
+                    console.error('Supabase域名无效，将使用本地存储模式运行');
+                    return false;
+                }
+                
+                // 检查API密钥是否有效
+                if (!supabaseKey || supabaseKey.length < 30) {
+                    supabase = null;
+                    console.error('Supabase API密钥无效，将使用本地存储模式运行');
+                    return false;
+                }
+                
+                // 检查Supabase是否已加载，支持多种方式：
+                // 1. window.createClient (UMD版本)
+                // 2. window.supabase.createClient (另一种UMD暴露方式)
+                // 3. createClient (ES模块版本)
+                let createClientFunc = null;
+                if (typeof window.createClient === 'function') {
+                    createClientFunc = window.createClient;
+                } else if (typeof window.supabase?.createClient === 'function') {
+                    createClientFunc = window.supabase.createClient;
+                } else if (typeof createClient === 'function') {
+                    createClientFunc = createClient;
+                }
+                
+                if (!createClientFunc) {
+                    supabase = null;
+                    console.error('Supabase库未加载，将使用本地存储模式运行');
+                    return false;
+                }
+                
+                // 创建Supabase客户端
+                supabase = createClientFunc(supabaseUrl, supabaseKey);
+                console.log('Supabase初始化成功');
+                
+                // 测试连接
+                testSupabaseConnection();
+                return true;
+            } catch (error) {
+                supabase = null;
+                console.error('Supabase初始化失败:', error);
+                return false;
+            }
+        }
+        
+        // 测试Supabase连接
+        async function testSupabaseConnection() {
+            if (!supabase) return false;
+            
+            try {
+                // 尝试执行一个简单的查询来测试连接
+                const { error } = await supabase.from('tasks_163').select('*').limit(1);
+                if (error) {
+                    console.error('Supabase连接测试失败:', error);
+                    return false;
+                }
+                console.log('Supabase连接测试成功');
+                return true;
+            } catch (error) {
+                console.error('Supabase连接测试失败:', error);
+                return false;
+            }
+        }
+
+        // 初始调用
+        initSupabase();
+        
+        // 如果初始调用失败，添加一个延迟重试机制
+        if (!supabase) {
+            console.log('初始Supabase初始化失败，将在1秒后重试...');
+            setTimeout(() => {
+                console.log('重试Supabase初始化...');
+                initSupabase();
+            }, 1000);
+        }
+
+        // 任务数据
+        let tasks = [];
+
+        // 从本地存储加载数据
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('timeProjectReminderTasks_163');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    console.log('从本地存储加载数据成功:', parsedData.length, '条记录');
+                    return parsedData;
+                }
+                console.log('本地存储中没有数据');
+                return [];
+            } catch (error) {
+                console.error('从本地存储加载数据失败:', error);
+                return [];
+            }
+        }
+
+        // 保存数据到本地存储
+        function saveToLocalStorage(data) {
+            try {
+                localStorage.setItem('timeProjectReminderTasks_163', JSON.stringify(data));
+                console.log('数据已保存到本地存储:', data.length, '条记录');
+            } catch (error) {
+                console.error('保存数据到本地存储失败:', error);
+            }
+        }
+
+        // 从 Supabase 加载任务数据
+        async function loadFromSupabase() {
+            if (!supabase) {
+                console.log('Supabase 未初始化，尝试从localStorage加载数据');
+                return loadFromLocalStorage();
+            }
+
+            try {
+                // 强制从 Supabase 获取最新数据
+                const { data, error } = await supabase
+                    .from('tasks_163')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) {
+                    // Supabase请求失败时，记录错误但仍尝试使用本地缓存
+                    console.error('从Supabase加载数据失败:', error);
+                    showNotification('从Supabase加载数据失败，正在尝试使用最新缓存', false);
+                    return loadFromLocalStorage();
+                }
+
+                if (data && data.length > 0) {
+                    // 将Supabase数据保存到localStorage作为备份
+                    saveToLocalStorage(data);
+                    console.log('从Supabase加载数据成功:', data.length, '条记录');
+                    return data;
+                } else {
+                    console.log('从Supabase没有加载到数据，尝试从localStorage加载');
+                    // 如果Supabase中没有数据，尝试从localStorage加载
+                    const localData = loadFromLocalStorage();
+                    if (localData && localData.length > 0) {
+                        // 将本地数据同步到Supabase
+                        console.log('从localStorage加载到数据，准备同步到Supabase:', localData.length, '条记录');
+                        
+                        // 处理数据，确保只包含Supabase表中存在的字段
+                        const processedData = localData.map(task => {
+                            // 创建一个新的任务对象，只包含必要的字段
+                            // 为recurrence添加默认值，防止违反NOT NULL约束
+                            const processedTask = {
+                                id: task.id,
+                                name: task.name,
+                                startDate: task.startDate,
+                                startTime: task.startTime,
+                                displayThreshold: task.displayThreshold,
+                                displayThresholdUnit: task.displayThresholdUnit,
+                                priority: task.priority,
+                                recurrence: task.recurrence || ''
+                                // 注意：不直接包含duration、durationUnit和type字段
+                            };
+                            return processedTask;
+                        });
+                        
+                        const { error: syncError } = await supabase.from('tasks_163').insert(processedData);
+                        if (syncError) {
+                            console.error('将本地数据同步到Supabase失败:', syncError);
+                        } else {
+                            console.log('本地数据同步到Supabase成功');
+                        }
+                        return localData;
+                    }
+                }
+            } catch (error) {
+                console.error('从Supabase加载数据异常:', error);
+                showNotification('从Supabase加载数据异常，使用本地存储数据', true);
+                return loadFromLocalStorage();
+            }
+            return [];
+        }
+
+        // 保存数据到localStorage和Supabase
+        async function saveData(data) {
+            // 1. 保存到localStorage
+            try {
+                localStorage.setItem('timeProjectReminderTasks_163', JSON.stringify(data));
+                console.log('数据已保存到本地存储:', data.length, '条记录');
+                showNotification('数据已保存到本地存储', false);
+            } catch (localError) {
+                console.error('保存到本地存储失败:', localError);
+                showNotification('保存到本地存储失败', true);
+                return false;
+            }
+
+            // 2. 如果Supabase可用，尝试保存到Supabase
+            if (supabase) {
+                try {
+                    console.log('开始保存数据到Supabase...');
+                    console.log('准备保存的数据:', data.length, '条记录');
+                    
+                    // 处理数据，确保只包含Supabase表中存在的字段
+                    const processedData = data.map(task => {
+                        // 创建一个新的任务对象，只包含必要的字段
+                        // 为recurrence添加默认值，防止违反NOT NULL约束
+                        const processedTask = {
+                            id: task.id,
+                            name: task.name,
+                            startDate: task.startDate,
+                            startTime: task.startTime,
+                            displayThreshold: task.displayThreshold,
+                            displayThresholdUnit: task.displayThresholdUnit,
+                            priority: task.priority,
+                            recurrence: task.recurrence || ''
+                            // 注意：不直接包含duration、durationUnit和type字段
+                        };
+                        return processedTask;
+                    });
+                    
+                    // 使用upsert操作更新或插入数据，保留其他设备的编辑
+                    if (processedData.length > 0) {
+                        console.log('开始同步数据...');
+                        const { data: syncedData, error: upsertError } = await supabase
+                            .from('tasks_163')
+                            .upsert(processedData, { onConflict: 'id' })
+                            .select();
+                        if (upsertError) {
+                            console.error('同步数据失败:', upsertError);
+                            showNotification('同步数据到Supabase失败', true);
+                            return false;
+                        }
+                        console.log('数据同步成功:', syncedData.length, '条记录');
+                    } else {
+                        console.log('没有数据需要同步');
+                    }
+                    
+                    showNotification('数据已同步到Supabase', false);
+                    return true;
+                } catch (supabaseError) {
+                    console.error('Supabase保存失败，详细错误:', supabaseError);
+                    showNotification('Supabase保存失败，仅保留本地存储', true);
+                    return true;
+                }
+            } else {
+                console.log('Supabase未初始化，仅保存到本地存储');
+            }
+            return true;
+        }
+
+        // 显示通知
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            
+            if (notification && notificationText) {
+                notificationText.textContent = message;
+                notification.className = `notification ${isError ? 'error' : ''} show`;
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // 生成唯一ID
+        function generateId() {
+            return Math.max(...tasks.map(task => task.id || 0), 0) + 1;
+        }
+
+        // 排序状态
+        let sortConfig = {
+            key: null,
+            direction: 1 // 1 升序, -1 降序
+        };
+
+        // 登录状态
+        let isLoggedIn = false;
+        const ADMIN_PASSWORD = 'admin123'; // 示例密码，实际应用中应该更安全
+
+        // 检查登录状态
+        function checkLogin() {
+            isLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+            if (isLoggedIn) {
+                const loginContainer = document.getElementById('login-container');
+                const adminContainer = document.getElementById('admin-container');
+                if (loginContainer && adminContainer) {
+                    loginContainer.classList.add('hidden');
+                    adminContainer.classList.remove('hidden');
+                    // 在切换容器显示后，确保DOM已更新，然后渲染任务列表
+                    setTimeout(() => renderTasks(), 0);
+                }
+            }
+        }
+
+        // 登录处理
+        function handleLogin(event) {
+            event.preventDefault();
+            const passwordInput = document.getElementById('password');
+            if (!passwordInput) return;
+            
+            const password = passwordInput.value;
+            if (password === ADMIN_PASSWORD) {
+                isLoggedIn = true;
+                localStorage.setItem('adminLoggedIn', 'true');
+                
+                const loginContainer = document.getElementById('login-container');
+                const adminContainer = document.getElementById('admin-container');
+                const loginError = document.getElementById('login-error');
+                
+                if (loginContainer && adminContainer) {
+                    loginContainer.classList.add('hidden');
+                    adminContainer.classList.remove('hidden');
+                    // 在切换容器显示后，确保DOM已更新，然后渲染任务列表
+                    setTimeout(() => renderTasks(), 0);
+                }
+                
+                if (loginError) {
+                    loginError.classList.add('hidden');
+                }
+            } else {
+                const loginError = document.getElementById('login-error');
+                if (loginError) {
+                    loginError.classList.remove('hidden');
+                }
+            }
+        }
+        
+        // 密码显示/隐藏切换
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleButton = document.getElementById('toggle-password');
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleButton.innerHTML = '<i class="fa fa-eye-slash"></i>';
+            } else {
+                passwordInput.type = 'password';
+                toggleButton.innerHTML = '<i class="fa fa-eye"></i>';
+            }
+        }
+
+        // 退出登录
+        function handleLogout() {
+            isLoggedIn = false;
+            localStorage.removeItem('adminLoggedIn');
+            const loginContainer = document.getElementById('login-container');
+            const adminContainer = document.getElementById('admin-container');
+            if (loginContainer && adminContainer) {
+                loginContainer.classList.remove('hidden');
+                adminContainer.classList.add('hidden');
+            }
+        }
+
+        // 排序函数
+        function sortTasks(key) {
+            if (sortConfig.key === key) {
+                // 如果点击同一列，切换排序方向
+                sortConfig.direction *= -1;
+            } else {
+                // 否则，设置新的排序列和升序方向
+                sortConfig.key = key;
+                sortConfig.direction = 1;
+            }
+            renderTasks();
+        }
+
+        // 时间单位转换函数
+        function convertToMilliseconds(value, unit) {
+            const msPerUnit = {
+                minute: 60 * 1000,
+                hour: 60 * 60 * 1000,
+                day: 24 * 60 * 60 * 1000,
+                week: 7 * 24 * 60 * 60 * 1000
+            };
+            return value * (msPerUnit[unit] || msPerUnit.minute);
+        }
+
+        // 渲染任务列表
+        function renderTasks() {
+            const tbody = document.getElementById('tasks-table-body');
+            
+            // 检查tbody元素是否存在
+            if (!tbody) {
+                console.error('tasks-table-body元素不存在');
+                return;
+            }
+            
+            // 排序任务
+            let sortedTasks = [...tasks];
+            if (sortConfig.key) {
+                sortedTasks.sort((a, b) => {
+                    let aVal = a[sortConfig.key];
+                    let bVal = b[sortConfig.key];
+                    
+                    // 处理优先级比较
+                    if (sortConfig.key === 'priority') {
+                        const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
+                        aVal = priorityOrder[aVal] || 0;
+                        bVal = priorityOrder[bVal] || 0;
+                    }
+                    
+                    // 处理日期比较
+                    if (sortConfig.key === 'startDate') {
+                        aVal = new Date(aVal);
+                        bVal = new Date(bVal);
+                    }
+                    
+                    // 处理时间比较
+                    if (sortConfig.key === 'startTime') {
+                        aVal = new Date(`2000-01-01 ${aVal}`);
+                        bVal = new Date(`2000-01-01 ${bVal}`);
+                    }
+                    
+                    // 数值比较
+                    if (typeof aVal === 'number' && typeof bVal === 'number') {
+                        return (aVal - bVal) * sortConfig.direction;
+                    }
+                    
+                    // 字符串比较
+                    aVal = String(aVal);
+                    bVal = String(bVal);
+                    return aVal.localeCompare(bVal) * sortConfig.direction;
+                });
+            }
+
+            if (sortedTasks.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="text-center py-10 text-dark-textSecondary">
+                            <i class="fa fa-calendar-times-o text-4xl mb-2"></i>
+                            <p>暂无事件数据</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // 生成表格行
+            let html = '';
+            sortedTasks.forEach((task, index) => {
+                const priorityText = task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : task.priority === 'low' ? '低' : '无';
+                // 修复重复类型显示问题，正确从task.recurrence.type获取重复类型
+                const recurrenceType = task.recurrence?.type || 'none';
+                const repeatText = recurrenceType === 'none' ? '不重复' : recurrenceType === 'daily' ? '每天' : recurrenceType === 'weekly' ? '每周' : recurrenceType === 'monthly' ? '每月' : '自定义';
+                
+                // 修复持续时间显示问题，支持两种数据结构：直接存储和存储在recurrence下
+                const displayThreshold = task.displayThreshold || 0;
+                const displayThresholdUnit = task.displayThresholdUnit || 'hour';
+                const thresholdText = `${displayThreshold} ${displayThresholdUnit === 'minute' ? '分钟' : displayThresholdUnit === 'hour' ? '小时' : displayThresholdUnit === 'day' ? '天' : '周'}`;
+                
+                // 优先使用直接存储在task对象下的duration，否则使用recurrence下的duration
+                const duration = task.duration !== undefined ? task.duration : 
+                                (task.recurrence && task.recurrence.duration !== undefined ? task.recurrence.duration : 0);
+                const durationUnit = task.durationUnit !== undefined ? task.durationUnit : 
+                                    (task.recurrence && task.recurrence.durationUnit !== undefined ? task.recurrence.durationUnit : 'hour');
+                const durationText = `${duration} ${durationUnit === 'minute' ? '分钟' : durationUnit === 'hour' ? '小时' : durationUnit === 'day' ? '天' : '周'}`;
+                
+                // 计算事件状态
+                const now = new Date();
+                const taskStartDateTime = new Date(`${task.startDate}T${task.startTime}`);
+                const durationMs = convertToMilliseconds(duration, durationUnit);
+                const endTime = new Date(taskStartDateTime.getTime() + durationMs);
+                
+                let status = '未开始';
+                let statusClass = 'status-not-started';
+                
+                if (now >= taskStartDateTime && now <= endTime) {
+                    status = '进行中';
+                    statusClass = 'status-ongoing';
+                } else if (now > endTime) {
+                    status = '已结束';
+                    statusClass = 'status-ended';
+                }
+
+                html += `
+                    <tr class="hover:bg-dark-hover transition-colors ${index % 2 === 0 ? 'bg-dark-card' : 'bg-dark-card-alt'}">
+                        <td class="py-2 px-4 text-sm">${index + 1}</td>
+                        <td class="py-2 px-4 text-sm">${task.name}</td>
+                        <td class="py-2 px-4 text-sm">
+                            <span class="bg-priority-${task.priority || 'none'} text-white text-xs px-2 py-1 rounded-full">
+                                ${priorityText}
+                            </span>
+                        </td>
+                        <td class="py-2 px-4 text-sm">${task.startDate} ${task.startTime}</td>
+                        <td class="py-2 px-4 text-sm">${durationText}</td>
+                        <td class="py-2 px-4 text-sm">${task.location || '-'}</td>
+                        <td class="py-2 px-4 text-sm">${thresholdText}</td>
+                        <td class="py-2 px-4 text-sm">${repeatText}</td>
+                        <td class="py-2 px-4 text-sm">
+                            <span class="${statusClass} text-white text-xs px-2 py-1 rounded-full">
+                                ${status}
+                            </span>
+                        </td>
+                        <td class="py-2 px-4 text-sm relative">
+                            <div class="flex gap-2">
+                                <button class="action-btn edit-btn" data-task-id="${task.id}" title="编辑">
+                                    <i class="fa fa-pencil"></i>
+                                </button>
+                                <!-- 三点菜单按钮 -->
+                                <button class="action-btn more-btn" data-task-id="${task.id}" title="更多操作">
+                                    <i class="fa fa-ellipsis-v"></i>
+                                </button>
+                                <!-- 隐藏的删除按钮，点击三点菜单显示 -->
+                                <button class="action-btn delete-btn hidden" data-task-id="${task.id}" title="删除">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+
+            // 添加事件监听器
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const taskId = parseInt(e.target.closest('.edit-btn').dataset.taskId);
+                    editTask(taskId);
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const taskId = parseInt(e.target.closest('.delete-btn').dataset.taskId);
+                    showDeleteModal(taskId);
+                });
+            });
+        }
+
+        // 打开添加任务模态框
+        function openAddTaskModal() {
+            const modal = document.getElementById('task-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const taskForm = document.getElementById('task-form');
+            
+            if (modal && modalTitle && taskForm) {
+                modalTitle.textContent = '添加新事件';
+                taskForm.reset();
+                
+                const taskIdInput = document.getElementById('task-id');
+                const taskRecurrenceTypeInput = document.getElementById('task-recurrence-type');
+                if (taskIdInput) taskIdInput.value = '';
+                if (taskRecurrenceTypeInput) taskRecurrenceTypeInput.value = 'none';
+                
+                // 重置重复选项
+                const recurrenceOptions = document.querySelectorAll('.recurrence-option');
+                if (recurrenceOptions.length > 0) {
+                    recurrenceOptions.forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    const noneOption = document.querySelector('.recurrence-option[data-type="none"]');
+                    if (noneOption) {
+                        noneOption.classList.add('selected');
+                    }
+                }
+                
+                // 隐藏所有重复选项面板
+                const weeklyOptions = document.getElementById('weekly-options');
+                const monthlyOptions = document.getElementById('monthly-options');
+                const customOptions = document.getElementById('custom-options');
+                if (weeklyOptions) weeklyOptions.classList.add('hidden');
+                if (monthlyOptions) monthlyOptions.classList.add('hidden');
+                if (customOptions) customOptions.classList.add('hidden');
+                
+                modal.classList.remove('hidden');
+            }
+        }
+
+        // 打开编辑任务模态框
+        function editTask(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const modal = document.getElementById('task-modal');
+            const modalTitle = document.getElementById('modal-title');
+            
+            if (modal && modalTitle) {
+                modalTitle.textContent = '编辑事件';
+                
+                // 填充表单数据
+                const taskIdInput = document.getElementById('task-id');
+                const taskNameInput = document.getElementById('task-name');
+                const taskStartDateInput = document.getElementById('task-start-date');
+                const taskStartTimeInput = document.getElementById('task-start-time');
+                const taskDisplayThresholdInput = document.getElementById('task-display-threshold');
+                const taskDisplayThresholdUnitInput = document.getElementById('task-display-threshold-unit');
+                const taskPriorityInput = document.getElementById('task-priority');
+                const taskDurationInput = document.getElementById('task-duration');
+                const taskDurationUnitInput = document.getElementById('task-duration-unit');
+                const taskRecurrenceTypeInput = document.getElementById('task-recurrence-type');
+                
+                if (taskIdInput) taskIdInput.value = task.id;
+                if (taskNameInput) taskNameInput.value = task.name;
+                if (taskStartDateInput) taskStartDateInput.value = task.startDate;
+                if (taskStartTimeInput) taskStartTimeInput.value = task.startTime;
+                if (taskDisplayThresholdInput) taskDisplayThresholdInput.value = task.displayThreshold;
+                if (taskDisplayThresholdUnitInput) taskDisplayThresholdUnitInput.value = task.displayThresholdUnit;
+                if (taskPriorityInput) taskPriorityInput.value = task.priority;
+                
+                // 修复持续时间显示：优先使用task对象下的duration，否则使用recurrence下的
+                const duration = task.duration !== undefined ? task.duration : 
+                                (task.recurrence && task.recurrence.duration !== undefined ? task.recurrence.duration : 0);
+                const durationUnit = task.durationUnit !== undefined ? task.durationUnit : 
+                                    (task.recurrence && task.recurrence.durationUnit !== undefined ? task.recurrence.durationUnit : 'hour');
+                if (taskDurationInput) taskDurationInput.value = duration;
+                if (taskDurationUnitInput) taskDurationUnitInput.value = durationUnit;
+                
+                // 修复重复类型显示：从recurrence.type获取
+                const recurrenceType = task.recurrence?.type || 'none';
+                if (taskRecurrenceTypeInput) taskRecurrenceTypeInput.value = recurrenceType;
+                
+                // 设置重复类型选项
+                const recurrenceOptions = document.querySelectorAll('.recurrence-option');
+                if (recurrenceOptions.length > 0) {
+                    recurrenceOptions.forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    const selectedOption = document.querySelector(`.recurrence-option[data-type="${recurrenceType}"]`) || document.querySelector('.recurrence-option[data-type="none"]');
+                    if (selectedOption) {
+                        selectedOption.classList.add('selected');
+                    }
+                }
+                
+                // 显示相应的重复选项面板
+                showRecurrenceOptions(recurrenceType);
+                
+                modal.classList.remove('hidden');
+            }
+        }
+
+        // 显示重复选项
+        function showRecurrenceOptions(type) {
+            // 隐藏所有选项
+            const weeklyOptions = document.getElementById('weekly-options');
+            const monthlyOptions = document.getElementById('monthly-options');
+            const customOptions = document.getElementById('custom-options');
+            
+            if (weeklyOptions) weeklyOptions.classList.add('hidden');
+            if (monthlyOptions) monthlyOptions.classList.add('hidden');
+            if (customOptions) customOptions.classList.add('hidden');
+            
+            // 显示对应选项
+            if (type === 'weekly' && weeklyOptions) {
+                weeklyOptions.classList.remove('hidden');
+            } else if (type === 'monthly' && monthlyOptions) {
+                monthlyOptions.classList.remove('hidden');
+            } else if (type === 'custom' && customOptions) {
+                customOptions.classList.remove('hidden');
+            }
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            const taskModal = document.getElementById('task-modal');
+            if (taskModal) {
+                taskModal.classList.add('hidden');
+            }
+        }
+
+        // 显示删除确认模态框
+        function showDeleteModal(taskId) {
+            const deleteModal = document.getElementById('delete-modal');
+            if (deleteModal) {
+                deleteModal.classList.remove('hidden');
+                
+                // 保存要删除的任务ID
+                deleteModal.dataset.taskId = taskId;
+            }
+        }
+
+        // 关闭删除模态框
+        function closeDeleteModal() {
+            const deleteModal = document.getElementById('delete-modal');
+            if (deleteModal) {
+                deleteModal.classList.add('hidden');
+            }
+        }
+
+        // 删除任务
+        async function deleteTask(taskId) {
+            tasks = tasks.filter(task => task.id !== taskId);
+            renderTasks();
+            closeDeleteModal();
+            showNotification('事件已删除');
+            // 保存数据到云端
+            await saveData(tasks);
+        }
+
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 登录功能
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+            }
+            
+            const passwordInput = document.getElementById('password');
+            if (passwordInput) {
+                passwordInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        handleLogin(e);
+                    }
+                });
+            }
+            
+            // 密码显示/隐藏切换
+            const togglePasswordBtn = document.getElementById('toggle-password');
+            if (togglePasswordBtn) {
+                togglePasswordBtn.addEventListener('click', togglePasswordVisibility);
+            }
+            
+            // 登出功能
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+            }
+            
+            // 添加任务按钮
+            const addTaskBtn = document.getElementById('add-task-btn');
+            if (addTaskBtn) {
+                addTaskBtn.addEventListener('click', openAddTaskModal);
+            }
+            
+            // 关闭模态框
+            const closeModalBtn = document.getElementById('close-modal');
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', closeModal);
+            }
+            
+            const cancelBtn = document.getElementById('cancel-btn');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', closeModal);
+            }
+            
+            // 点击模态框背景关闭
+            const taskModalBackdrop = document.querySelector('#task-modal .modal-backdrop');
+            if (taskModalBackdrop) {
+                taskModalBackdrop.addEventListener('click', closeModal);
+            }
+            
+            // 重复类型选择
+            const recurrenceOptions = document.querySelectorAll('.recurrence-option');
+            if (recurrenceOptions.length > 0) {
+                recurrenceOptions.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        document.querySelectorAll('.recurrence-option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+                        e.currentTarget.classList.add('selected');
+                        
+                        const type = e.currentTarget.dataset.type;
+                        const taskRecurrenceType = document.getElementById('task-recurrence-type');
+                        if (taskRecurrenceType) {
+                            taskRecurrenceType.value = type;
+                            showRecurrenceOptions(type);
+                        }
+                    });
+                });
+            }
+            
+            // 表单提交
+            const taskForm = document.getElementById('task-form');
+            if (taskForm) {
+                taskForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const taskId = parseInt(document.getElementById('task-id').value) || 0;
+                    const name = document.getElementById('task-name').value;
+                    const startDate = document.getElementById('task-start-date').value;
+                    const startTime = document.getElementById('task-start-time').value;
+                    const displayThreshold = parseInt(document.getElementById('task-display-threshold').value);
+                    const displayThresholdUnit = document.getElementById('task-display-threshold-unit').value;
+                    const priority = document.getElementById('task-priority').value;
+                    const duration = parseInt(document.getElementById('task-duration').value);
+                    const durationUnit = document.getElementById('task-duration-unit').value;
+                    const recurrenceType = document.getElementById('task-recurrence-type').value;
+                    
+                    // 构建重复规则
+                    const recurrence = {};
+                
+                    if (recurrenceType === 'weekly') {
+                        const weekdays = Array.from(document.querySelectorAll('input[name="weekdays"]:checked')).map(checkbox => parseInt(checkbox.value));
+                        recurrence.weekdays = weekdays;
+                    } else if (recurrenceType === 'monthly') {
+                        const monthdays = Array.from(document.querySelectorAll('input[name="monthdays"]:checked')).map(checkbox => checkbox.value === 'last' ? 'last' : parseInt(checkbox.value));
+                        const monthweekdays = Array.from(document.querySelectorAll('input[name="monthweekdays"]:checked')).map(checkbox => parseInt(checkbox.value));
+                        
+                        if (monthdays.length > 0) {
+                            recurrence.days = monthdays;
+                        }
+                        if (monthweekdays.length > 0) {
+                            recurrence.weekdays = monthweekdays;
+                        }
+                    } else if (recurrenceType === 'custom') {
+                        const intervalCount = parseInt(document.getElementById('custom-interval-count').value);
+                        const intervalUnit = document.getElementById('custom-interval-unit').value;
+                        
+                        recurrence.count = intervalCount;
+                        recurrence.unit = intervalUnit;
+                    }
+                
+                // 构建任务对象
+                const taskData = {
+                    name,
+                    startDate,
+                    startTime,
+                    displayThreshold,
+                    displayThresholdUnit,
+                    priority,
+                    duration,
+                    durationUnit,
+                    type: recurrenceType,
+                    recurrence: Object.keys(recurrence).length > 0 ? recurrence : undefined
+                };
+                
+                if (taskId) {
+                    // 更新现有任务
+                    const taskIndex = tasks.findIndex(t => t.id === taskId);
+                    if (taskIndex !== -1) {
+                        tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+                        showNotification('事件已更新');
+                    }
+                } else {
+                    // 添加新任务
+                    const newTask = {
+                        id: generateId(),
+                        ...taskData
+                    };
+                    tasks.push(newTask);
+                    showNotification('事件已添加');
+                }
+                
+                // 重新渲染任务列表
+                renderTasks();
+                
+                // 保存数据到云端
+                await saveData(tasks);
+                
+                // 关闭模态框
+                closeModal();
+            });
+            }
+            
+            // 删除确认
+            const confirmDeleteBtn = document.getElementById('confirm-delete');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', () => {
+                    const deleteModal = document.getElementById('delete-modal');
+                    if (deleteModal) {
+                        const taskId = parseInt(deleteModal.dataset.taskId);
+                        deleteTask(taskId);
+                    }
+                });
+            }
+            
+            // 取消删除
+            const cancelDeleteBtn = document.getElementById('cancel-delete');
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', closeDeleteModal);
+            }
+            
+            // 点击删除模态框背景关闭
+            const deleteModalBackdrop = document.querySelector('#delete-modal .modal-backdrop');
+            if (deleteModalBackdrop) {
+                deleteModalBackdrop.addEventListener('click', closeDeleteModal);
+            }
+            
+            // 保存数据按钮 - 仅当元素存在时添加事件监听器
+            const saveBtn = document.getElementById('save-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async () => {
+                    await saveData(tasks);
+                });
+            }
+            
+            // 表头排序事件
+            document.querySelectorAll('.sortable').forEach(header => {
+                header.addEventListener('click', () => {
+                    const sortKey = header.dataset.sortKey;
+                    sortTasks(sortKey);
+                });
+            });
+
+            // 三点菜单点击事件处理
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.more-btn')) {
+                    const moreBtn = e.target.closest('.more-btn');
+                    const row = moreBtn.closest('tr');
+                    const deleteBtn = row.querySelector('.delete-btn');
+                    
+                    // 切换删除按钮的显示状态
+                    deleteBtn.classList.toggle('hidden');
+                }
+                // 点击其他地方隐藏所有删除按钮
+                else if (!e.target.closest('.delete-btn')) {
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.classList.add('hidden');
+                    });
+                }
+            });
+        }
+
+        // 初始化应用
+        async function initApp() {
+            try {
+                // 加载数据
+                console.log('开始加载数据...');
+                
+                // 尝试从Supabase加载数据
+                let loadedTasks = await loadFromSupabase();
+                
+                // 如果没有从Supabase加载到数据，尝试直接从本地存储加载
+                if (loadedTasks.length === 0) {
+                    console.log('从Supabase没有加载到数据，尝试直接从本地存储加载...');
+                    loadedTasks = loadFromLocalStorage();
+                }
+                
+                tasks = loadedTasks;
+                console.log('最终加载到的数据:', tasks.length, '条记录');
+                
+                // 初始化事件监听器
+                initEventListeners();
+                
+                // 检查登录状态
+                checkLogin();
+                
+                if (isLoggedIn) {
+                    showNotification(`数据加载成功，共 ${tasks.length} 条记录`);
+                }
+            } catch (error) {
+                console.error('初始化应用失败:', error);
+                
+                // 尝试直接从本地存储加载数据
+                tasks = loadFromLocalStorage();
+                
+                // 初始化事件监听器
+                initEventListeners();
+                
+                // 检查登录状态
+                checkLogin();
+            }
+        }
+
+        // 启动应用
+        initApp();
+    </script>
+</body>
+</html>
