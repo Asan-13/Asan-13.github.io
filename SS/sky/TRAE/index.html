@@ -164,6 +164,27 @@
                 @apply font-medium;
                 color: var(--ongoing-color) !important;
             }
+            
+            /* 破晓红石事件地点名称样式 - 提高优先级 */
+            .dawn-redstone-location {
+                color: var(--primary-color) !important;
+            }
+            
+            /* 浅色模式下破晓红石地点名称颜色 - 确保优先级 */
+            body [data-theme="light"] .dawn-redstone-location,
+            [data-theme="light"] .task-title .dawn-redstone-location,
+            [data-theme="light"] .task-meta .dawn-redstone-location,
+            [data-theme="light"] .dawn-redstone-location {
+                color: #FF6B8B !important;
+            }
+            
+            /* 深色模式下破晓红石地点名称颜色 */
+            body [data-theme="dark"] .dawn-redstone-location,
+            [data-theme="dark"] .task-title .dawn-redstone-location,
+            [data-theme="dark"] .task-meta .dawn-redstone-location,
+            [data-theme="dark"] .dawn-redstone-location {
+                color: #60a5fa !important;
+            }
             .lock-indicator {
                 @apply absolute top-4 right-4 text-dark-textSecondary hover:text-primary transition-colors cursor-pointer;
             }
@@ -319,8 +340,12 @@
                 --priority-none: #64748b !important;
             }
             
+            [data-theme="dark"] .countdown {
+                color: #60a5fa;
+            }
+            
             [data-theme="light"] .countdown {
-                color: #FF6B8B;
+                color: #FF6B8B !important;
             }
             
             /* 应用主题变量 - 覆盖所有相关元素 */
@@ -433,7 +458,7 @@
             /* 词条提示器样式 - 浅色主题 */
             [data-theme="light"] .download-tooltip,
             [data-theme="light"] .save-tooltip {
-                background-color: var(--primary-color) !important;
+                background-color: #FF6B8B !important;
                 color: var(--card-color) !important;
             }
             
@@ -3009,8 +3034,10 @@
             
             const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
             
-            // 添加地点显示
-            const locationText = task.location ? `<span class="task-meta-item"><i class="fa fa-map-marker mr-1 opacity-70"></i>${task.location}</span>` : '';
+            // 添加地点显示 - 为破晓红石事件添加特殊类
+            const isDawnRedstone = task.name === "破晓 红石";
+            const locationClass = isDawnRedstone ? "task-meta-item dawn-redstone-location" : "task-meta-item";
+            const locationText = task.location ? `<span class="${locationClass}"><i class="fa fa-map-marker mr-1 opacity-70"></i>${task.location}</span>` : '';
             
             taskEl.innerHTML = `
                 <div class="flex justify-between items-center task-title">
@@ -3093,7 +3120,10 @@
                               TimeZoneUtils.formatCSTTime(task.startTime);
             
             // 添加地点显示
-            const locationText = task.location ? `<div class="text-xs text-dark-textSecondary truncate">${task.location}</div>` : '';
+            // 为破晓红石事件地点添加特殊类
+            const isDawnRedstone = task.name === "破晓 红石";
+            const locationClass = isDawnRedstone ? "text-xs truncate dawn-redstone-location" : "text-xs text-dark-textSecondary truncate";
+            const locationText = task.location ? `<div class="${locationClass}">${task.location}</div>` : '';
             
             taskEl.innerHTML = `
                 <div class="flex items-center flex-1 min-w-0">
@@ -3220,7 +3250,14 @@
             document.getElementById('preview-duration').textContent = `持续 ${durationText}`;
             document.getElementById('preview-date').textContent = dateText;
             document.getElementById('preview-time').textContent = timeRangeText;
-            document.getElementById('preview-location').textContent = currentTask.location || "无特定地点";
+            // 为破晓红石事件预览地点添加特殊类
+            const previewLocationEl = document.getElementById('preview-location');
+            previewLocationEl.textContent = currentTask.location || "无特定地点";
+            if (currentTask.name === "破晓 红石") {
+                previewLocationEl.classList.add('dawn-redstone-location');
+            } else {
+                previewLocationEl.classList.remove('dawn-redstone-location');
+            }
             document.getElementById('preview-alert').textContent = alertText;
             
             // 设置卡片位置

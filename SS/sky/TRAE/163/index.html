@@ -152,6 +152,27 @@
                 @apply font-medium;
                 color: var(--ongoing-color) !important;
             }
+            
+            /* 破晓红石事件地点名称样式 - 提高优先级 */
+            .dawn-redstone-location {
+                color: var(--primary-color) !important;
+            }
+            
+            /* 浅色模式下破晓红石地点名称颜色 - 确保优先级 */
+            body [data-theme="light"] .dawn-redstone-location,
+            [data-theme="light"] .task-title .dawn-redstone-location,
+            [data-theme="light"] .task-meta .dawn-redstone-location,
+            [data-theme="light"] .dawn-redstone-location {
+                color: #FF6B8B !important;
+            }
+            
+            /* 深色模式下破晓红石地点名称颜色 */
+            body [data-theme="dark"] .dawn-redstone-location,
+            [data-theme="dark"] .task-title .dawn-redstone-location,
+            [data-theme="dark"] .task-meta .dawn-redstone-location,
+            [data-theme="dark"] .dawn-redstone-location {
+                color: #60a5fa !important;
+            }
             /* 锁定状态指示器 */
             .lock-indicator {
                 @apply absolute top-4 right-4 text-dark-textSecondary hover:text-primary transition-colors cursor-pointer;
@@ -374,8 +395,12 @@
             --priority-none: #64748b !important;
         }
         
+        [data-theme="dark"] .countdown {
+            color: #60a5fa;
+        }
+        
         [data-theme="light"] .countdown {
-            color: #FF6B8B;
+            color: #FF6B8B !important;
         }
         
         /* 主题切换按钮 */
@@ -507,7 +532,7 @@
         /* 词条提示器样式 - 浅色主题 */
         [data-theme="light"] .download-tooltip,
         [data-theme="light"] .save-tooltip {
-            background-color: var(--primary-color) !important;
+            background-color: #FF6B8B !important;
             color: var(--card-color) !important;
         }
         
@@ -2813,8 +2838,10 @@
             // 确定时间文本样式 - 正在进行的文本使用红色
             const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
             
-            // 添加地点信息（如果是破晓红石事件）
-            const locationInfo = task.location ? `<div class="text-xs text-primary font-medium mt-1"><i class="fa fa-map-marker mr-1"></i>${task.location}</div>` : '';
+            // 添加地点信息 - 为破晓红石事件添加特殊类
+            const isDawnRedstone = task.name === "破晓 红石";
+            const locationClass = isDawnRedstone ? "text-xs font-medium mt-1 dawn-redstone-location" : "text-xs text-primary font-medium mt-1";
+            const locationInfo = task.location ? `<div class="${locationClass}"><i class="fa fa-map-marker mr-1"></i>${task.location}</div>` : '';
             
             taskEl.innerHTML = `
                 <div class="flex justify-between items-center task-title">
@@ -2879,8 +2906,10 @@
                              task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
             }
             
-            // 添加地点信息（如果是破晓红石事件）
-            const locationInfo = task.location ? `<div class="text-xs text-primary truncate mt-0.5">${task.location}</div>` : '';
+            // 添加地点信息 - 为破晓红石事件添加特殊类
+            const isDawnRedstone = task.name === "破晓 红石";
+            const locationClass = isDawnRedstone ? "text-xs truncate mt-0.5 dawn-redstone-location" : "text-xs text-primary truncate mt-0.5";
+            const locationInfo = task.location ? `<div class="${locationClass}">${task.location}</div>` : '';
             
             taskEl.innerHTML = `
                 <div class="flex items-center flex-1 min-w-0">
