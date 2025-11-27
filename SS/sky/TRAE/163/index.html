@@ -102,7 +102,9 @@
                 @apply flex-1 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
             }
             .countdown {
-                @apply text-xs font-medium px-2 py-0.5 rounded-lg bg-primary/20 text-primary;
+                @apply text-xs font-medium px-2 py-0.5 rounded-lg;
+                background-color: rgba(96, 165, 250, 0.2);
+                color: var(--primary-color);
             }
             .download-btn {
                 @apply fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
@@ -147,7 +149,8 @@
             }
             /* 新增：进行中红色文字样式 */
             .ongoing-text {
-                @apply text-priority-high font-medium;
+                @apply font-medium;
+                color: var(--ongoing-color) !important;
             }
             /* 锁定状态指示器 */
             .lock-indicator {
@@ -166,7 +169,7 @@
                 max-height: 300px;
                 overflow-y: auto;
                 scrollbar-width: thin;
-                scrollbar-color: var(--primary-color) var(--bg-color);
+                scrollbar-color: var(--scrollbar-color) var(--bg-color);
             }
             .scrollable-list::-webkit-scrollbar {
                 width: 6px;
@@ -176,7 +179,7 @@
                 border-radius: 3px;
             }
             .scrollable-list::-webkit-scrollbar-thumb {
-                background-color: var(--primary-color);
+                background-color: var(--scrollbar-color);
                 border-radius: 3px;
             }
             /* 预览卡片样式 - 紧凑优化版本 */
@@ -344,7 +347,10 @@
             --text-secondary: #8A4A62 !important;
             --hover-color: #FFF0F3 !important;
             --border-color: #FFD6E0 !important;
-            --primary-color: #FFB7C5 !important;
+            --primary-color: #60a5fa !important;
+            --scrollbar-color: #FFB7C5 !important;
+            --ongoing-color: #FF6B8B !important;
+            --countdown-color: #60a5fa !important;
             --priority-high: #FF6B8B !important;
             --priority-medium: #FFA7C4 !important;
             --priority-low: #FFD6E0 !important;
@@ -359,10 +365,17 @@
             --hover-color: #475569 !important;
             --border-color: #64748b !important;
             --primary-color: #60a5fa !important;
+            --scrollbar-color: #60a5fa !important;
+            --ongoing-color: #ef4444 !important;
+            --countdown-color: #60a5fa !important;
             --priority-high: #ef4444 !important;
             --priority-medium: #f59e0b !important;
             --priority-low: #10b981 !important;
             --priority-none: #64748b !important;
+        }
+        
+        [data-theme="light"] .countdown {
+            color: #FF6B8B;
         }
         
         /* 主题切换按钮 */
@@ -480,7 +493,7 @@
         }
         
         .text-primary,
-        .text-primary span {
+        .text-primary span:not(.ongoing-text):not(.countdown) {
             color: var(--primary-color) !important;
         }
         
@@ -500,9 +513,12 @@
         
         /* 覆盖优先级颜色 */
         .text-priority-high,
-        .priority-high {
-            color: var(--priority-high) !important;
-        }
+            .priority-high {
+                color: var(--priority-high) !important;
+            }
+            .bg-priority-high {
+                background-color: var(--priority-high) !important;
+            }
         
         .text-priority-medium,
         .priority-medium {
@@ -3284,18 +3300,22 @@
             confirmDeleteModal.classList.add('hidden');
         }
 
-        // 鼠标悬停显示所有事件 - 考虑锁定状态
-        appContainer.addEventListener('mouseenter', () => {
-            if (!isListLocked) {
-                allTasksEl.style.maxHeight = '500px';
-            }
-        });
-
-        appContainer.addEventListener('mouseleave', () => {
-            if (!isListLocked) {
+        // 点击展开/折叠未来事件列表
+        function toggleFutureEvents() {
+            // 切换展开/折叠状态
+            if (allTasksEl.style.maxHeight === '500px') {
                 allTasksEl.style.maxHeight = '0';
+                // 显示词条文本提示器
+                showNotification('列表已收起');
+            } else {
+                allTasksEl.style.maxHeight = '500px';
+                // 显示词条文本提示器
+                showNotification('列表已展开');
             }
-        });
+        }
+
+        // 添加点击事件监听，用于展开/折叠未来事件列表
+        emptyHoverArea.addEventListener('click', toggleFutureEvents);
 
         // 应用容器右键菜单事件
         appContainer.addEventListener('contextmenu', (e) => {
@@ -3622,16 +3642,13 @@
             // 添加魔法图标
                 magicIcons.forEach(magic => {
                     const iconElement = document.createElement('div');
-                    iconElement.className = 'magic-icon-item cursor-pointer group relative';
+                    iconElement.className = 'magic-icon-item cursor-pointer relative';
                     iconElement.title = magic.name;
                     iconElement.innerHTML = `
                         <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: transparent; border: none; border-radius: 8px; overflow: hidden;">
                             <img src="./icons/${magic.png}" alt="${magic.name}" 
                                  style="width: 32px; height: 32px; object-fit: contain; transition: transform 0.2s ease;" 
                                  class="magic-icon hover:scale-110" />
-                        </div>
-                        <div class="magic-name absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-dark-bg text-dark-text text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                            ${magic.name}
                         </div>
                     `;
                     
@@ -3659,7 +3676,7 @@
             
             // 检查jl.png是否存在，如不存在则使用默认图标
             const seasonWaxElement = document.createElement('div');
-            seasonWaxElement.className = 'magic-icon-item cursor-pointer group relative';
+            seasonWaxElement.className = 'magic-icon-item cursor-pointer relative';
             seasonWaxElement.title = `今日季蜡位置: ${currentMap}`;
             seasonWaxElement.innerHTML = `
                 <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: transparent; border: none; border-radius: 8px; overflow: hidden; margin-top: 8px;">
@@ -3668,11 +3685,8 @@
                          class="magic-icon hover:scale-110" 
                          onerror="this.src='./icons/gjf.png'; this.alt='季蜡';" />
                 </div>
-                <div style="text-align: center; font-size: 10px; color: var(--text-color); margin-top: 2px; font-weight: 500;">
+                <div style="text-align: center; font-size: 10px; color: var(--text-color); margin-top: 2px; font-weight: 500; width: 100%;">
                     ${currentMap}
-                </div>
-                <div class="magic-name absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-dark-bg text-dark-text text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                    今日季蜡位置: ${currentMap}
                 </div>
             `;
             
