@@ -496,6 +496,11 @@
             }
             /* 手机端优化 */
             @media (max-width: 640px) {
+                /* 调整主题切换按钮和魔法图标更靠左 */
+                .theme-toggle-container {
+                    left: 1px !important;
+                }
+                
                 .app-expanded {
                     padding: 1rem;
                     max-width: 100%;
@@ -1611,18 +1616,42 @@
         // 创建Supabase客户端实例，添加错误处理以应对CDN加载失败
         let supabase;
         try {
-            // 检查window.createClient是否存在（这是正确的Supabase CDN导出方式）
-            if (window.createClient) {
-                supabase = window.createClient(supabaseUrl, supabaseKey);
+            // 检查CDN加载的Supabase库导出方式
+            let createClientFunc = null;
+            
+            // 1. 检查window.supabase.createClient（CDN UMD版本的正确导出方式）
+            if (typeof window.supabase?.createClient === 'function') {
+                createClientFunc = window.supabase.createClient;
+                console.log('使用window.supabase.createClient初始化Supabase');
+            }
+            // 2. 检查window.createClient（备选方式）
+            else if (typeof window.createClient === 'function') {
+                createClientFunc = window.createClient;
+                console.log('使用window.createClient初始化Supabase');
+            }
+            // 3. 检查直接的createClient函数（ES模块方式）
+            else if (typeof createClient === 'function') {
+                createClientFunc = createClient;
+                console.log('使用直接createClient函数初始化Supabase');
+            }
+            
+            if (createClientFunc) {
+                supabase = createClientFunc(supabaseUrl, supabaseKey);
+                console.log('Supabase客户端初始化成功');
             } else {
-                // 如果CDN加载失败，设置supabase为null
+                // 如果所有方式都失败，设置supabase为null
                 supabase = null;
-                console.log('Supabase CDN加载失败，将使用本地存储模式运行');
+                console.log('Supabase CDN加载失败或初始化方式不正确，将使用本地存储模式运行');
+                console.log('当前window对象:', {
+                    hasSupabase: typeof window.supabase !== 'undefined',
+                    hasCreateClient: typeof window.createClient === 'function'
+                });
             }
         } catch (error) {
             // 捕获任何初始化错误
             supabase = null;
             console.error('Supabase初始化失败:', error);
+            console.error('错误堆栈:', error.stack);
         }
         
         // ==================== 核心逻辑 ====================
@@ -2063,11 +2092,17 @@
 
         // 合并数据（基于时间戳的冲突解决）
         function mergeData(localData, remoteData) {
+            console.log('开始合并数据:');
+            console.log('本地数据:', localData.length);
+            console.log('云端数据:', remoteData.length);
+            
             if (!localData || localData.length === 0) {
+                console.log('本地数据为空，直接使用云端数据');
                 return remoteData;
             }
             
             if (!remoteData || remoteData.length === 0) {
+                console.log('云端数据为空，直接使用本地数据');
                 return localData;
             }
             
@@ -2087,65 +2122,138 @@
                 
                 if (!localTask) {
                     // 本地没有，使用远程数据
+                    console.log(`任务 ${id}: 本地不存在，使用云端数据`);
                     mergedTasks.push(remoteTask);
                 } else if (!remoteTask) {
                     // 远程没有，使用本地数据
+                    console.log(`任务 ${id}: 云端不存在，使用本地数据`);
                     mergedTasks.push(localTask);
                 } else {
                     // 本地和远程都有，比较时间戳，使用更新的版本
                     const localUpdatedAt = new Date(localTask.updated_at || 0);
                     const remoteUpdatedAt = new Date(remoteTask.updated_at || 0);
                     
+                    // 添加详细的时间戳比较日志
+                    console.log(`任务 ${id} 时间戳比较:`);
+                    console.log(`  本地: ${localUpdatedAt.toISOString()} (${localUpdatedAt.getTime()})`);
+                    console.log(`  云端: ${remoteUpdatedAt.toISOString()} (${remoteUpdatedAt.getTime()})`);
+                    
                     if (remoteUpdatedAt > localUpdatedAt) {
+                        console.log(`  选择: 云端数据 (更新)`);
                         mergedTasks.push(remoteTask);
-                    } else {
+                    } else if (localUpdatedAt > remoteUpdatedAt) {
+                        console.log(`  选择: 本地数据 (更新)`);
                         mergedTasks.push(localTask);
+                    } else {
+                        // 时间戳相同，使用云端数据确保一致性
+                        console.log(`  选择: 云端数据 (时间戳相同)`);
+                        mergedTasks.push(remoteTask);
                     }
                 }
                 
                 processedIds.add(id);
             }
             
+            console.log('合并完成，共', mergedTasks.length, '个任务');
             return mergedTasks;
         }
         
         // 从Supabase加载数据
         async function loadFromSupabase() {
+            console.log('=== 开始从Supabase加载数据 ===');
             try {
-                // 检查supabase是否已初始化
-                if (!supabase) {
-                    console.log('Supabase未初始化，使用localStorage数据');
-                    return loadFromLocalStorage();
+                // 详细检查Supabase初始化状态
+                console.log('Supabase初始化状态检查:');
+                console.log('  supabase变量:', typeof supabase);
+                if (supabase) {
+                    console.log('  supabase.from方法:', typeof supabase.from);
+                    console.log('  supabase变量完整:', supabase);
+                }
+                
+                // 检查supabase是否已正确初始化
+                if (!supabase || typeof supabase.from !== 'function') {
+                    console.log('Supabase未正确初始化，使用localStorage数据');
+                    const localData = loadFromLocalStorage() || [];
+                    console.log('从localStorage加载的数据:', localData ? localData.length : 0, '个任务');
+                    return localData;
                 }
                 
                 // 获取本地存储的数据
                 const localData = loadFromLocalStorage() || [];
+                console.log('本地数据:', localData.length, '个任务');
+                console.log('本地数据样例:', localData.slice(0, 1));
                 
+                console.log('开始从Supabase请求数据...');
+                console.log('请求详情: 表名=tasks, 操作=select(*), 方式=GET');
+                
+                const startTime = Date.now();
                 const { data: remoteData, error } = await supabase
                     .from('tasks')
                     .select('*');
+                const endTime = Date.now();
+                
+                console.log('Supabase请求完成，耗时:', (endTime - startTime), 'ms');
                 
                 if (error) {
-                    console.error('Failed to load from Supabase:', error);
+                    console.error('从Supabase加载失败:', error.message);
+                    console.error('错误详情:', error);
+                    console.error('错误类型:', error.code);
+                    console.error('错误详情:', error.details);
                     // 如果从Supabase加载失败，尝试从localStorage加载
                     return localData;
                 }
                 
+                console.log('从Supabase获取到的数据:', remoteData ? remoteData.length : 0, '个任务');
+                console.log('Supabase返回数据样例:', remoteData ? remoteData.slice(0, 1) : '无');
+                
                 if (remoteData && remoteData.length > 0) {
                     // 合并本地和远程数据，基于时间戳
+                    console.log('开始合并本地和云端数据...');
                     const mergedData = mergeData(localData, remoteData);
                     
                     // 将合并后的数据保存到localStorage
                     localStorage.setItem('timeProjectReminderTasks', JSON.stringify(mergedData));
+                    console.log('合并后的数据已保存到localStorage');
+                    
+                    // 验证合并结果
+                    console.log('合并前后数据对比:');
+                    console.log('  本地:', localData.length, '个任务');
+                    console.log('  云端:', remoteData.length, '个任务');
+                    console.log('  合并后:', mergedData.length, '个任务');
+                    
+                    // 分析合并结果
+                    const addedTasks = mergedData.filter(task => 
+                        !localData.some(local => local.id === task.id)
+                    );
+                    const updatedTasks = mergedData.filter(task => {
+                        const localTask = localData.find(local => local.id === task.id);
+                        return localTask && new Date(task.updated_at) > new Date(localTask.updated_at);
+                    });
+                    
+                    console.log('合并分析:');
+                    console.log('  新增任务:', addedTasks.length, '个');
+                    console.log('  更新任务:', updatedTasks.length, '个');
+                    
                     return mergedData;
                 } else {
                     // 如果Supabase返回空数据，尝试从localStorage加载
+                    console.log('Supabase返回空数据，使用localStorage数据');
+                    // 检查是否需要将本地数据推送到Supabase
+                    if (localData.length > 0) {
+                        console.log('检测到本地有数据，建议将本地数据推送到Supabase');
+                    }
                     return localData;
                 }
             } catch (e) {
-                console.error('Failed to load from Supabase:', e);
+                console.error('从Supabase加载时发生异常:', e);
+                console.error('异常类型:', typeof e);
+                console.error('异常堆栈:', e.stack);
                 // 如果从Supabase加载失败，尝试从localStorage加载
-                return loadFromLocalStorage();
+                const localData = loadFromLocalStorage() || [];
+                console.log('从localStorage加载的数据:', localData ? localData.length : 0, '个任务');
+                return localData;
+            } finally {
+                console.log('=== 从Supabase加载数据完成 ===');
             }
         }
         
@@ -2200,19 +2308,33 @@
                     
                     // 检查supabase是否已初始化
                     if (supabase) {
+                        console.log('开始保存数据到Supabase...');
+                        console.log('待保存数据:', data.length, '个任务');
+                        console.log('待保存数据样例:', data.slice(0, 1));
+                        
                         // 然后保存到Supabase
                         // 使用更安全的同步策略：
                         // 1. 先获取当前数据库中的所有任务
+                        console.log('步骤1: 获取当前数据库中的所有任务...');
                         const { data: existingTasks, error: fetchError } = await supabase
                             .from('tasks')
                             .select('id, updated_at');
                         
                         if (fetchError) {
+                            console.error('获取现有任务失败:', fetchError.message);
                             throw fetchError;
                         }
                         
+                        console.log('现有任务:', existingTasks ? existingTasks.length : 0, '个任务');
+                        
                         // 2. 获取现有任务的id和更新时间列表
-                        const existingTasksMap = new Map(existingTasks.map(task => [task.id, task.updated_at]));
+                        const existingTasksMap = new Map();
+                        if (existingTasks && existingTasks.length > 0) {
+                            existingTasks.forEach(task => {
+                                existingTasksMap.set(task.id, task.updated_at);
+                            });
+                        }
+                        console.log('现有任务映射表大小:', existingTasksMap.size);
                         
                         // 3. 分离需要插入和更新的任务，基于id和时间戳
                         // 只有真正没有id的任务才应该被插入，已存在id且本地版本更新的任务才应该被更新
@@ -2221,41 +2343,59 @@
                         
                         for (const task of dataWithTimestamps) {
                             if (!task.id) {
+                                console.log(`任务 ${task.name}: 无ID，准备插入`);
                                 tasksToInsert.push(task);
                             } else if (existingTasksMap.has(task.id)) {
                                 // 比较时间戳，只有本地版本更新时才更新
                                 const serverUpdatedAt = existingTasksMap.get(task.id);
                                 if (!serverUpdatedAt || new Date(task.updated_at) > new Date(serverUpdatedAt)) {
+                                    console.log(`任务 ${task.id}: 本地版本更新，准备更新`);
                                     tasksToUpdate.push(task);
+                                } else {
+                                    console.log(`任务 ${task.id}: 服务器版本更新，跳过`);
                                 }
                             } else {
                                 // 数据库中没有这个id，需要插入
+                                console.log(`任务 ${task.id}: 服务器不存在，准备插入`);
                                 tasksToInsert.push(task);
                             }
                         }
                         
+                        console.log('准备插入:', tasksToInsert.length, '个任务');
+                        console.log('准备更新:', tasksToUpdate.length, '个任务');
+                        
                         // 4. 执行更新操作
-                        for (const task of tasksToUpdate) {
-                            const { error: updateError } = await supabase
-                                .from('tasks')
-                                .update(task)
-                                .eq('id', task.id);
-                            
-                            if (updateError) {
-                                throw updateError;
+                        if (tasksToUpdate.length > 0) {
+                            console.log('步骤4: 执行更新操作...');
+                            for (const task of tasksToUpdate) {
+                                console.log(`更新任务: ${task.id} - ${task.name}`);
+                                const { error: updateError } = await supabase
+                                    .from('tasks')
+                                    .update(task)
+                                    .eq('id', task.id);
+                                
+                                if (updateError) {
+                                    console.error(`更新任务 ${task.id} 失败:`, updateError.message);
+                                    throw updateError;
+                                }
                             }
+                            console.log('更新操作完成');
                         }
                         
                         // 5. 执行插入操作
                         if (tasksToInsert.length > 0) {
+                            console.log('步骤5: 执行插入操作...');
                             const { data: insertedData, error: insertError } = await supabase
                                 .from('tasks')
                                 .insert(tasksToInsert)
                                 .select();
                             
                             if (insertError) {
+                                console.error('插入任务失败:', insertError.message);
                                 throw insertError;
                             }
+                            
+                            console.log('插入操作完成，成功插入:', insertedData ? insertedData.length : 0, '个任务');
                             
                             // 更新本地任务对象，添加Supabase自动生成的ID
                             if (insertedData && insertedData.length > 0) {
@@ -2273,13 +2413,17 @@
                                         data[localTaskIndex].id = insertedTask.id;
                                         data[localTaskIndex].created_at = insertedTask.created_at;
                                         data[localTaskIndex].updated_at = insertedTask.updated_at;
+                                        console.log(`任务 ${insertedTask.name}: 已分配ID ${insertedTask.id}`);
                                     }
                                 });
                                 
                                 // 将更新后的ID保存到localStorage
                                 localStorage.setItem('timeProjectReminderTasks', JSON.stringify(dataWithTimestamps));
+                                console.log('已将更新后的ID保存到localStorage');
                             }
                         }
+                        
+                        console.log('数据保存到Supabase完成');
                     } else {
                         console.log('Supabase未初始化，仅保存到localStorage');
                     }
