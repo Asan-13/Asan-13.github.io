@@ -152,15 +152,15 @@
             }
             /* 状态样式 */
             .status-ongoing {
-                background-color: var(--status-ongoing);
+                background-color: var(--ongoing-color);
             }
             
             .status-not-started {
-                background-color: var(--status-not-started);
+                background-color: var(--upcoming-color);
             }
             
             .status-ended {
-                background-color: var(--status-ended);
+                background-color: var(--completed-color);
             }
         }
     </style>
@@ -185,9 +185,9 @@
             --priority-none: #64748b;
             
             /* 状态颜色 */
-            --status-ongoing: #10b981;
-            --status-not-started: #3b82f6;
-            --status-ended: #64748b;
+            --ongoing-color: #10b981;
+            --upcoming-color: #3b82f6;
+            --completed-color: #64748b;
         }
         
         /* 浅色主题 (未实现切换) */
@@ -1196,21 +1196,83 @@
                                     (task.recurrence && task.recurrence.durationUnit !== undefined ? task.recurrence.durationUnit : 'hour');
                 const durationText = `${duration} ${durationUnit === 'minute' ? '分钟' : durationUnit === 'hour' ? '小时' : durationUnit === 'day' ? '天' : '周'}`;
                 
+                // 计算事件的下次发生时间
+                function getNextOccurrence(task, now) {
+                    const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
+                    const [startHour, startMinute] = task.startTime.split(':').map(Number);
+                    const initialStart = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
+                    
+                    // 对于非重复事件，直接返回初始开始时间
+                    if ((task.recurrence && task.recurrence.type === "none") || !task.recurrence) {
+                        return initialStart;
+                    }
+                    
+                    let intervalMs;
+                    switch(task.recurrence.type) {
+                        case "daily":
+                            intervalMs = 24 * 60 * 60 * 1000;
+                            break;
+                        case "weekly":
+                            intervalMs = 7 * 24 * 60 * 60 * 1000;
+                            break;
+                        case "custom":
+                            intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
+                            break;
+                        default:
+                            intervalMs = 24 * 60 * 60 * 1000;
+                    }
+                    
+                    const timeDiff = now - initialStart;
+                    const intervals = Math.floor(timeDiff / intervalMs);
+                    const lastOccurrence = new Date(initialStart.getTime() + intervals * intervalMs);
+                    
+                    const durationMs = convertToMilliseconds(duration, durationUnit);
+                    
+                    // 如果当前时间在最后一次发生的持续时间内，返回最后一次发生时间
+                    if (now <= lastOccurrence.getTime() + durationMs) {
+                        return lastOccurrence;
+                    }
+                    
+                    // 否则返回下次发生时间
+                    return new Date(lastOccurrence.getTime() + intervalMs);
+                }
+                
+                // 计算时间差的显示文本
+                function formatTimeDiff(ms) {
+                    const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+                    const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                    const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+                    
+                    if (days > 0) {
+                        return `${days}天后`;
+                    } else if (hours > 0) {
+                        return `${hours}小时后`;
+                    } else {
+                        return `${minutes}分钟后`;
+                    }
+                }
+                
                 // 计算事件状态
                 const now = new Date();
-                const taskStartDateTime = new Date(`${task.startDate}T${task.startTime}`);
+                const nextOccurrence = getNextOccurrence(task, now);
                 const durationMs = convertToMilliseconds(duration, durationUnit);
-                const endTime = new Date(taskStartDateTime.getTime() + durationMs);
+                const startTime = nextOccurrence;
+                const endTime = new Date(nextOccurrence.getTime() + durationMs);
                 
                 let status = '未开始';
                 let statusClass = 'status-not-started';
                 
-                if (now >= taskStartDateTime && now <= endTime) {
+                if (now >= startTime && now <= endTime) {
                     status = '进行中';
                     statusClass = 'status-ongoing';
-                } else if (now > endTime) {
+                } else if ((!task.recurrence || task.recurrence.type === "none") && now > endTime) {
                     status = '已结束';
                     statusClass = 'status-ended';
+                } else {
+                    // 对于循环事件，显示距离下次开始的时间
+                    const timeUntilNext = startTime - now;
+                    status = `${formatTimeDiff(timeUntilNext)}开始`;
+                    statusClass = 'status-not-started';
                 }
 
                 html += `

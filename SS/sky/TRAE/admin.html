@@ -148,6 +148,16 @@
             .edit-btn {
                 @apply text-primary hover:bg-primary/10;
             }
+            /* 状态样式 */
+            .status-ongoing {
+                background-color: var(--ongoing-color, #10b981);
+            }
+            .status-not-started {
+                background-color: var(--upcoming-color, #60a5fa);
+            }
+            .status-ended {
+                background-color: var(--completed-color, #64748b);
+            }
             .delete-btn {
                 @apply text-red-500 hover:bg-red-500/10;
             }
@@ -176,6 +186,9 @@
             --priority-medium: #f59e0b;
             --priority-low: #10b981;
             --priority-none: #64748b;
+            --ongoing-color: #10b981;
+            --upcoming-color: #3b82f6;
+            --completed-color: #64748b;
         }
 
         [data-theme="light"] {
@@ -191,6 +204,9 @@
             --priority-medium: #d97706;
             --priority-low: #059669;
             --priority-none: #6b7280;
+            --ongoing-color: #059669;
+            --upcoming-color: #3b82f6;
+            --completed-color: #6b7280;
         }
 
         /* 应用主题变量 */
@@ -331,6 +347,7 @@
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">地点</th>
                         <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="displayThreshold">显示阈值</th>
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">重复类型</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">状态</th>
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">操作</th>
                     </tr>
                 </thead>
@@ -986,6 +1003,96 @@
                 };
                 const thresholdText = `${task.displayThreshold}${thresholdUnitNames[task.displayThresholdUnit]}`;
                 
+                // 转换时间单位为毫秒
+                function convertToMilliseconds(value, unit) {
+                    const units = {
+                        minute: 60 * 1000,
+                        hour: 60 * 60 * 1000,
+                        day: 24 * 60 * 60 * 1000,
+                        week: 7 * 24 * 60 * 60 * 1000
+                    };
+                    return value * (units[unit] || units.minute);
+                }
+                
+                // 计算事件的下次发生时间
+                function getNextOccurrence(task, now) {
+                    const [startYear, startMonth, startDay] = task.startDate.split('-').map(Number);
+                    const [startHour, startMinute] = task.startTime.split(':').map(Number);
+                    const initialStart = new Date(startYear, startMonth - 1, startDay, startHour, startMinute);
+                    
+                    // 对于非重复事件，直接返回初始开始时间
+                    if (task.recurrence.type === "none") {
+                        return initialStart;
+                    }
+                    
+                    let intervalMs;
+                    switch(task.recurrence.type) {
+                        case "daily":
+                            intervalMs = 24 * 60 * 60 * 1000;
+                            break;
+                        case "weekly":
+                            intervalMs = 7 * 24 * 60 * 60 * 1000;
+                            break;
+                        case "custom":
+                            intervalMs = convertToMilliseconds(task.recurrence.count, task.recurrence.unit);
+                            break;
+                        default:
+                            intervalMs = 24 * 60 * 60 * 1000;
+                    }
+                    
+                    const timeDiff = now - initialStart;
+                    const intervals = Math.floor(timeDiff / intervalMs);
+                    const lastOccurrence = new Date(initialStart.getTime() + intervals * intervalMs);
+                    
+                    const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    
+                    // 如果当前时间在最后一次发生的持续时间内，返回最后一次发生时间
+                    if (now <= lastOccurrence.getTime() + durationMs) {
+                        return lastOccurrence;
+                    }
+                    
+                    // 否则返回下次发生时间
+                    return new Date(lastOccurrence.getTime() + intervalMs);
+                }
+                
+                // 计算时间差的显示文本
+                function formatTimeDiff(ms) {
+                    const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+                    const hours = Math.floor((ms % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+                    const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+                    
+                    if (days > 0) {
+                        return `${days}天后`;
+                    } else if (hours > 0) {
+                        return `${hours}小时后`;
+                    } else {
+                        return `${minutes}分钟后`;
+                    }
+                }
+                
+                // 计算事件状态
+                const now = new Date();
+                const nextOccurrence = getNextOccurrence(task, now);
+                const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                const startTime = nextOccurrence;
+                const endTime = new Date(nextOccurrence.getTime() + durationMs);
+                
+                let status = '未开始';
+                let statusClass = 'status-not-started';
+                
+                if (now >= startTime && now <= endTime) {
+                    status = '进行中';
+                    statusClass = 'status-ongoing';
+                } else if (task.recurrence.type === "none" && now > endTime) {
+                    status = '已结束';
+                    statusClass = 'status-ended';
+                } else {
+                    // 对于循环事件，显示距离下次开始的时间
+                    const timeUntilNext = startTime - now;
+                    status = `${formatTimeDiff(timeUntilNext)}开始`;
+                    statusClass = 'status-not-started';
+                }
+                
                 row.innerHTML = `
                     <td class="text-dark-textSecondary py-2 px-4 text-center">${index + 1}</td>
                     <td class="text-dark-textSecondary py-2 px-4 text-center">${task.id}</td>
@@ -996,6 +1103,11 @@
                     <td class="text-dark-textSecondary py-2 px-4 text-center">${task.location || '-'}</td>
                     <td class="text-dark-textSecondary py-2 px-4 text-center">${thresholdText}</td>
                     <td class="text-dark-textSecondary py-2 px-4 text-center">${recurrenceText}</td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">
+                        <span class="${statusClass} text-white text-xs px-2 py-1 rounded-full">
+                            ${status}
+                        </span>
+                    </td>
                     <td class="py-2 px-4 text-center">
                         <div class="relative inline-block">
                             <button class="action-btn edit-btn" onclick="editTask(${task.id})" title="编辑">
@@ -1005,9 +1117,7 @@
                                 <i class="fa fa-ellipsis-v"></i>
                             </button>
                             <div id="action-dropdown-${task.id}" class="absolute right-0 mt-2 bg-dark-card rounded-lg shadow-xl z-10 hidden border border-gray-700">
-                                <button class="block w-full text-left px-4 py-2 text-sm text-dark-text hover:bg-dark-hover/50 transition-colors" onclick="showConfirmDeleteModal(${task.id})">
-                                    <i class="fa fa-trash mr-2"></i>删除
-                                </button>
+                                <button class="block w-full text-left px-4 py-2 text-sm text-dark-text hover:bg-dark-hover/50 transition-colors" onclick="showConfirmDeleteModal(${task.id})"><i class="fa fa-trash mr-2"></i>删除</button>
                             </div>
                         </div>
                     </td>
