@@ -348,6 +348,20 @@
                 color: #FF6B8B !important;
             }
             
+            /* 词条提示器样式 - 深色主题 */
+            html[data-theme="dark"] .download-tooltip,
+            html[data-theme="dark"] .save-tooltip {
+                background-color: #334155 !important;
+                color: #f8fafc !important;
+            }
+            
+            /* 词条提示器样式 - 浅色主题 */
+            html[data-theme="light"] .download-tooltip,
+            html[data-theme="light"] .save-tooltip {
+                background-color: #FF6B8B !important;
+                color: #ffffff !important;
+            }
+            
             /* 应用主题变量 - 覆盖所有相关元素 */
             body {
                 background-color: var(--bg-color) !important;
@@ -448,19 +462,7 @@
                 color: var(--primary-color) !important;
             }
             
-            /* 词条提示器样式 - 深色主题 */
-            [data-theme="dark"] .download-tooltip,
-            [data-theme="dark"] .save-tooltip {
-                background-color: var(--card-color) !important;
-                color: var(--text-color) !important;
-            }
-            
-            /* 词条提示器样式 - 浅色主题 */
-            [data-theme="light"] .download-tooltip,
-            [data-theme="light"] .save-tooltip {
-                background-color: #FF6B8B !important;
-                color: var(--card-color) !important;
-            }
+
             
             /* 覆盖优先级颜色 */
             .text-priority-high,
@@ -1156,6 +1158,11 @@
                 this.currentTheme = this.getStoredTheme() || this.getSystemTheme();
                 this.init();
             }
+            
+            // 初始化主题
+            init() {
+                this.applyTheme(this.currentTheme);
+            }
 
             // 获取系统主题偏好
             getSystemTheme() {
@@ -1180,7 +1187,22 @@
                 document.documentElement.setAttribute('data-theme', theme);
                 this.currentTheme = theme;
                 this.updateThemeIcon();
+                this.updateTooltips();
                 this.saveTheme(theme);
+            }
+
+            // 更新词条提示器样式
+            updateTooltips() {
+                const tooltips = document.querySelectorAll('.download-tooltip, .save-tooltip');
+                tooltips.forEach(tooltip => {
+                    if (this.currentTheme === 'light') {
+                        tooltip.style.backgroundColor = '#FF6B8B';
+                        tooltip.style.color = 'var(--card-color)';
+                    } else {
+                        tooltip.style.backgroundColor = 'var(--card-color)';
+                        tooltip.style.color = 'var(--text-color)';
+                    }
+                });
             }
 
             // 更新主题图标
