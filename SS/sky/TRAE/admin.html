@@ -280,6 +280,9 @@
     <!-- 登录界面 -->
     <div id="login-container" class="login-container">
         <div class="login-card">
+            <div class="flex justify-center mb-4">
+                <img src="icons/logo.png" alt="Sky Admin Logo" class="w-24 h-24 object-contain">
+            </div>
             <h2 class="text-2xl font-bold text-center mb-6 text-dark-text">Sky 事件 管理 </h2>
             <form id="login-form" class="space-y-4">
                 <div>
@@ -297,7 +300,12 @@
     <!-- 管理后台界面 -->
     <div id="admin-container" class="admin-container hidden">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-dark-text">Sky 事件 管理</h1>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-dark-text">Sky 事件 管理</h1>
+                <a href="163/admin.html" class="p-2 rounded-lg transition-colors" title="切换到光遇管理">
+                    <img src="icons/163.png" alt="切换到光遇管理" style="width: 48px; height: 48px; object-fit: contain;">
+                </a>
+            </div>
             <div class="flex gap-3">
                 <button id="add-task-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
                     <i class="fa fa-plus"></i>
