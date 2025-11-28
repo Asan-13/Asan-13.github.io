@@ -244,13 +244,43 @@
         .data-table {
             overflow-x: auto;
         }
+        
+        /* 优先级标签样式 */
+        .priority-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .priority-high {
+            background-color: var(--priority-high);
+            color: white;
+        }
+        
+        .priority-medium {
+            background-color: var(--priority-medium);
+            color: white;
+        }
+        
+        .priority-low {
+            background-color: var(--priority-low);
+            color: white;
+        }
+        
+        .priority-none {
+            background-color: var(--priority-none);
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-dark-bg min-h-screen">
     <!-- 登录界面 -->
     <div id="login-container" class="login-container">
         <div class="login-card">
-            <h2 class="text-2xl font-bold text-center mb-6 text-dark-text">管理后台登录</h2>
+            <h2 class="text-2xl font-bold text-center mb-6 text-dark-text">Sky 事件 管理 </h2>
             <form id="login-form" class="space-y-4">
                 <div>
                     <label for="password" class="block text-sm font-medium text-dark-textSecondary mb-1">密码</label>
@@ -267,7 +297,7 @@
     <!-- 管理后台界面 -->
     <div id="admin-container" class="admin-container hidden">
         <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-dark-text">Sky 事件 时间 管理</h1>
+            <h1 class="text-2xl font-bold text-dark-text">Sky 事件 管理</h1>
             <div class="flex gap-3">
                 <button id="add-task-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
                     <i class="fa fa-plus"></i>
@@ -284,15 +314,16 @@
             <table class="w-full border-collapse">
                 <thead class="bg-dark-card/50">
                     <tr>
-                        <th class="sortable py-2 px-4 text-left text-dark-textSecondary font-medium text-sm" data-sort-key="sequence">序号</th>
-                        <th class="sortable py-2 px-4 text-left text-dark-textSecondary font-medium text-sm" data-sort-key="name">事件名称</th>
-                        <th class="sortable py-2 px-4 text-left text-dark-textSecondary font-medium text-sm" data-sort-key="priority">优先级</th>
-                        <th class="sortable py-2 px-4 text-left text-dark-textSecondary font-medium text-sm" data-sort-key="startDate">开始时间</th>
-                        <th class="sortable py-2 px-4 text-left text-dark-textSecondary font-medium text-sm" data-sort-key="duration">持续时间</th>
-                        <th class="py-2 px-4 text-left text-dark-textSecondary font-medium text-sm">地点</th>
-                        <th class="sortable py-2 px-4 text-left text-dark-textSecondary font-medium text-sm" data-sort-key="displayThreshold">显示阈值</th>
-                        <th class="py-2 px-4 text-left text-dark-textSecondary font-medium text-sm">重复类型</th>
-                        <th class="py-2 px-4 text-left text-dark-textSecondary font-medium text-sm">操作</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">序号</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="id">ID</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="name">事件名称</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="priority">优先级</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="startDate">开始时间</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="duration">持续时间</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">地点</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="displayThreshold">显示阈值</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">重复类型</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">操作</th>
                     </tr>
                 </thead>
                 <tbody id="tasks-table-body">
@@ -685,50 +716,115 @@
         // 从 Supabase 加载任务
         // 合并数据（基于时间戳的冲突解决）
         function mergeData(localData, remoteData) {
-            if (!localData || localData.length === 0) {
-                return remoteData;
+            // 确保数据数组有效
+            const local = localData || [];
+            const remote = remoteData || [];
+            
+            // 如果只有远程数据，直接返回
+            if (local.length === 0) {
+                return remote;
             }
             
-            if (!remoteData || remoteData.length === 0) {
-                return localData;
+            // 如果只有本地数据，直接返回
+            if (remote.length === 0) {
+                return local;
             }
             
             // 创建映射表，方便查找任务
-            const localTasksMap = new Map(localData.map(task => [task.id, task]));
-            const remoteTasksMap = new Map(remoteData.map(task => [task.id, task]));
+            const localTasksMap = new Map(local.map(task => [task.id, task]));
+            const remoteTasksMap = new Map(remote.map(task => [task.id, task]));
             
             const mergedTasks = [];
             const processedIds = new Set();
             
-            // 遍历所有任务ID，合并数据
-            for (const id of [...localTasksMap.keys(), ...remoteTasksMap.keys()]) {
+            // 遍历所有远程任务ID，确保远程数据优先
+            for (const [id, remoteTask] of remoteTasksMap.entries()) {
                 if (processedIds.has(id)) continue;
                 
                 const localTask = localTasksMap.get(id);
-                const remoteTask = remoteTasksMap.get(id);
                 
                 if (!localTask) {
                     // 本地没有，使用远程数据
                     mergedTasks.push(remoteTask);
-                } else if (!remoteTask) {
-                    // 远程没有，使用本地数据
-                    mergedTasks.push(localTask);
                 } else {
                     // 本地和远程都有，比较时间戳，使用更新的版本
                     const localUpdatedAt = new Date(localTask.updated_at || 0);
                     const remoteUpdatedAt = new Date(remoteTask.updated_at || 0);
                     
                     if (remoteUpdatedAt > localUpdatedAt) {
+                        // 远程更新，使用远程数据
                         mergedTasks.push(remoteTask);
+                        console.log(`任务 ${id} 使用远程数据，远程时间: ${remoteUpdatedAt}，本地时间: ${localUpdatedAt}`);
                     } else {
+                        // 本地更新，使用本地数据
                         mergedTasks.push(localTask);
+                        console.log(`任务 ${id} 使用本地数据，远程时间: ${remoteUpdatedAt}，本地时间: ${localUpdatedAt}`);
                     }
                 }
                 
                 processedIds.add(id);
             }
             
+            // 添加本地独有的任务
+            for (const [id, localTask] of localTasksMap.entries()) {
+                if (!processedIds.has(id)) {
+                    mergedTasks.push(localTask);
+                    console.log(`任务 ${id} 仅本地存在，添加到合并结果`);
+                }
+            }
+            
             return mergedTasks;
+        }
+        
+        // 保存数据到 Supabase
+        async function saveData(data, retry = 0) {
+            try {
+                // 确保数据数组有效
+                const validData = data || [];
+                
+                // 更新每个任务的时间戳，确保本地修改被正确标记
+                const updatedData = validData.map(task => ({
+                    ...task,
+                    updated_at: new Date().toISOString() // 始终使用当前时间作为更新时间
+                }));
+                
+                // 保存数据到localStorage（直接调用localStorage.setItem，避免递归）
+                localStorage.setItem('timeProjectReminderTasks', JSON.stringify(updatedData));
+                
+                if (!supabase) {
+                    console.log('Supabase 未初始化，仅保存到本地存储');
+                    showNotification('数据已保存到本地', false);
+                    return;
+                }
+                
+                // 处理数据，确保格式正确
+                const processedData = updatedData.map(task => ({
+                    ...task,
+                    // 确保recurrence是一个对象，防止NOT NULL约束错误
+                    recurrence: task.recurrence || { type: 'none', duration: 1, durationUnit: 'hour' }
+                }));
+                
+                try {
+                    // 使用upsert操作更新或插入数据
+                    const { error } = await supabase
+                        .from('tasks')
+                        .upsert(processedData, { onConflict: 'id' });
+                    
+                    if (error) {
+                        console.error('Supabase 保存失败:', error);
+                        showNotification('数据同步失败: ' + error.message, true);
+                    } else {
+                        showNotification('数据已成功同步到云端', false);
+                    }
+                } catch (fetchError) {
+                    // 处理网络错误，避免影响本地保存
+                    console.error('Supabase 网络请求失败:', fetchError);
+                    showNotification('数据已保存到本地，但云端同步失败（网络问题）', true);
+                }
+            } catch (error) {
+                console.error('保存数据失败:', error);
+                showNotification('保存数据失败: ' + error.message, true);
+            }
         }
         
         async function loadTasks() {
@@ -743,25 +839,27 @@
                     return;
                 }
                 
-                // 获取本地存储的数据
-                const localData = loadFromLocalStorage() || [];
+                showNotification('正在从云端加载最新数据...', false);
                 
                 const { data: remoteData, error } = await supabase
                     .from('tasks')
                     .select('*');
                 
                 if (error) {
-                    console.log('Supabase 加载失败，尝试从localStorage加载数据:', error);
+                    console.error('Supabase 加载失败:', error);
+                    // 云端加载失败时，仅作为后备使用本地数据
                     const localData = loadFromLocalStorage();
                     tasks = localData || [];
                     renderTasksTable();
-                    showNotification('Supabase 加载失败，使用本地存储数据', false);
+                    showNotification('数据加载失败，使用本地存储数据作为后备', true);
                 } else {
-                    // 合并本地和远程数据，基于时间戳
-                    tasks = mergeData(localData, remoteData) || [];
-                    // 将合并后的数据保存到localStorage作为备份
-                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                    // 后端直接使用云端数据，忽略本地缓存
+                    console.log('成功从云端加载数据，共', remoteData.length, '个任务');
+                    tasks = remoteData || [];
+                    // 将云端数据保存到localStorage作为备份
+                    await saveData(tasks);
                     renderTasksTable();
+                    showNotification('数据已成功从云端同步', false);
                 }
             } catch (error) {
                 console.error('加载任务失败:', error);
@@ -771,8 +869,8 @@
         
         // 排序配置
         let sortConfig = {
-            key: 'sequence',
-            direction: 'asc'
+            key: null,
+            direction: 1
         };
         
         // 渲染任务表格
@@ -783,43 +881,40 @@
             const sortedTasks = [...tasks].sort((a, b) => {
                 let aVal, bVal;
                 
-                if (sortConfig.key === 'sequence') {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
+                // 如果没有排序键，不排序
+                if (!sortConfig.key) {
+                    return 0;
                 }
                 
                 switch (sortConfig.key) {
+                    case 'id':
+                        aVal = parseInt(a.id);
+                        bVal = parseInt(b.id);
+                        return (aVal - bVal) * sortConfig.direction;
                     case 'name':
                         aVal = a.name.toLowerCase();
                         bVal = b.name.toLowerCase();
-                        break;
+                        return aVal.localeCompare(bVal) * sortConfig.direction;
                     case 'priority':
                         const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
                         aVal = priorityOrder[a.priority] || 0;
                         bVal = priorityOrder[b.priority] || 0;
-                        break;
+                        return (aVal - bVal) * sortConfig.direction;
                     case 'startDate':
                         aVal = new Date(`${a.startDate} ${a.startTime}`).getTime();
                         bVal = new Date(`${b.startDate} ${b.startTime}`).getTime();
-                        break;
+                        return (aVal - bVal) * sortConfig.direction;
                     case 'duration':
-                        aVal = a.duration || 0;
-                        bVal = b.duration || 0;
-                        break;
+                        aVal = parseFloat(a.duration) || 0;
+                        bVal = parseFloat(b.duration) || 0;
+                        return (aVal - bVal) * sortConfig.direction;
                     case 'displayThreshold':
                         aVal = a.displayThreshold;
                         bVal = b.displayThreshold;
-                        break;
+                        return (aVal - bVal) * sortConfig.direction;
                     default:
                         return 0;
                 }
-                
-                if (aVal < bVal) {
-                    return sortConfig.direction === 'asc' ? -1 : 1;
-                }
-                if (aVal > bVal) {
-                    return sortConfig.direction === 'asc' ? 1 : -1;
-                }
-                return 0;
             });
             
             sortedTasks.forEach((task, index) => {
@@ -862,15 +957,16 @@
                 const thresholdText = `${task.displayThreshold}${thresholdUnitNames[task.displayThresholdUnit]}`;
                 
                 row.innerHTML = `
-                    <td class="text-dark-textSecondary py-2 px-4">${index + 1}</td>
-                    <td class="text-dark-text font-medium py-2 px-4">${task.name}</td>
-                    <td class="text-dark-textSecondary py-2 px-4">${priorityText}</td>
-                    <td class="text-dark-textSecondary py-2 px-4">${task.startDate} ${task.startTime}</td>
-                    <td class="text-dark-textSecondary py-2 px-4">${durationText}</td>
-                    <td class="text-dark-textSecondary py-2 px-4">${task.location || '-'}</td>
-                    <td class="text-dark-textSecondary py-2 px-4">${thresholdText}</td>
-                    <td class="text-dark-textSecondary py-2 px-4">${recurrenceText}</td>
-                    <td class="py-2 px-4">
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">${index + 1}</td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">${task.id}</td>
+                    <td class="text-dark-text font-medium py-2 px-4 text-center">${task.name}</td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center"><span class="priority-tag priority-${task.priority || 'none'}">${priorityText}</span></td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">${task.startDate} ${task.startTime}</td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">${durationText}</td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">${task.location || '-'}</td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">${thresholdText}</td>
+                    <td class="text-dark-textSecondary py-2 px-4 text-center">${recurrenceText}</td>
+                    <td class="py-2 px-4 text-center">
                         <div class="relative inline-block">
                             <button class="action-btn edit-btn" onclick="editTask(${task.id})" title="编辑">
                                 <i class="fa fa-pencil"></i>
@@ -1004,7 +1100,7 @@
                     // 直接从本地任务列表中删除
                     tasks = tasks.filter(t => t.id !== currentTaskIdToDelete);
                     // 保存到localStorage
-                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                    await saveData(tasks);
                     // 更新表格
                     renderTasksTable();
                     showNotification('事件删除成功', false);
@@ -1020,7 +1116,7 @@
                         // 直接从本地任务列表中删除
                         tasks = tasks.filter(t => t.id !== currentTaskIdToDelete);
                         // 保存到localStorage
-                        localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                        await saveData(tasks);
                         // 更新表格
                         renderTasksTable();
                         showNotification('事件已在本地删除', false);
@@ -1036,7 +1132,7 @@
                 console.error('删除任务失败:', error);
                 // 从本地存储中删除任务
                 tasks = tasks.filter(t => t.id !== currentTaskIdToDelete);
-                localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                await saveData(tasks);
                 renderTasksTable();
                 showNotification('事件已在本地删除', false);
             } finally {
@@ -1218,7 +1314,7 @@
                     }
                     
                     // 保存到localStorage
-                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                    await saveData(tasks);
                     renderTasksTable();
                     taskModal.classList.add('hidden');
                     showNotification('事件已在本地更新');
@@ -1333,7 +1429,7 @@
                             }
                             
                             // 保存到localStorage
-                            localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                            await saveData(tasks);
                             showNotification('事件已在本地更新', false);
                         }
                     } else {
@@ -1401,7 +1497,7 @@
                         
                         tasks.push(newTask);
                         // 保存到localStorage
-                        localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                        await saveData(tasks);
                         showNotification('事件已在本地添加', false);
                     } else {
                         // 更新本地数据，使用Supabase生成的id
@@ -1455,14 +1551,14 @@
                             }
                             
                             tasks.push(newTask);
-                            localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                            await saveData(tasks);
                             showNotification('事件已在本地添加', false);
                         }
                     }
                 }
                 
                 // 更新localStorage，确保与前端同步
-                localStorage.setItem('timeProjectReminderTasks', JSON.stringify(tasks));
+                await saveData(tasks);
                 renderTasksTable();
                 taskModal.classList.add('hidden');
             } catch (error) {
@@ -1500,11 +1596,11 @@
             const sortKey = th.dataset.sortKey;
             if (sortKey === sortConfig.key) {
                 // 切换排序方向
-                sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                sortConfig.direction *= -1;
             } else {
                 // 新的排序键，默认升序
                 sortConfig.key = sortKey;
-                sortConfig.direction = 'asc';
+                sortConfig.direction = 1;
             }
             
             // 更新排序指示器 - 不显示任何图标
@@ -1512,7 +1608,7 @@
                 th.classList.remove('sort-asc', 'sort-desc');
             });
             
-            th.classList.add(sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+            th.classList.add(sortConfig.direction === 1 ? 'sort-asc' : 'sort-desc');
             
             // 重新渲染表格
             renderTasksTable();

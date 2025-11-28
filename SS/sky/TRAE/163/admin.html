@@ -343,84 +343,57 @@
         }
     </style>
 </head>
-<body class="bg-[#0B132B] min-h-screen text-gray-200 font-sans">
+<body class="bg-dark-bg min-h-screen">
     <!-- 登录界面 -->
     <div id="login-container" class="login-container">
         <div class="login-card">
-            <div class="text-center mb-6">
-                <i class="fa fa-calendar-check-o text-primary text-4xl mb-3"></i>
-                <h2 class="text-3xl font-bold text-primary">Sky 管理后台</h2>
-                <p class="text-gray-400 mt-2">请输入密码登录</p>
-            </div>
+            <h2 class="text-2xl font-bold text-center mb-6 text-dark-text">光·遇 事件 管理 </h2>
             <form id="login-form" class="space-y-4">
-                <div class="relative">
-                    <label for="password" class="block text-sm font-medium text-gray-300 mb-1">密码</label>
-                    <div class="relative">
-                        <input type="password" id="password" name="password" required class="w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="输入管理密码">
-                        <button type="button" id="toggle-password" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                    </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-dark-textSecondary mb-1">密码</label>
+                    <input type="password" id="password" name="password" required class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
                 </div>
-                <button type="submit" class="w-full bg-primary text-white font-medium py-3 px-6 rounded-lg shadow-lg hover:shadow-xl hover:opacity-95 transition-all duration-300 transform hover:scale-[1.02]">
-                    <i class="fa fa-sign-in mr-2"></i> 登录管理后台
+                <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg transition-colors">
+                    登录
                 </button>
             </form>
-            <p id="login-error" class="mt-4 text-center text-red-500 text-sm bg-red-500/10 p-3 rounded-lg hidden">密码错误，请重试</p>
+            <p id="login-error" class="mt-4 text-center text-red-500 text-sm hidden">密码错误</p>
         </div>
     </div>
 
     <!-- 管理后台界面 -->
     <div id="admin-container" class="admin-container hidden">
-        <!-- 页面顶部导航栏 -->
-        <header class="bg-gray-800/80 backdrop-blur-md shadow-lg border-b border-gray-700 mb-6">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <i class="fa fa-calendar-check-o text-primary text-2xl"></i>
-                        <h1 class="text-2xl font-bold text-primary">Sky 事件 时间 管理</h1>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <a href="./index.html" target="_blank" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-md">
-                            <i class="fa fa-eye"></i>
-                            <span>查看前端</span>
-                        </a>
-                        <button id="add-task-btn" class="bg-primary text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-[1.02]">
-                            <i class="fa fa-plus"></i>
-                            <span>添加事件</span>
-                        </button>
-                        <button id="logout-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 shadow-md hover:shadow-lg">
-                            <i class="fa fa-sign-out"></i>
-                            <span>退出</span>
-                        </button>
-                    </div>
-                </div>
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-dark-text">光·遇 事件 管理</h1>
+            <div class="flex gap-3">
+                <button id="add-task-btn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                    <i class="fa fa-plus"></i>
+                    添加事件
+                </button>
+                <button id="logout-btn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    退出
+                </button>
             </div>
-        </header>
-
-        <!-- 主内容区 -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- 数据表格 -->
-            <div class="bg-gray-800/60 backdrop-blur-md rounded-xl shadow-lg overflow-hidden border border-gray-700">
-                <div class="p-4 border-b border-gray-700 bg-gray-800/80">
-                    <h2 class="text-xl font-semibold">事件列表</h2>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full data-table">
-                        <thead class="bg-gray-800/90">
-                            <tr>
-                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="sequence">序号</th>
-                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="name">事件名称</th>
-                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="priority">优先级</th>
-                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="startDate">开始时间</th>
-                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="duration">持续时间</th>
-                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">地点</th>
-                                <th class="sortable py-3 px-4 text-left text-gray-300 font-semibold text-sm" data-sort-key="displayThreshold">显示阈值</th>
-                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">重复类型</th>
-                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">状态</th>
-                                <th class="py-3 px-4 text-left text-gray-300 font-semibold text-sm">操作</th>
-                            </tr>
-                        </thead>
+        </div>
+        
+        <!-- 数据表格 -->
+        <div class="data-table mb-6">
+            <table class="w-full border-collapse">
+                <thead class="bg-dark-card/50">
+                    <tr>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">序号</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="id">ID</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="name">事件名称</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="priority">优先级</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="startDate">开始时间</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="duration">持续时间</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">地点</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="displayThreshold">显示阈值</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">重复类型</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">状态</th>
+                        <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">操作</th>
+                    </tr>
+                </thead>
                         <tbody id="tasks-table-body">
                             <!-- 数据将通过JavaScript动态生成 -->
                         </tbody>
@@ -782,22 +755,23 @@
         // 从 Supabase 加载任务数据
         async function loadFromSupabase() {
             if (!supabase) {
-                console.log('Supabase 未初始化，尝试从localStorage加载数据');
-                return loadFromLocalStorage();
+                console.error('Supabase 未初始化，无法加载数据');
+                showNotification('Supabase 未初始化，无法从云端加载数据', true);
+                return [];
             }
 
             try {
-                // 强制从 Supabase 获取最新数据
+                // 强制从 Supabase 获取最新数据，忽略本地缓存
                 const { data, error } = await supabase
                     .from('tasks_163')
                     .select('*')
                     .order('id', { ascending: true });
 
                 if (error) {
-                    // Supabase请求失败时，记录错误但仍尝试使用本地缓存
+                    // Supabase请求失败时，记录错误，不回退到本地缓存
                     console.error('从Supabase加载数据失败:', error);
-                    showNotification('从Supabase加载数据失败，正在尝试使用最新缓存', false);
-                    return loadFromLocalStorage();
+                    showNotification('从Supabase加载数据失败，无法获取最新数据', true);
+                    return [];
                 }
 
                 if (data && data.length > 0) {
@@ -850,18 +824,23 @@
 
         // 保存数据到localStorage和Supabase
         async function saveData(data) {
-            // 1. 保存到localStorage
-            try {
-                localStorage.setItem('timeProjectReminderTasks_163', JSON.stringify(data));
-                console.log('数据已保存到本地存储:', data.length, '条记录');
-                showNotification('数据已保存到本地存储', false);
-            } catch (localError) {
-                console.error('保存到本地存储失败:', localError);
-                showNotification('保存到本地存储失败', true);
+            // 1. 确保数据有效
+            if (!Array.isArray(data)) {
+                console.error('无效的数据格式，无法保存');
+                showNotification('无效的数据格式，无法保存', true);
                 return false;
             }
 
-            // 2. 如果Supabase可用，尝试保存到Supabase
+            // 2. 保存到localStorage
+            try {
+                localStorage.setItem('timeProjectReminderTasks_163', JSON.stringify(data));
+                console.log('数据已保存到本地存储:', data.length, '条记录');
+            } catch (localError) {
+                console.error('保存到本地存储失败:', localError);
+                // 本地保存失败不影响云端同步
+            }
+
+            // 3. 如果Supabase可用，保存到Supabase
             if (supabase) {
                 try {
                     console.log('开始保存数据到Supabase...');
@@ -879,7 +858,8 @@
                             displayThreshold: task.displayThreshold,
                             displayThresholdUnit: task.displayThresholdUnit,
                             priority: task.priority,
-                            recurrence: task.recurrence || ''
+                            recurrence: task.recurrence || '',
+                            updated_at: new Date().toISOString() // 更新时间戳
                             // 注意：不直接包含duration、durationUnit和type字段
                         };
                         return processedTask;
@@ -938,7 +918,7 @@
         // 排序状态
         let sortConfig = {
             key: null,
-            direction: 1 // 1 升序, -1 降序
+            direction: 1
         };
 
         // 登录状态
@@ -1020,14 +1000,24 @@
 
         // 排序函数
         function sortTasks(key) {
+            console.log('sortTasks函数被调用，key:', key, '当前sortConfig:', sortConfig);
             if (sortConfig.key === key) {
                 // 如果点击同一列，切换排序方向
                 sortConfig.direction *= -1;
             } else {
-                // 否则，设置新的排序列和升序方向
+                // 否则，设置新的排序列
                 sortConfig.key = key;
-                sortConfig.direction = 1;
+                // 对于ID列和duration列，首次点击默认降序
+                // 因为数据从数据库加载时已经是ID升序和duration升序
+                if (key === 'id' || key === 'duration') {
+                    // 首次点击ID列或duration列，默认降序
+                    sortConfig.direction = -1;
+                } else {
+                    // 其他列首次点击默认升序
+                    sortConfig.direction = 1;
+                }
             }
+            console.log('sortTasks函数执行后，sortConfig:', sortConfig);
             renderTasks();
         }
 
@@ -1052,43 +1042,54 @@
                 return;
             }
             
+            console.log('开始渲染任务，当前排序配置:', sortConfig);
+            
             // 排序任务
-            let sortedTasks = [...tasks];
-            if (sortConfig.key) {
-                sortedTasks.sort((a, b) => {
-                    let aVal = a[sortConfig.key];
-                    let bVal = b[sortConfig.key];
-                    
-                    // 处理优先级比较
-                    if (sortConfig.key === 'priority') {
-                        const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
-                        aVal = priorityOrder[aVal] || 0;
-                        bVal = priorityOrder[bVal] || 0;
-                    }
-                    
-                    // 处理日期比较
-                    if (sortConfig.key === 'startDate') {
-                        aVal = new Date(aVal);
-                        bVal = new Date(bVal);
-                    }
-                    
-                    // 处理时间比较
-                    if (sortConfig.key === 'startTime') {
-                        aVal = new Date(`2000-01-01 ${aVal}`);
-                        bVal = new Date(`2000-01-01 ${bVal}`);
-                    }
-                    
-                    // 数值比较
-                    if (typeof aVal === 'number' && typeof bVal === 'number') {
+            console.log('开始排序任务，当前tasks长度:', tasks.length, 'sortConfig:', sortConfig);
+            const sortedTasks = [...tasks].sort((a, b) => {
+                let aVal, bVal;
+                
+                // 如果没有排序键，不排序
+                if (!sortConfig.key) {
+                    console.log('没有排序键，返回0');
+                    return 0;
+                }
+                
+                switch (sortConfig.key) {
+                    case 'id':
+                        aVal = parseInt(a.id);
+                        bVal = parseInt(b.id);
                         return (aVal - bVal) * sortConfig.direction;
-                    }
-                    
-                    // 字符串比较
-                    aVal = String(aVal);
-                    bVal = String(bVal);
-                    return aVal.localeCompare(bVal) * sortConfig.direction;
-                });
-            }
+                    case 'name':
+                        aVal = a.name.toLowerCase();
+                        bVal = b.name.toLowerCase();
+                        return aVal.localeCompare(bVal) * sortConfig.direction;
+                    case 'priority':
+                        const priorityOrder = { high: 3, medium: 2, low: 1, none: 0 };
+                        aVal = priorityOrder[a.priority] || 0;
+                        bVal = priorityOrder[b.priority] || 0;
+                        return (aVal - bVal) * sortConfig.direction;
+                    case 'startDate':
+                        aVal = new Date(`${a.startDate} ${a.startTime}`).getTime();
+                        bVal = new Date(`${b.startDate} ${b.startTime}`).getTime();
+                        return (aVal - bVal) * sortConfig.direction;
+                    case 'duration':
+                        // 转换为统一单位（毫秒）后比较
+                        const aDuration = parseFloat(a.duration) || 0;
+                        const bDuration = parseFloat(b.duration) || 0;
+                        const aUnit = a.durationUnit || 'minute';
+                        const bUnit = b.durationUnit || 'minute';
+                        aVal = convertToMilliseconds(aDuration, aUnit);
+                        bVal = convertToMilliseconds(bDuration, bUnit);
+                        return (aVal - bVal) * sortConfig.direction;
+                    case 'displayThreshold':
+                        aVal = a.displayThreshold;
+                        bVal = b.displayThreshold;
+                        return (aVal - bVal) * sortConfig.direction;
+                    default:
+                        return 0;
+                }
+            });
 
             if (sortedTasks.length === 0) {
                 tbody.innerHTML = `
@@ -1141,25 +1142,26 @@
 
                 html += `
                     <tr class="hover:bg-dark-hover transition-colors ${index % 2 === 0 ? 'bg-dark-card' : 'bg-dark-card-alt'}">
-                        <td class="py-2 px-4 text-sm">${index + 1}</td>
-                        <td class="py-2 px-4 text-sm">${task.name}</td>
-                        <td class="py-2 px-4 text-sm">
+                        <td class="py-2 px-4 text-sm text-center">${index + 1}</td>
+                        <td class="py-2 px-4 text-sm text-center">${task.id}</td>
+                        <td class="py-2 px-4 text-sm text-center">${task.name}</td>
+                        <td class="py-2 px-4 text-sm text-center">
                             <span class="bg-priority-${task.priority || 'none'} text-white text-xs px-2 py-1 rounded-full">
                                 ${priorityText}
                             </span>
                         </td>
-                        <td class="py-2 px-4 text-sm">${task.startDate} ${task.startTime}</td>
-                        <td class="py-2 px-4 text-sm">${durationText}</td>
-                        <td class="py-2 px-4 text-sm">${task.location || '-'}</td>
-                        <td class="py-2 px-4 text-sm">${thresholdText}</td>
-                        <td class="py-2 px-4 text-sm">${repeatText}</td>
-                        <td class="py-2 px-4 text-sm">
+                        <td class="py-2 px-4 text-sm text-center">${task.startDate} ${task.startTime}</td>
+                        <td class="py-2 px-4 text-sm text-center">${durationText}</td>
+                        <td class="py-2 px-4 text-sm text-center">${task.location || '-'}</td>
+                        <td class="py-2 px-4 text-sm text-center">${thresholdText}</td>
+                        <td class="py-2 px-4 text-sm text-center">${repeatText}</td>
+                        <td class="py-2 px-4 text-sm text-center">
                             <span class="${statusClass} text-white text-xs px-2 py-1 rounded-full">
                                 ${status}
                             </span>
                         </td>
                         <td class="py-2 px-4 text-sm relative">
-                            <div class="flex gap-2">
+                            <div class="flex gap-2 justify-center">
                                 <button class="action-btn edit-btn" data-task-id="${task.id}" title="编辑">
                                     <i class="fa fa-pencil"></i>
                                 </button>
@@ -1355,8 +1357,27 @@
             await saveData(tasks);
         }
 
-        // 初始化事件监听器
+        // 三点菜单事件处理
+        document.addEventListener('click', (e) => {
+            // 三点菜单事件处理
+            if (e.target.closest('.more-btn')) {
+                const moreBtn = e.target.closest('.more-btn');
+                const row = moreBtn.closest('tr');
+                const deleteBtn = row.querySelector('.delete-btn');
+                
+                // 切换删除按钮的显示状态
+                deleteBtn.classList.toggle('hidden');
+            }
+            // 点击其他地方隐藏所有删除按钮
+            else if (!e.target.closest('.delete-btn')) {
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.classList.add('hidden');
+                });
+            }
+        });
+        
         function initEventListeners() {
+            console.log('initEventListeners函数被调用');
             // 登录功能
             const loginForm = document.getElementById('login-form');
             if (loginForm) {
@@ -1407,6 +1428,21 @@
                 taskModalBackdrop.addEventListener('click', closeModal);
             }
             
+            // 排序事件处理
+            console.log('添加排序事件监听器');
+            document.addEventListener('click', (e) => {
+                console.log('点击事件被触发，target:', e.target);
+                const th = e.target.closest('th.sortable');
+                if (th) {
+                    console.log('找到可排序表头:', th, 'data-sort-key:', th.dataset.sortKey);
+                    const sortKey = th.dataset.sortKey;
+                    if (sortKey) {
+                        console.log('调用sortTasks(', sortKey, ')');
+                        sortTasks(sortKey);
+                    }
+                }
+            });
+            
             // 重复类型选择
             const recurrenceOptions = document.querySelectorAll('.recurrence-option');
             if (recurrenceOptions.length > 0) {
@@ -1445,7 +1481,11 @@
                     const recurrenceType = document.getElementById('task-recurrence-type').value;
                     
                     // 构建重复规则
-                    const recurrence = {};
+                    const recurrence = {
+                        duration: duration,
+                        durationUnit: durationUnit,
+                        type: recurrenceType
+                    };
                 
                     if (recurrenceType === 'weekly') {
                         const weekdays = Array.from(document.querySelectorAll('input[name="weekdays"]:checked')).map(checkbox => parseInt(checkbox.value));
@@ -1478,22 +1518,66 @@
                     priority,
                     duration,
                     durationUnit,
-                    type: recurrenceType,
-                    recurrence: Object.keys(recurrence).length > 0 ? recurrence : undefined
+                    recurrence: recurrence
                 };
                 
                 if (taskId) {
-                    // 更新现有任务
+                    // 更新现有任务，与index.html的updateExistingTask函数逻辑保持一致
                     const taskIndex = tasks.findIndex(t => t.id === taskId);
                     if (taskIndex !== -1) {
-                        tasks[taskIndex] = { ...tasks[taskIndex], ...taskData };
+                        tasks[taskIndex].name = taskData.name;
+                        tasks[taskIndex].startDate = taskData.startDate;
+                        tasks[taskIndex].startTime = taskData.startTime;
+                        tasks[taskIndex].displayThreshold = taskData.displayThreshold;
+                        tasks[taskIndex].displayThresholdUnit = taskData.displayThresholdUnit;
+                        tasks[taskIndex].priority = taskData.priority;
+                        tasks[taskIndex].duration = taskData.duration;
+                        tasks[taskIndex].durationUnit = taskData.durationUnit;
+                        tasks[taskIndex].recurrence.duration = taskData.duration;
+                        tasks[taskIndex].recurrence.durationUnit = taskData.durationUnit;
+                        tasks[taskIndex].recurrence.type = taskData.recurrence.type;
+                        
+                        // 清除旧的重复规则
+                        delete tasks[taskIndex].recurrence.weekdays;
+                        delete tasks[taskIndex].recurrence.days;
+                        delete tasks[taskIndex].recurrence.count;
+                        delete tasks[taskIndex].recurrence.unit;
+                        delete tasks[taskIndex].recurrence.customTimes;
+                        
+                        // 根据重复类型添加相应的规则
+                        switch(taskData.recurrence.type) {
+                            case "weekly":
+                                tasks[taskIndex].recurrence.weekdays = taskData.recurrence.weekdays;
+                                break;
+                            case "monthly":
+                                if (taskData.recurrence.weekdays) {
+                                    tasks[taskIndex].recurrence.weekdays = taskData.recurrence.weekdays;
+                                }
+                                if (taskData.recurrence.days) {
+                                    tasks[taskIndex].recurrence.days = taskData.recurrence.days;
+                                }
+                                break;
+                            case "custom":
+                                tasks[taskIndex].recurrence.count = taskData.recurrence.count;
+                                tasks[taskIndex].recurrence.unit = taskData.recurrence.unit;
+                                break;
+                        }
                         showNotification('事件已更新');
                     }
                 } else {
-                    // 添加新任务
+                    // 添加新任务，与index.html的addNewTask函数逻辑保持一致
+                    const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
                     const newTask = {
-                        id: generateId(),
-                        ...taskData
+                        id: newId,
+                        name: taskData.name,
+                        startDate: taskData.startDate,
+                        startTime: taskData.startTime,
+                        displayThreshold: taskData.displayThreshold,
+                        displayThresholdUnit: taskData.displayThresholdUnit,
+                        priority: taskData.priority,
+                        duration: taskData.duration,
+                        durationUnit: taskData.durationUnit,
+                        recurrence: taskData.recurrence
                     };
                     tasks.push(newTask);
                     showNotification('事件已添加');
@@ -1542,67 +1626,33 @@
                 });
             }
             
-            // 表头排序事件
-            document.querySelectorAll('.sortable').forEach(header => {
-                header.addEventListener('click', () => {
-                    const sortKey = header.dataset.sortKey;
-                    sortTasks(sortKey);
-                });
-            });
-
-            // 三点菜单点击事件处理
-            document.addEventListener('click', (e) => {
-                if (e.target.closest('.more-btn')) {
-                    const moreBtn = e.target.closest('.more-btn');
-                    const row = moreBtn.closest('tr');
-                    const deleteBtn = row.querySelector('.delete-btn');
-                    
-                    // 切换删除按钮的显示状态
-                    deleteBtn.classList.toggle('hidden');
-                }
-                // 点击其他地方隐藏所有删除按钮
-                else if (!e.target.closest('.delete-btn')) {
-                    document.querySelectorAll('.delete-btn').forEach(btn => {
-                        btn.classList.add('hidden');
-                    });
-                }
-            });
+            // 排序事件监听器已通过直接绑定实现，无需在此处重复添加
         }
+
+        // 排序事件监听器已在initEventListeners函数中定义，此处不再重复定义
 
         // 初始化应用
         async function initApp() {
             try {
                 // 加载数据
-                console.log('开始加载数据...');
+                console.log('开始从云端加载数据...');
                 
-                // 尝试从Supabase加载数据
+                // 只从Supabase加载数据，忽略本地缓存
                 let loadedTasks = await loadFromSupabase();
                 
-                // 如果没有从Supabase加载到数据，尝试直接从本地存储加载
-                if (loadedTasks.length === 0) {
-                    console.log('从Supabase没有加载到数据，尝试直接从本地存储加载...');
-                    loadedTasks = loadFromLocalStorage();
-                }
-                
                 tasks = loadedTasks;
-                console.log('最终加载到的数据:', tasks.length, '条记录');
-                
-                // 初始化事件监听器
-                initEventListeners();
-                
-                // 检查登录状态
-                checkLogin();
+                console.log('从云端加载到的数据:', tasks.length, '条记录');
                 
                 if (isLoggedIn) {
-                    showNotification(`数据加载成功，共 ${tasks.length} 条记录`);
+                    showNotification(`从云端加载数据成功，共 ${tasks.length} 条记录`);
                 }
             } catch (error) {
                 console.error('初始化应用失败:', error);
                 
-                // 尝试直接从本地存储加载数据
+                // 仅在调试时显示错误，不使用本地缓存
                 tasks = loadFromLocalStorage();
-                
-                // 初始化事件监听器
+            } finally {
+                // 确保事件监听器只初始化一次
                 initEventListeners();
                 
                 // 检查登录状态
@@ -1610,8 +1660,32 @@
             }
         }
 
+        // 测试数据
+        const testTasks = [
+            { id: 1, name: '测试任务1', priority: 'high', startDate: '2024-01-01', startTime: '10:00', duration: 1, durationUnit: 'hour', displayThreshold: 1, displayThresholdUnit: 'hour', recurrence: { type: 'none' } },
+            { id: 2, name: '测试任务2', priority: 'medium', startDate: '2024-01-02', startTime: '14:00', duration: 2, durationUnit: 'hour', displayThreshold: 2, displayThresholdUnit: 'hour', recurrence: { type: 'none' } },
+            { id: 3, name: '测试任务3', priority: 'low', startDate: '2024-01-03', startTime: '09:00', duration: 3, durationUnit: 'hour', displayThreshold: 3, displayThresholdUnit: 'hour', recurrence: { type: 'none' } }
+        ];
+        
         // 启动应用
         initApp();
+        
+        // 确保应用初始化后有数据可供排序
+        setTimeout(() => {
+            if (tasks.length === 0) {
+                console.log('添加测试数据');
+                tasks = testTasks;
+                renderTasks();
+            }
+            
+            // 测试排序功能
+            console.log('测试排序功能...');
+            // 直接调用sortTasks函数，测试排序逻辑
+            setTimeout(() => {
+                console.log('直接调用sortTasks("id")测试');
+                sortTasks('id');
+            }, 500);
+        }, 1000);
     </script>
 </body>
 </html>

@@ -119,12 +119,13 @@
         // 从 Supabase 加载任务数据
         async function loadFromSupabase() {
             if (!supabase) {
-                console.log('Supabase 未初始化，尝试从localStorage加载数据');
-                return loadFromLocalStorage();
+                console.error('Supabase 未初始化，无法加载数据');
+                showNotification('Supabase 未初始化，无法从云端加载数据', true);
+                return [];
             }
 
             try {
-                // 强制从 Supabase 获取最新数据
+                // 强制从 Supabase 获取最新数据，忽略本地缓存
                 const { data, error } = await supabase
                     .from('tasks_163')
                     .select('*')
@@ -362,9 +363,15 @@
                 // 如果点击同一列，切换排序方向
                 sortConfig.direction *= -1;
             } else {
-                // 否则，设置新的排序列和升序方向
+                // 否则，设置新的排序列和排序方向
                 sortConfig.key = key;
-                sortConfig.direction = 1;
+                // 对于ID列和duration列，首次点击默认降序
+                // 因为数据从数据库加载时已经是ID升序和duration升序
+                if (key === 'id' || key === 'duration') {
+                    sortConfig.direction = -1;
+                } else {
+                    sortConfig.direction = 1;
+                }
             }
             renderTasks();
         }
@@ -403,6 +410,28 @@
                     if (sortConfig.key === 'startTime') {
                         aVal = new Date(`2000-01-01 ${aVal}`);
                         bVal = new Date(`2000-01-01 ${bVal}`);
+                    }
+                    
+                    // 处理持续时间比较，转换为统一单位（毫秒）后比较
+                    if (sortConfig.key === 'duration') {
+                        // 定义时间单位转换函数
+                        function convertToMilliseconds(value, unit) {
+                            const msPerUnit = {
+                                minute: 60 * 1000,
+                                hour: 60 * 60 * 1000,
+                                day: 24 * 60 * 60 * 1000,
+                                week: 7 * 24 * 60 * 60 * 1000
+                            };
+                            return value * (msPerUnit[unit] || msPerUnit.minute);
+                        }
+                        
+                        const durationA = parseFloat(a.duration) || 0;
+                        const durationB = parseFloat(b.duration) || 0;
+                        const unitA = a.durationUnit || 'minute';
+                        const unitB = b.durationUnit || 'minute';
+                        
+                        aVal = convertToMilliseconds(durationA, unitA);
+                        bVal = convertToMilliseconds(durationB, unitB);
                     }
                     
                     // 数值比较
@@ -665,6 +694,15 @@
                 addTaskBtn.addEventListener('click', openAddTaskModal);
             }
             
+            // 排序事件处理
+            document.addEventListener('click', (e) => {
+                const th = e.target.closest('th.sortable');
+                if (th) {
+                    const sortKey = th.dataset.sortKey;
+                    sortTasks(sortKey);
+                }
+            });
+            
             // 关闭模态框
             const closeModalBtn = document.getElementById('close-modal');
             if (closeModalBtn) {
@@ -813,13 +851,7 @@
                 });
             }
             
-            // 表头排序事件
-            document.querySelectorAll('.sortable').forEach(header => {
-                header.addEventListener('click', () => {
-                    const sortKey = header.dataset.sortKey;
-                    sortTasks(sortKey);
-                });
-            });
+            // 表头排序事件已在admin.html中通过document.addEventListener统一处理，此处不再重复绑定
         }
 
         // 初始化应用
@@ -828,17 +860,11 @@
                 // 加载数据
                 console.log('开始加载数据...');
                 
-                // 尝试从Supabase加载数据
+                // 只从Supabase加载数据，忽略本地缓存
                 let loadedTasks = await loadFromSupabase();
                 
-                // 如果没有从Supabase加载到数据，尝试直接从本地存储加载
-                if (loadedTasks.length === 0) {
-                    console.log('从Supabase没有加载到数据，尝试直接从本地存储加载...');
-                    loadedTasks = loadFromLocalStorage();
-                }
-                
                 tasks = loadedTasks;
-                console.log('最终加载到的数据:', tasks.length, '条记录');
+                console.log('从云端加载到的数据:', tasks.length, '条记录');
                 
                 // 初始化事件监听器
                 initEventListeners();
@@ -847,7 +873,7 @@
                 checkLogin();
                 
                 if (isLoggedIn) {
-                    showNotification(`数据加载成功，共 ${tasks.length} 条记录`);
+                    showNotification(`从云端加载数据成功，共 ${tasks.length} 条记录`);
                 }
             } catch (error) {
                 console.error('初始化应用失败:', error);

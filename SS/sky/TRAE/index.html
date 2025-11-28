@@ -2193,41 +2193,41 @@
         // 合并数据（基于时间戳的冲突解决）
         function mergeData(localData, remoteData) {
             console.log('开始合并数据:');
-            console.log('本地数据:', localData.length);
-            console.log('云端数据:', remoteData.length);
             
-            if (!localData || localData.length === 0) {
+            // 确保数据是有效的数组
+            const validLocalData = Array.isArray(localData) ? localData : [];
+            const validRemoteData = Array.isArray(remoteData) ? remoteData : [];
+            
+            console.log('本地数据:', validLocalData.length);
+            console.log('云端数据:', validRemoteData.length);
+            
+            if (validLocalData.length === 0) {
                 console.log('本地数据为空，直接使用云端数据');
-                return remoteData;
+                return validRemoteData;
             }
             
-            if (!remoteData || remoteData.length === 0) {
+            if (validRemoteData.length === 0) {
                 console.log('云端数据为空，直接使用本地数据');
-                return localData;
+                return validLocalData;
             }
             
             // 创建映射表，方便查找任务
-            const localTasksMap = new Map(localData.map(task => [task.id, task]));
-            const remoteTasksMap = new Map(remoteData.map(task => [task.id, task]));
+            const localTasksMap = new Map(validLocalData.map(task => [task.id, task]));
+            const remoteTasksMap = new Map(validRemoteData.map(task => [task.id, task]));
             
             const mergedTasks = [];
             const processedIds = new Set();
             
-            // 遍历所有任务ID，合并数据
-            for (const id of [...localTasksMap.keys(), ...remoteTasksMap.keys()]) {
+            // 先处理所有云端任务，确保云端数据优先
+            for (const [id, remoteTask] of remoteTasksMap.entries()) {
                 if (processedIds.has(id)) continue;
                 
                 const localTask = localTasksMap.get(id);
-                const remoteTask = remoteTasksMap.get(id);
                 
                 if (!localTask) {
                     // 本地没有，使用远程数据
                     console.log(`任务 ${id}: 本地不存在，使用云端数据`);
                     mergedTasks.push(remoteTask);
-                } else if (!remoteTask) {
-                    // 远程没有，使用本地数据
-                    console.log(`任务 ${id}: 云端不存在，使用本地数据`);
-                    mergedTasks.push(localTask);
                 } else {
                     // 本地和远程都有，比较时间戳，使用更新的版本
                     const localUpdatedAt = new Date(localTask.updated_at || 0);
@@ -2250,8 +2250,16 @@
                         mergedTasks.push(remoteTask);
                     }
                 }
-                
                 processedIds.add(id);
+            }
+            
+            // 处理本地独有的任务
+            for (const [id, localTask] of localTasksMap.entries()) {
+                if (!processedIds.has(id)) {
+                    console.log(`任务 ${id}: 仅本地存在，使用本地数据`);
+                    mergedTasks.push(localTask);
+                    processedIds.add(id);
+                }
             }
             
             console.log('合并完成，共', mergedTasks.length, '个任务');
@@ -2273,6 +2281,8 @@
                 // 检查supabase是否已正确初始化
                 if (!supabase || typeof supabase.from !== 'function') {
                     console.log('Supabase未正确初始化，使用localStorage数据');
+                    // 显示Supabase未初始化通知
+                    showNotification('Supabase未初始化，使用本地存储数据', false);
                     const localData = loadFromLocalStorage() || [];
                     console.log('从localStorage加载的数据:', localData ? localData.length : 0, '个任务');
                     return localData;
@@ -2299,6 +2309,8 @@
                     console.error('错误详情:', error);
                     console.error('错误类型:', error.code);
                     console.error('错误详情:', error.details);
+                    // 显示加载失败通知
+                    showNotification('从Supabase加载数据失败，正在尝试使用最新缓存', false);
                     // 如果从Supabase加载失败，尝试从localStorage加载
                     return localData;
                 }
@@ -2334,10 +2346,14 @@
                     console.log('  新增任务:', addedTasks.length, '个');
                     console.log('  更新任务:', updatedTasks.length, '个');
                     
+                    // 显示云端数据加载成功通知
+                    showNotification('云端数据加载成功', false);
                     return mergedData;
                 } else {
                     // 如果Supabase返回空数据，尝试从localStorage加载
                     console.log('Supabase返回空数据，使用localStorage数据');
+                    // 显示Supabase返回空数据通知
+                    showNotification('Supabase中没有数据，使用本地存储数据', false);
                     // 检查是否需要将本地数据推送到Supabase
                     if (localData.length > 0) {
                         console.log('检测到本地有数据，建议将本地数据推送到Supabase');
@@ -2348,6 +2364,8 @@
                 console.error('从Supabase加载时发生异常:', e);
                 console.error('异常类型:', typeof e);
                 console.error('异常堆栈:', e.stack);
+                // 显示加载异常通知
+                showNotification('从Supabase加载数据异常，使用本地存储数据', true);
                 // 如果从Supabase加载失败，尝试从localStorage加载
                 const localData = loadFromLocalStorage() || [];
                 console.log('从localStorage加载的数据:', localData ? localData.length : 0, '个任务');
@@ -3845,25 +3863,21 @@
             
             // 异步加载数据，不阻塞UI
             (async () => {
-                try {
-                    // 检查是否有外部数据并加载
-                    const savedData = await loadFromSupabase();
-                    if (savedData && Array.isArray(savedData)) {
-                        // 如果返回的是数组，直接赋值给tasks
-                        tasks = savedData;
-                    } else if (savedData && savedData.tasks) {
-                        // 兼容旧数据格式
-                        tasks = savedData.tasks;
-                    } else {
-                        // 保存初始任务列表
-                        await saveData(tasks);
-                    }
-                    
-                    // 数据加载完成后更新任务列表
-                    updateTasks();
-                } catch (error) {
-                    console.error('加载数据失败:', error);
+                // 检查是否有外部数据并加载
+                const savedData = await loadFromSupabase();
+                if (savedData && Array.isArray(savedData)) {
+                    // 如果返回的是数组，直接赋值给tasks
+                    tasks = savedData;
+                } else if (savedData && savedData.tasks) {
+                    // 兼容旧数据格式
+                    tasks = savedData.tasks;
+                } else {
+                    // 保存初始任务列表
+                    await saveData(tasks);
                 }
+                
+                // 数据加载完成后更新任务列表
+                updateTasks();
             })();
             
             // 初始化按钮事件
@@ -4122,7 +4136,7 @@
         // 每秒更新时间
         setInterval(updateCurrentTime, 1000);
         
-        // 每5秒更新一次事件状态，优化性能
+        // 每1秒更新一次事件状态，优化性能
         setInterval(updateTasks, 1000);
     </script>
 </body>
