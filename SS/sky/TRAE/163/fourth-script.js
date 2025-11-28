@@ -283,6 +283,8 @@
         // 登录状态
         let isLoggedIn = false;
         const ADMIN_PASSWORD = 'admin123'; // 示例密码，实际应用中应该更安全
+        const SESSION_TIMEOUT = 15 * 60 * 1000; // 15分钟超时
+        let sessionTimer = null;
 
         // 检查登录状态
         function checkLogin() {
@@ -296,7 +298,42 @@
                     // 在切换容器显示后，确保DOM已更新，然后渲染任务列表
                     setTimeout(() => renderTasks(), 0);
                 }
+                // 启动会话计时器
+                resetSessionTimer();
+                // 添加用户交互事件监听器
+                addSessionEventListeners();
             }
+        }
+        
+        // 重置会话计时器
+        function resetSessionTimer() {
+            if (sessionTimer) {
+                clearTimeout(sessionTimer);
+            }
+            sessionTimer = setTimeout(() => {
+                autoLogout();
+            }, SESSION_TIMEOUT);
+        }
+        
+        // 自动退出登录
+        function autoLogout() {
+            isLoggedIn = false;
+            localStorage.removeItem('adminLoggedIn');
+            const loginContainer = document.getElementById('login-container');
+            const adminContainer = document.getElementById('admin-container');
+            if (loginContainer && adminContainer) {
+                loginContainer.classList.remove('hidden');
+                adminContainer.classList.add('hidden');
+            }
+            showNotification('登录超时，已自动退出', false);
+        }
+        
+        // 添加用户交互事件监听器，用于重置计时器
+        function addSessionEventListeners() {
+            const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+            events.forEach(event => {
+                document.addEventListener(event, resetSessionTimer);
+            });
         }
 
         // 登录处理
@@ -324,6 +361,11 @@
                 if (loginError) {
                     loginError.classList.add('hidden');
                 }
+                
+                // 启动会话计时器
+                resetSessionTimer();
+                // 添加用户交互事件监听器
+                addSessionEventListeners();
             } else {
                 const loginError = document.getElementById('login-error');
                 if (loginError) {
@@ -354,6 +396,11 @@
             if (loginContainer && adminContainer) {
                 loginContainer.classList.remove('hidden');
                 adminContainer.classList.add('hidden');
+            }
+            // 清除会话计时器
+            if (sessionTimer) {
+                clearTimeout(sessionTimer);
+                sessionTimer = null;
             }
         }
 

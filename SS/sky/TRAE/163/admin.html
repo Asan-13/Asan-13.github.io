@@ -382,13 +382,13 @@
                 <thead class="bg-dark-card/50">
                     <tr>
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">序号</th>
-                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="id">ID</th>
-                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="name">事件名称</th>
-                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="priority">优先级</th>
-                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="startDate">开始时间</th>
-                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="duration">持续时间</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="id">ID</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="name">事件名称</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="priority">优先级</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="startDate">开始时间</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="duration">持续时间</th>
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">地点</th>
-                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm cursor-pointer" style="text-align: center;" data-sort-key="displayThreshold">显示阈值</th>
+                        <th class="sortable py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;" data-sort-key="displayThreshold">显示阈值</th>
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">重复类型</th>
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">状态</th>
                         <th class="py-2 px-4 text-center text-dark-textSecondary font-medium text-sm" style="text-align: center;">操作</th>
@@ -924,6 +924,8 @@
         // 登录状态
         let isLoggedIn = false;
         const ADMIN_PASSWORD = 'admin123'; // 示例密码，实际应用中应该更安全
+        const SESSION_TIMEOUT = 15 * 60 * 1000; // 15分钟超时
+        let sessionTimer = null;
 
         // 检查登录状态
         function checkLogin() {
@@ -937,6 +939,63 @@
                     // 在切换容器显示后，确保DOM已更新，然后渲染任务列表
                     setTimeout(() => renderTasks(), 0);
                 }
+                // 启动会话计时器
+                resetSessionTimer();
+                // 添加用户交互事件监听器
+                addSessionEventListeners();
+            }
+        }
+        
+        // 重置会话计时器
+        function resetSessionTimer() {
+            if (sessionTimer) {
+                clearTimeout(sessionTimer);
+            }
+            sessionTimer = setTimeout(() => {
+                autoLogout();
+            }, SESSION_TIMEOUT);
+        }
+        
+        // 自动退出登录
+        function autoLogout() {
+            isLoggedIn = false;
+            localStorage.removeItem('adminLoggedIn');
+            const loginContainer = document.getElementById('login-container');
+            const adminContainer = document.getElementById('admin-container');
+            if (loginContainer && adminContainer) {
+                loginContainer.classList.remove('hidden');
+                adminContainer.classList.add('hidden');
+            }
+            showNotification('登录超时，已自动退出', false);
+        }
+        
+        // 添加用户交互事件监听器，用于重置计时器
+        function addSessionEventListeners() {
+            const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'];
+            events.forEach(event => {
+                document.addEventListener(event, resetSessionTimer);
+            });
+        }
+        
+        // 显示通知
+        function showNotification(message, isError = false) {
+            // 如果页面上有通知元素，使用它；否则创建一个简单的 alert
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            if (notification && notificationText) {
+                notificationText.textContent = message;
+                if (isError) {
+                    notification.classList.add('error');
+                } else {
+                    notification.classList.remove('error');
+                }
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            } else {
+                // 简单的 alert 作为后备
+                alert(message);
             }
         }
 
@@ -965,6 +1024,11 @@
                 if (loginError) {
                     loginError.classList.add('hidden');
                 }
+                
+                // 启动会话计时器
+                resetSessionTimer();
+                // 添加用户交互事件监听器
+                addSessionEventListeners();
             } else {
                 const loginError = document.getElementById('login-error');
                 if (loginError) {
@@ -996,26 +1060,31 @@
                 loginContainer.classList.remove('hidden');
                 adminContainer.classList.add('hidden');
             }
+            // 清除会话计时器
+            if (sessionTimer) {
+                clearTimeout(sessionTimer);
+                sessionTimer = null;
+            }
         }
 
         // 排序函数
         function sortTasks(key) {
-            console.log('sortTasks函数被调用，key:', key, '当前sortConfig:', sortConfig);
-            
-            // 使用更直接的方式切换排序方向
             if (sortConfig.key === key) {
-                // 如果点击同一列，直接切换排序方向
-                sortConfig.direction = sortConfig.direction === 1 ? -1 : 1;
-                console.log('点击同一列，切换排序方向为:', sortConfig.direction);
+                // 如果点击同一列，切换排序方向
+                sortConfig.direction *= -1;
             } else {
-                // 否则，设置新的排序列和默认排序方向
+                // 否则，设置新的排序列
                 sortConfig.key = key;
-                // 根据列类型设置默认排序方向
-                sortConfig.direction = (key === 'id' || key === 'duration') ? -1 : 1;
-                console.log('点击不同列，设置新的排序列:', key, '默认方向:', sortConfig.direction);
+                // 对于ID列和duration列，首次点击默认降序
+                // 因为数据从数据库加载时已经是ID升序和duration升序
+                if (key === 'id' || key === 'duration') {
+                    // 首次点击ID列或duration列，默认降序
+                    sortConfig.direction = -1;
+                } else {
+                    // 其他列首次点击默认升序
+                    sortConfig.direction = 1;
+                }
             }
-            
-            console.log('sortTasks函数执行后，sortConfig:', sortConfig);
             renderTasks();
         }
 
@@ -1043,13 +1112,11 @@
             console.log('开始渲染任务，当前排序配置:', sortConfig);
             
             // 排序任务
-            console.log('开始排序任务，当前tasks长度:', tasks.length, 'sortConfig:', sortConfig);
             const sortedTasks = [...tasks].sort((a, b) => {
                 let aVal, bVal;
                 
                 // 如果没有排序键，不排序
                 if (!sortConfig.key) {
-                    console.log('没有排序键，返回0');
                     return 0;
                 }
                 
@@ -1375,7 +1442,6 @@
         });
         
         function initEventListeners() {
-            console.log('initEventListeners函数被调用');
             // 登录功能
             const loginForm = document.getElementById('login-form');
             if (loginForm) {
@@ -1427,17 +1493,11 @@
             }
             
             // 排序事件处理
-            console.log('添加排序事件监听器');
             document.addEventListener('click', (e) => {
-                console.log('点击事件被触发，target:', e.target);
                 const th = e.target.closest('th.sortable');
                 if (th) {
-                    console.log('找到可排序表头:', th, 'data-sort-key:', th.dataset.sortKey);
                     const sortKey = th.dataset.sortKey;
-                    if (sortKey) {
-                        console.log('调用sortTasks(', sortKey, ')');
-                        sortTasks(sortKey);
-                    }
+                    sortTasks(sortKey);
                 }
             });
             
@@ -1627,8 +1687,6 @@
             // 排序事件监听器已通过直接绑定实现，无需在此处重复添加
         }
 
-        // 排序事件监听器已在initEventListeners函数中定义，此处不再重复定义
-
         // 初始化应用
         async function initApp() {
             try {
@@ -1658,32 +1716,8 @@
             }
         }
 
-        // 测试数据
-        const testTasks = [
-            { id: 1, name: '测试任务1', priority: 'high', startDate: '2024-01-01', startTime: '10:00', duration: 1, durationUnit: 'hour', displayThreshold: 1, displayThresholdUnit: 'hour', recurrence: { type: 'none' } },
-            { id: 2, name: '测试任务2', priority: 'medium', startDate: '2024-01-02', startTime: '14:00', duration: 2, durationUnit: 'hour', displayThreshold: 2, displayThresholdUnit: 'hour', recurrence: { type: 'none' } },
-            { id: 3, name: '测试任务3', priority: 'low', startDate: '2024-01-03', startTime: '09:00', duration: 3, durationUnit: 'hour', displayThreshold: 3, displayThresholdUnit: 'hour', recurrence: { type: 'none' } }
-        ];
-        
         // 启动应用
         initApp();
-        
-        // 确保应用初始化后有数据可供排序
-        setTimeout(() => {
-            if (tasks.length === 0) {
-                console.log('添加测试数据');
-                tasks = testTasks;
-                renderTasks();
-            }
-            
-            // 测试排序功能
-            console.log('测试排序功能...');
-            // 直接调用sortTasks函数，测试排序逻辑
-            setTimeout(() => {
-                console.log('直接调用sortTasks("id")测试');
-                sortTasks('id');
-            }, 500);
-        }, 1000);
     </script>
 </body>
 </html>

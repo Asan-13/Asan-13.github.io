@@ -594,7 +594,7 @@
         let isLoggedIn = false;
         
         // 超时退出相关变量
-        const SESSION_TIMEOUT = 30 * 60 * 1000; // 30分钟超时
+        const SESSION_TIMEOUT = 15 * 60 * 1000; // 15分钟超时
         let sessionTimer = null;
         
         // 任务数据
@@ -652,11 +652,26 @@
         // 自动退出登录
         function autoLogout() {
             isLoggedIn = false;
+            localStorage.removeItem('adminLoggedIn');
             adminContainer.classList.add('hidden');
             loginContainer.classList.remove('hidden');
             loginForm.reset();
             loginError.classList.add('hidden');
             showNotification('登录超时，已自动退出', false);
+        }
+        
+        // 检查登录状态
+        function checkLogin() {
+            isLoggedIn = localStorage.getItem('adminLoggedIn') === 'true';
+            if (isLoggedIn) {
+                loginContainer.classList.add('hidden');
+                adminContainer.classList.remove('hidden');
+                loadTasks();
+                // 启动会话计时器
+                resetSessionTimer();
+                // 添加用户交互事件监听器
+                addSessionEventListeners();
+            }
         }
         
         // 添加用户交互事件监听器，用于重置计时器
@@ -674,6 +689,7 @@
             
             if (password === ADMIN_PASSWORD) {
                 isLoggedIn = true;
+                localStorage.setItem('adminLoggedIn', 'true');
                 loginContainer.classList.add('hidden');
                 adminContainer.classList.remove('hidden');
                 await loadTasks();
@@ -689,6 +705,7 @@
         // 退出登录
         logoutBtn.addEventListener('click', () => {
             isLoggedIn = false;
+            localStorage.removeItem('adminLoggedIn');
             adminContainer.classList.add('hidden');
             loginContainer.classList.remove('hidden');
             loginForm.reset();
@@ -698,6 +715,11 @@
                 clearTimeout(sessionTimer);
                 sessionTimer = null;
             }
+        });
+        
+        // 页面加载时检查登录状态
+        window.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
         });
         
         // 从localStorage加载数据
