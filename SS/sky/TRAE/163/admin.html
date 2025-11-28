@@ -1001,22 +1001,20 @@
         // 排序函数
         function sortTasks(key) {
             console.log('sortTasks函数被调用，key:', key, '当前sortConfig:', sortConfig);
+            
+            // 使用更直接的方式切换排序方向
             if (sortConfig.key === key) {
-                // 如果点击同一列，切换排序方向
-                sortConfig.direction *= -1;
+                // 如果点击同一列，直接切换排序方向
+                sortConfig.direction = sortConfig.direction === 1 ? -1 : 1;
+                console.log('点击同一列，切换排序方向为:', sortConfig.direction);
             } else {
-                // 否则，设置新的排序列
+                // 否则，设置新的排序列和默认排序方向
                 sortConfig.key = key;
-                // 对于ID列和duration列，首次点击默认降序
-                // 因为数据从数据库加载时已经是ID升序和duration升序
-                if (key === 'id' || key === 'duration') {
-                    // 首次点击ID列或duration列，默认降序
-                    sortConfig.direction = -1;
-                } else {
-                    // 其他列首次点击默认升序
-                    sortConfig.direction = 1;
-                }
+                // 根据列类型设置默认排序方向
+                sortConfig.direction = (key === 'id' || key === 'duration') ? -1 : 1;
+                console.log('点击不同列，设置新的排序列:', key, '默认方向:', sortConfig.direction);
             }
+            
             console.log('sortTasks函数执行后，sortConfig:', sortConfig);
             renderTasks();
         }
