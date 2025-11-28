@@ -404,18 +404,18 @@
         }
         
         /* 词条提示器样式 - 深色主题 */
-        html[data-theme="dark"] .download-tooltip,
-        html[data-theme="dark"] .save-tooltip {
-            background-color: var(--card-color) !important;
-            color: var(--text-color) !important;
-        }
-        
-        /* 词条提示器样式 - 浅色主题 */
-        html[data-theme="light"] .download-tooltip,
-        html[data-theme="light"] .save-tooltip {
-            background-color: #FF6B8B !important;
-            color: var(--card-color) !important;
-        }
+            html[data-theme="dark"] .download-tooltip,
+            html[data-theme="dark"] .save-tooltip {
+                background-color: #334155 !important;
+                color: #f8fafc !important;
+            }
+            
+            /* 词条提示器样式 - 浅色主题 */
+            html[data-theme="light"] .download-tooltip,
+            html[data-theme="light"] .save-tooltip {
+                background-color: #FF6B8B !important;
+                color: #ffffff !important;
+            }
         
         /* 主题切换按钮 */
         .theme-toggle {
@@ -429,6 +429,20 @@
             color: var(--text-color) !important;
             overflow-x: hidden; /* 去除横向滚动条 */
             overflow-y: auto; /* 允许竖向滚动 */
+        }
+        
+        /* 按钮样式 - 深色主题 */
+        html[data-theme="dark"] .download-btn,
+        html[data-theme="dark"] .save-btn {
+            background-color: #60a5fa !important;
+            color: white !important;
+        }
+        
+        /* 按钮样式 - 浅色主题 */
+        html[data-theme="light"] .download-btn,
+        html[data-theme="light"] .save-btn {
+            background-color: #FFA7C4 !important;
+            color: white !important;
         }
         
         /* 全局隐藏滚动条但保留滚动功能 */
@@ -478,15 +492,26 @@
             color: var(--text-secondary) !important;
         }
         
-        /* 通知元素样式 */
-        .notification {
-            background-color: var(--primary-color) !important;
-            color: var(--card-color) !important;
-        }
+        /* 通知元素样式 - 深色主题 */
+            html[data-theme="dark"] .notification {
+                background-color: #60a5fa !important;
+                color: white !important;
+            }
+            
+            /* 通知元素样式 - 浅色主题 */
+            html[data-theme="light"] .notification {
+                background-color: #FFA7C4 !important;
+                color: white !important;
+            }
+            
+            .notification.error {
+                background-color: #ef4444 !important;
+                color: white !important;
+            }
         
-        .notification.error {
-            background-color: #ef4444 !important;
-            color: white !important;
+        /* 任务激活状态 */
+        .future-task-item.active {
+            @apply bg-primary bg-opacity-10 border-primary;
         }
         
         /* 覆盖所有悬停背景 */
@@ -494,6 +519,7 @@
         .bg-dark-hover:hover,
         .task-item:hover,
         .task-item.selected,
+        .future-task-item:hover,
         button:hover,
         .recurrence-option.selected {
             background-color: var(--hover-color) !important;
@@ -2886,7 +2912,7 @@
         function createMiniTaskElement(task) {
             const taskEl = document.createElement('div');
             // 统一缩略事件的样式
-            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover future-task-item";
+            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer future-task-item";
             
             taskEl.className = baseClass;
             taskEl.dataset.taskId = task.id;
@@ -3545,7 +3571,7 @@
         // ==================== 主题管理器 ====================
         class ThemeManager {
             constructor() {
-                this.currentTheme = this.getStoredTheme() || this.getSystemTheme();
+                this.currentTheme = this.getStoredTheme() || 'light';
                 this.init();
             }
             
@@ -3672,8 +3698,8 @@
                 { name: '今日 漂浮魔法', png: 'pfmf.png' }
             ],
             5: [ // 星期五
-                { name: '今日 小不点', png: 'xbd.png' },
-                { name: '今日 大只佬', png: 'dzl.png' }
+                { name: '今日魔法 小不点', png: 'xbd.png' },
+                { name: '今日免费魔法 大只佬', png: 'dzl.png' }
             ],
             6: [ // 星期六
                 { name: '今日 返老还童', png: 'flht.png' },

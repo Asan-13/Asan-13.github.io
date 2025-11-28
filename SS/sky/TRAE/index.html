@@ -6,7 +6,7 @@
     <title>Sky 事件</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="./libs/font-awesome/css/font-awesome.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./libs/@supabase/supabase-js/dist/umd/supabase.js"></script>
     
     <script>
         // 延迟预加载切换国服和破晓日历页面
@@ -368,6 +368,20 @@
                 color: var(--text-color) !important;
             }
             
+            /* 按钮样式 - 深色主题 */
+            html[data-theme="dark"] .download-btn,
+            html[data-theme="dark"] .save-btn {
+                background-color: #60a5fa !important;
+                color: white !important;
+            }
+            
+            /* 按钮样式 - 浅色主题 */
+            html[data-theme="light"] .download-btn,
+            html[data-theme="light"] .save-btn {
+                background-color: #FFA7C4 !important;
+                color: white !important;
+            }
+            
             /* 覆盖所有卡片背景 */
             .bg-dark-card,
             #app-container,
@@ -404,10 +418,16 @@
                 color: var(--text-secondary) !important;
             }
             
-            /* 通知元素样式 */
-            .notification {
-                background-color: var(--primary-color) !important;
-                color: var(--card-color) !important;
+            /* 通知元素样式 - 深色主题 */
+            html[data-theme="dark"] .notification {
+                background-color: #60a5fa !important;
+                color: white !important;
+            }
+            
+            /* 通知元素样式 - 浅色主题 */
+            html[data-theme="light"] .notification {
+                background-color: #FFA7C4 !important;
+                color: white !important;
             }
             
             .notification.error {
