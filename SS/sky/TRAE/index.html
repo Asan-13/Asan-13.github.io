@@ -477,6 +477,15 @@
                 background-color: var(--priority-low) !important;
             }
             
+            /* 加载指示器样式 - 深色主题 */
+            html[data-theme="dark"] .loading-indicator {
+                color: #60a5fa !important;
+            }
+            
+            /* 加载指示器样式 - 浅色主题 */
+            html[data-theme="light"] .loading-indicator {
+                color: #FFA7C4 !important;
+            }
             .text-primary,
             .text-primary span:not(.ongoing-text):not(.countdown) {
                 color: var(--primary-color) !important;
@@ -757,6 +766,14 @@
             }
         }
     </style>
+    <script>
+        // 主题初始化 - 在DOM加载前设置主题，避免颜色闪烁
+        (function() {
+            const storedTheme = localStorage.getItem('theme');
+            const initialTheme = storedTheme || 'dark'; // 默认使用深色主题
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
 </head>
 <body class="bg-dark-bg min-h-screen flex items-center justify-center p-4 font-inter text-dark-text m-0">
     <!-- 主题切换按钮 -->
@@ -776,7 +793,7 @@
 
     <!-- 加载指示器 -->
     <div id="loading-indicator" class="fixed inset-0 flex items-center justify-center bg-dark-bg z-50 transition-opacity duration-500">
-        <div class="text-primary text-2xl font-bold animate-pulse">Sky 事件 时间</div>
+<div class="loading-indicator text-2xl font-bold animate-pulse">Sky 事件 时间</div>
     </div>
     
     <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded relative opacity-0 translate-y-4 transition-all duration-800">
@@ -4106,7 +4123,7 @@
         setInterval(updateCurrentTime, 1000);
         
         // 每5秒更新一次事件状态，优化性能
-        setInterval(updateTasks, 5000);
+        setInterval(updateTasks, 1000);
     </script>
 </body>
 </html>

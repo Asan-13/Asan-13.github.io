@@ -103,8 +103,8 @@
             }
             .countdown {
                 @apply text-xs font-medium px-2 py-0.5 rounded-lg;
-                background-color: rgba(96, 165, 250, 0.2);
-                color: var(--primary-color);
+                background-color: rgba(var(--countdown-color-rgb), 0.2);
+                color: var(--countdown-color);
             }
             .download-btn {
                 @apply fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
@@ -368,10 +368,11 @@
             --text-secondary: #8A4A62 !important;
             --hover-color: #FFF0F3 !important;
             --border-color: #FFD6E0 !important;
-            --primary-color: #60a5fa !important;
+            --primary-color: #FFB7C5 !important;
             --scrollbar-color: #FFB7C5 !important;
             --ongoing-color: #FF6B8B !important;
             --countdown-color: #60a5fa !important;
+            --countdown-color-rgb: 96, 165, 250 !important;
             --priority-high: #FF6B8B !important;
             --priority-medium: #FFA7C4 !important;
             --priority-low: #FFD6E0 !important;
@@ -389,15 +390,14 @@
             --scrollbar-color: #60a5fa !important;
             --ongoing-color: #ef4444 !important;
             --countdown-color: #60a5fa !important;
+            --countdown-color-rgb: 96, 165, 250 !important;
             --priority-high: #ef4444 !important;
             --priority-medium: #f59e0b !important;
             --priority-low: #10b981 !important;
             --priority-none: #64748b !important;
         }
         
-        [data-theme="dark"] .countdown {
-            color: #60a5fa;
-        }
+
         
         [data-theme="light"] .countdown {
             color: #FF6B8B !important;
@@ -456,12 +456,16 @@
         }
         
         /* 覆盖所有卡片背景 */
-        .bg-dark-bg,
         #app-container,
         .preview-card,
         .modal-content,
         .context-menu {
             background-color: var(--card-color) !important;
+        }
+        
+        /* 背景色类 - 用于页面背景和加载指示器 */
+        .bg-dark-bg {
+            background-color: var(--bg-color) !important;
         }
         
         /* 主题切换按钮 - 确保背景色为白色 */
@@ -557,9 +561,18 @@
             background-color: var(--priority-low) !important;
         }
         
+        /* 加载指示器样式 - 深色主题 */
+        html[data-theme="dark"] .loading-indicator {
+            color: #60a5fa !important;
+        }
+        
+        /* 加载指示器样式 - 浅色主题 */
+        html[data-theme="light"] .loading-indicator {
+            color: #FFA7C4 !important;
+        }
         .text-primary,
         .text-primary span:not(.ongoing-text):not(.countdown) {
-            color: var(--primary-color) !important;
+            color: var(--countdown-color) !important;
         }
         
 
@@ -638,6 +651,14 @@
             }
         }
     </style>
+    <script>
+        // 主题初始化 - 在DOM加载前设置主题，避免颜色闪烁
+        (function() {
+            const storedTheme = localStorage.getItem('theme');
+            const initialTheme = storedTheme || 'light'; // 默认使用浅色主题
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
 </head>
 <body class="bg-dark-bg min-h-screen flex items-center justify-center p-4 font-inter text-dark-text m-0">
     <!-- 主题切换按钮 -->
@@ -654,7 +675,13 @@
             <!-- 魔法图标将通过JavaScript动态添加 -->
         </div>
     </div>
-    <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded relative">
+    
+    <!-- 加载指示器 -->
+    <div id="loading-indicator" class="fixed inset-0 flex items-center justify-center bg-dark-bg z-50 transition-opacity duration-500">
+        <div class="loading-indicator text-2xl font-bold animate-pulse">光·遇 事件 时间</div>
+    </div>
+    
+    <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded relative opacity-0 translate-y-4 transition-all duration-800">
         <div id="lock-indicator" class="lock-indicator" title="跳转到HHS页面">
             <a href="hhs.html" target="_self" class="text-dark-textSecondary hover:text-primary transition-colors" id="hhs-link">
                 <img src="./icons/hs.png" alt="Lock" style="width: 20px; height: 20px;">
@@ -3779,6 +3806,24 @@
         updateCurrentTime();
         updateTasks();
         initMagicIcons();
+        
+        // 数据加载完成，显示应用
+        setTimeout(() => {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const appContainer = document.getElementById('app-container');
+            
+            if (loadingIndicator) {
+                loadingIndicator.style.opacity = '0';
+                setTimeout(() => {
+                    loadingIndicator.style.display = 'none';
+                }, 500);
+            }
+            
+            if (appContainer) {
+                appContainer.style.opacity = '1';
+                appContainer.style.transform = 'translateY(0)';
+            }
+        }, 200);
         
         // 每秒更新时间
         setInterval(updateCurrentTime, 1000);
