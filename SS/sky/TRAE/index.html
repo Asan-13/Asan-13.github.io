@@ -4092,7 +4092,7 @@
                 
                 // 添加偏移量确保2025年11月27日显示霞谷
                 // 2025年11月27日是第331天，331 % 5 = 1（对应雨林），需要偏移+1到索引2（霞谷）
-                const offset = 1;
+                const offset = 2;
                 const mapIndex = (dayOfYear + offset) % seasonWaxMaps.length;
                 const currentMap = seasonWaxMaps[mapIndex];
                 
