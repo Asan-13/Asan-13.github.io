@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>光·遇 事件 时间</title>
+    <title>光·遇 事件</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+<link href="./libs/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+<script src="./libs/@supabase/supabase-js/dist/umd/supabase.js"></script>
     
     <!-- 配置Tailwind自定义颜色和字体 - 暗黑模式 -->
     <script>
@@ -101,13 +102,15 @@
                 @apply flex-1 px-3 py-2 border border-gray-600 rounded-lg bg-dark-card text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
             }
             .countdown {
-                @apply text-xs font-medium px-2 py-0.5 rounded bg-primary/10 text-primary;
+                @apply text-xs font-medium px-2 py-0.5 rounded-lg;
+                background-color: rgba(var(--countdown-color-rgb), 0.2);
+                color: var(--countdown-color);
             }
             .download-btn {
                 @apply fixed bottom-6 right-6 bg-primary hover:bg-primary/90 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
             }
             .download-tooltip {
-                @apply absolute right-full mr-3 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
+                @apply absolute right-full mr-3 px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
             }
             .download-container:hover .download-tooltip {
                 @apply opacity-100 visible;
@@ -125,7 +128,7 @@
                 @apply fixed bottom-6 left-6 bg-green-600 hover:bg-green-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 flex items-center justify-center z-40;
             }
             .save-tooltip {
-                @apply absolute left-full ml-3 bg-dark-card text-dark-text px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
+                @apply absolute left-full ml-3 px-3 py-1 rounded-lg text-sm opacity-0 invisible transition-all duration-300 whitespace-nowrap;
             }
             .save-container:hover .save-tooltip {
                 @apply opacity-100 visible;
@@ -146,7 +149,29 @@
             }
             /* 新增：进行中红色文字样式 */
             .ongoing-text {
-                @apply text-priority-high font-medium;
+                @apply font-medium;
+                color: var(--ongoing-color) !important;
+            }
+            
+            /* 破晓红石事件地点名称样式 - 提高优先级 */
+            .dawn-redstone-location {
+                color: var(--primary-color) !important;
+            }
+            
+            /* 浅色模式下破晓红石地点名称颜色 - 确保优先级 */
+            body [data-theme="light"] .dawn-redstone-location,
+            [data-theme="light"] .task-title .dawn-redstone-location,
+            [data-theme="light"] .task-meta .dawn-redstone-location,
+            [data-theme="light"] .dawn-redstone-location {
+                color: #FF6B8B !important;
+            }
+            
+            /* 深色模式下破晓红石地点名称颜色 */
+            body [data-theme="dark"] .dawn-redstone-location,
+            [data-theme="dark"] .task-title .dawn-redstone-location,
+            [data-theme="dark"] .task-meta .dawn-redstone-location,
+            [data-theme="dark"] .dawn-redstone-location {
+                color: #60a5fa !important;
             }
             /* 锁定状态指示器 */
             .lock-indicator {
@@ -165,17 +190,17 @@
                 max-height: 300px;
                 overflow-y: auto;
                 scrollbar-width: thin;
-                scrollbar-color: theme('colors.primary') theme('colors.dark.bg');
+                scrollbar-color: var(--scrollbar-color) var(--bg-color);
             }
             .scrollable-list::-webkit-scrollbar {
                 width: 6px;
             }
             .scrollable-list::-webkit-scrollbar-track {
-                background: theme('colors.dark.bg');
+                background: var(--bg-color);
                 border-radius: 3px;
             }
             .scrollable-list::-webkit-scrollbar-thumb {
-                background-color: theme('colors.primary');
+                background-color: var(--scrollbar-color);
                 border-radius: 3px;
             }
             /* 预览卡片样式 - 紧凑优化版本 */
@@ -235,6 +260,11 @@
             }
             /* 手机端优化 */
             @media (max-width: 640px) {
+                /* 调整主题切换按钮和魔法图标更靠左 */
+                .theme-toggle-container {
+                    left: 6px !important;
+                }
+                
                 .app-expanded {
                     padding: 1rem;
                     max-width: 100%;
@@ -295,12 +325,394 @@
             }
         }
     </style>
+    
+    <style>
+        /* 主题变量定义 - 与index.html保持一致 */
+        :root {
+            /* 默认深色主题 */
+            --bg-color: #1e293b;
+            --card-color: #334155;
+            --text-color: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --hover-color: #475569;
+            --border-color: #64748b;
+            --primary-color: #60a5fa;
+            --priority-high: #ef4444;
+            --priority-medium: #f59e0b;
+            --priority-low: #10b981;
+            --priority-none: #64748b;
+        }
+        
+        /* 添加CSS变量到根元素，确保所有元素都能访问 */
+        :root {
+            /* 默认深色主题 */
+            --bg-color: #1e293b;
+            --card-color: #334155;
+            --text-color: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --hover-color: #475569;
+            --border-color: #64748b;
+            --primary-color: #60a5fa;
+            --priority-high: #ef4444;
+            --priority-medium: #f59e0b;
+            --priority-low: #10b981;
+            --priority-none: #64748b;
+        }
+        
+        /* 浅色主题覆盖 */
+        [data-theme="light"] {
+            /* 樱花配色 - 浅色主题 */
+            --bg-color: #FFF5F7 !important;
+            --card-color: #FFFFFF !important;
+            --text-color: #3D1A2D !important;
+            --text-secondary: #8A4A62 !important;
+            --hover-color: #FFF0F3 !important;
+            --border-color: #FFD6E0 !important;
+            --primary-color: #FFB7C5 !important;
+            --scrollbar-color: #FFB7C5 !important;
+            --ongoing-color: #FF6B8B !important;
+            --countdown-color: #60a5fa !important;
+            --countdown-color-rgb: 96, 165, 250 !important;
+            --priority-high: #FF6B8B !important;
+            --priority-medium: #FFA7C4 !important;
+            --priority-low: #FFD6E0 !important;
+            --priority-none: #D8BFD8 !important;
+        }
+        
+        [data-theme="dark"] {
+            --bg-color: #1e293b !important;
+            --card-color: #334155 !important;
+            --text-color: #f8fafc !important;
+            --text-secondary: #cbd5e1 !important;
+            --hover-color: #475569 !important;
+            --border-color: #64748b !important;
+            --primary-color: #60a5fa !important;
+            --scrollbar-color: #60a5fa !important;
+            --ongoing-color: #ef4444 !important;
+            --countdown-color: #60a5fa !important;
+            --countdown-color-rgb: 96, 165, 250 !important;
+            --priority-high: #ef4444 !important;
+            --priority-medium: #f59e0b !important;
+            --priority-low: #10b981 !important;
+            --priority-none: #64748b !important;
+        }
+        
+
+        
+        [data-theme="light"] .countdown {
+            color: #FF6B8B !important;
+        }
+        
+        /* 词条提示器样式 - 深色主题 */
+            html[data-theme="dark"] .download-tooltip,
+            html[data-theme="dark"] .save-tooltip {
+                background-color: #334155 !important;
+                color: #f8fafc !important;
+            }
+            
+            /* 词条提示器样式 - 浅色主题 */
+            html[data-theme="light"] .download-tooltip,
+            html[data-theme="light"] .save-tooltip {
+                background-color: #FF6B8B !important;
+                color: #ffffff !important;
+            }
+        
+        /* 主题切换按钮 */
+        .theme-toggle {
+            z-index: 40;
+            transition: all 0.3s ease;
+        }
+        
+        /* 应用主题变量 - 覆盖所有相关元素 */
+        body {
+            background-color: var(--bg-color) !important;
+            color: var(--text-color) !important;
+            overflow-x: hidden; /* 去除横向滚动条 */
+            overflow-y: auto; /* 允许竖向滚动 */
+        }
+        
+        /* 按钮样式 - 深色主题 */
+        html[data-theme="dark"] .download-btn,
+        html[data-theme="dark"] .save-btn {
+            background-color: #60a5fa !important;
+            color: white !important;
+        }
+        
+        /* 按钮样式 - 浅色主题 */
+        html[data-theme="light"] .download-btn,
+        html[data-theme="light"] .save-btn {
+            background-color: #FFA7C4 !important;
+            color: white !important;
+        }
+        
+        /* 全局隐藏滚动条但保留滚动功能 */
+        html, body {
+            scrollbar-width: none; /* Firefox：隐藏竖向滚动条 */
+            overflow-x: hidden; /* 去除横向滚动条 */
+        }
+        
+        html::-webkit-scrollbar, body::-webkit-scrollbar {
+            display: none; /* Chrome, Edge, Safari：隐藏所有滚动条 */
+        }
+        
+        /* 覆盖所有卡片背景 */
+        #app-container,
+        .preview-card,
+        .modal-content,
+        .context-menu {
+            background-color: var(--card-color) !important;
+        }
+        
+        /* 背景色类 - 用于页面背景和加载指示器 */
+        .bg-dark-bg {
+            background-color: var(--bg-color) !important;
+        }
+        
+        /* 主题切换按钮 - 确保背景色为白色 */
+        .theme-toggle {
+            background-color: var(--card-color) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
+        
+        /* 覆盖所有文本颜色 */
+        .text-dark-text,
+        h1, h2, h3, h4, h5, h6,
+        p,
+        span,
+        label,
+        .task-title,
+        .task-meta,
+        .task-time,
+        .modal-title {
+            color: var(--text-color) !important;
+        }
+        
+        /* 覆盖所有次要文本颜色 */
+        .text-dark-textSecondary,
+        .task-meta span,
+        .task-time,
+        .save-status {
+            color: var(--text-secondary) !important;
+        }
+        
+        /* 通知元素样式 - 深色主题 */
+            html[data-theme="dark"] .notification {
+                background-color: #60a5fa !important;
+                color: white !important;
+            }
+            
+            /* 通知元素样式 - 浅色主题 */
+            html[data-theme="light"] .notification {
+                background-color: #FFA7C4 !important;
+                color: white !important;
+            }
+            
+            .notification.error {
+                background-color: #ef4444 !important;
+                color: white !important;
+            }
+        
+        /* 任务激活状态 */
+        .future-task-item.active {
+            @apply bg-primary bg-opacity-10 border-primary;
+        }
+        
+        /* 覆盖所有悬停背景 */
+        .bg-dark-hover,
+        .bg-dark-hover:hover,
+        .task-item:hover,
+        .task-item.selected,
+        .future-task-item:hover,
+        button:hover,
+        .recurrence-option.selected {
+            background-color: var(--hover-color) !important;
+        }
+        
+        /* 覆盖所有边框颜色 */
+        .border-gray-600,
+        .border-gray-700,
+        #app-container,
+        .preview-card,
+        .modal-content,
+        .task-item,
+        input,
+        select,
+        textarea,
+        .time-input-group {
+            border-color: var(--border-color) !important;
+        }
+        
+        /* 覆盖所有主色 */
+        .bg-primary,
+        button[type="submit"],
+        .download-btn,
+        .download-btn:hover,
+        .save-btn:hover {
+            background-color: var(--primary-color) !important;
+        }
+        
+        /* 保存按钮样式 - 浅色主题下使用浅绿色 */
+        [data-theme="light"] .save-btn {
+            background-color: #10b981 !important;
+        }
+        
+        [data-theme="dark"] .save-btn {
+            background-color: var(--priority-low) !important;
+        }
+        
+        /* 加载指示器样式 - 深色主题 */
+        html[data-theme="dark"] .loading-indicator {
+            color: #60a5fa !important;
+        }
+        
+        /* 加载指示器样式 - 浅色主题 */
+        html[data-theme="light"] .loading-indicator {
+            color: #FFA7C4 !important;
+        }
+        .text-primary,
+        .text-primary span:not(.ongoing-text):not(.countdown) {
+            color: var(--countdown-color) !important;
+        }
+        
+
+        
+        /* 覆盖优先级颜色 */
+        .text-priority-high,
+            .priority-high {
+                color: var(--priority-high) !important;
+            }
+            .bg-priority-high {
+                background-color: var(--priority-high) !important;
+            }
+        
+        .text-priority-medium,
+        .priority-medium {
+            color: var(--priority-medium) !important;
+        }
+        
+        .text-priority-low,
+        .priority-low {
+            color: var(--priority-low) !important;
+        }
+        
+        /* 覆盖背景色类 */
+        .bg-dark-bg {
+            background-color: var(--bg-color) !important;
+        }
+        
+        /* 确保预览卡片应用主题变量 */
+        #preview-card {
+            background-color: var(--card-color) !important;
+            color: var(--text-color) !important;
+        }
+        
+        /* 确保预览卡片内容应用主题变量 */
+        .preview-details,
+        .preview-row {
+            color: var(--text-secondary) !important;
+        }
+        
+        .preview-value {
+            color: var(--text-color) !important;
+        }
+        
+        /* 系统主题检测备用 - 与index.html保持一致 */
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme]) {
+                --bg-color: #1e293b;
+                --card-color: #334155;
+                --text-color: #f8fafc;
+                --text-secondary: #cbd5e1;
+                --hover-color: #475569;
+                --border-color: #64748b;
+                --primary-color: #60a5fa;
+                --priority-high: #ef4444;
+                --priority-medium: #f59e0b;
+                --priority-low: #10b981;
+                --priority-none: #64748b;
+            }
+        }
+        
+        @media (prefers-color-scheme: light) {
+            :root:not([data-theme]) {
+                /* 樱花配色 - 浅色主题 */
+                --bg-color: #FFF5F7;
+                --card-color: #FFFFFF;
+                --text-color: #3D1A2D;
+                --text-secondary: #8A4A62;
+                --hover-color: #FFF0F3;
+                --border-color: #FFD6E0;
+                --primary-color: #FFB7C5;
+                --priority-high: #FF6B8B;
+                --priority-medium: #FFA7C4;
+                --priority-low: #FFD6E0;
+                --priority-none: #D8BFD8;
+            }
+        }
+    </style>
+    <script>
+        // 主题初始化 - 在DOM加载前设置主题，避免颜色闪烁
+        (function() {
+            const storedTheme = localStorage.getItem('theme');
+            const initialTheme = storedTheme || 'light'; // 默认使用浅色主题
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
 </head>
 <body class="bg-dark-bg min-h-screen flex items-center justify-center p-4 font-inter text-dark-text m-0">
-    <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded relative">
-        <!-- 锁定状态指示器 -->
-        <div id="lock-indicator" class="lock-indicator" title="当前锁定状态">
-            <i class="fa fa-unlock"></i>
+    <!-- 主题切换按钮 -->
+    <div class="theme-toggle-container fixed top-4 left-4 z-40 flex flex-col items-center">
+        <button id="theme-toggle" class="theme-toggle p-2 rounded-lg bg-dark-card border border-gray-700 text-dark-text hover:bg-dark-hover transition-colors shadow-lg" title="切换主题">
+            <img src="./icons/moon.png" id="theme-icon" alt="切换主题" style="width: 16px; height: 16px;" />
+        </button>
+        
+        <!-- 间隔区域 -->
+        <div class="h-8"></div>
+        
+        <!-- 魔法图标显示区域 -->
+        <div id="magic-icons-container" class="space-y-2 flex flex-col items-center">
+            <!-- 魔法图标将通过JavaScript动态添加 -->
+        </div>
+    </div>
+    
+    <!-- 加载指示器 -->
+    <div id="loading-indicator" class="fixed inset-0 flex items-center justify-center bg-dark-bg z-50 transition-opacity duration-500">
+        <div class="loading-indicator text-2xl font-bold animate-pulse">光·遇 事件 时间</div>
+    </div>
+    
+    <div id="app-container" class="bg-dark-card rounded-2xl shadow-lg task-transition border border-gray-700 w-auto max-w-md app-expanded relative opacity-0 translate-y-4 transition-all duration-800">
+        <div id="lock-indicator" class="lock-indicator" title="跳转到HHS页面">
+            <a href="hhs.html" target="_self" class="text-dark-textSecondary hover:text-primary transition-colors" id="hhs-link">
+                <img src="./icons/hs.png" alt="Lock" style="width: 20px; height: 20px;">
+            </a>
+        </div>
+        
+        <!-- 延迟预加载切换国际服和破晓日历页面 -->
+        <script>
+            // 页面加载完成后延迟3秒预加载相关页面
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    // 预加载切换国际服页面
+                    const linkHome = document.createElement('link');
+                    linkHome.rel = 'prefetch';
+                    linkHome.href = '../index.html';
+                    document.head.appendChild(linkHome);
+                    
+                    // 预加载破晓日历页面
+                    const linkHHS = document.createElement('link');
+                    linkHHS.rel = 'prefetch';
+                    linkHHS.href = 'HHS.html';
+                    document.head.appendChild(linkHHS);
+                }, 3000); // 3秒后预加载
+            });
+        </script>
+        
+        <!-- 添加返回首页图标链接 -->
+        <div id="home-icon" class="lock-indicator" style="right: auto; left: 1rem;" title="切换国际服">
+            <a href="../index.html" target="_self" class="text-dark-textSecondary hover:text-primary transition-colors">
+                <img src="./icons/zg.svg" alt="Home" style="width: 20px; height: 20px;">
+            </a>
         </div>
         
         <!-- 当前时间显示（始终显示） -->
@@ -710,6 +1122,100 @@
     <div id="notification" class="notification">数据已保存</div>
 
     <script>
+        // Supabase 配置
+        let supabaseUrl = localStorage.getItem('supabaseUrl_163') || 'https://prusinqhwaduefiuqkwt.supabase.co';
+        let supabaseKey = localStorage.getItem('supabaseKey_163') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydXNpbnFod2FkdWVmaXVxa3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMTI5OTYsImV4cCI6MjA3OTU4ODk5Nn0.X__p8sP8ZdaOBGsbFWnhAdgLnjTXN-Y8YMVL5csVQ2Y';
+        let supabase;
+        
+        // 初始化 Supabase
+        function initSupabase() {
+            try {
+                // 检查域名是否有效（避免无效域名导致的网络请求错误）
+                // 只需要检查是否包含 supabase.co 即可，不再硬编码特定的无效域名
+                // 检查Supabase是否已加载，支持多种方式：
+                // 1. window.createClient (UMD版本)
+                // 2. window.supabase.createClient (另一种UMD暴露方式)
+                // 3. createClient (ES模块版本)
+                let createClientFunc = null;
+                if (typeof window.createClient === 'function') {
+                    createClientFunc = window.createClient;
+                } else if (typeof window.supabase?.createClient === 'function') {
+                    createClientFunc = window.supabase.createClient;
+                } else if (typeof createClient === 'function') {
+                    createClientFunc = createClient;
+                }
+                
+                if (!createClientFunc) {
+                    supabase = null;
+                    console.error('Supabase库未加载，将使用本地存储模式运行');
+                    return false;
+                }
+                
+                // 检查域名是否有效
+                const isValidDomain = supabaseUrl && supabaseUrl.includes('.supabase.co');
+                if (!isValidDomain) {
+                    supabase = null;
+                    console.error('Supabase域名无效，将使用本地存储模式运行');
+                    return false;
+                }
+                
+                // 检查API密钥是否有效
+                if (!supabaseKey || supabaseKey.length < 30) {
+                    supabase = null;
+                    console.error('Supabase API密钥无效，将使用本地存储模式运行');
+                    return false;
+                }
+                
+                // 创建Supabase客户端
+                supabase = createClientFunc(supabaseUrl, supabaseKey);
+                console.log('Supabase初始化成功');
+                
+                // 测试连接
+                testSupabaseConnection();
+                return true;
+            } catch (error) {
+                supabase = null;
+                console.error('Supabase初始化失败:', error);
+                return false;
+            }
+        }
+        
+        // 初始调用
+        initSupabase();
+        
+        // 如果初始调用失败，添加一个延迟重试机制
+        if (!supabase) {
+            console.log('初始Supabase初始化失败，将在1秒后重试...');
+            setTimeout(() => {
+                console.log('重试Supabase初始化...');
+                initSupabase();
+            }, 1000);
+        }
+        
+        // 测试Supabase连接
+        async function testSupabaseConnection() {
+            if (!supabase) return false;
+            
+            try {
+                // 尝试获取表名列表，验证连接是否有效
+                const { data, error } = await supabase
+                    .from('tasks_163')
+                    .select('*')
+                    .limit(1);
+                
+                if (error) {
+                    console.error('Supabase连接测试失败:', error.message);
+                    return false;
+                }
+                
+                console.log('Supabase连接测试成功');
+                return true;
+            } catch (error) {
+                console.error('Supabase连接测试异常:', error);
+                return false;
+            }
+        }
+        
         // 用于存储外部数据的变量 - 从localStorage加载或使用默认值
         let externalData = null;
         
@@ -735,10 +1241,10 @@
         let currentVisibleTasks = [];
         let currentAllTasks = [];
         
-        // 尝试从localStorage加载数据
+        // 尝试从localStorage加载数据 - 使用163专用键名，避免与主页面冲突
         function loadFromLocalStorage() {
             try {
-                const savedData = localStorage.getItem('timeProjectReminderTasks');
+                const savedData = localStorage.getItem('timeProjectReminderTasks_163');
                 if (savedData) {
                     return JSON.parse(savedData);
                 }
@@ -749,7 +1255,64 @@
             return null;
         }
         
-        // 保存数据到localStorage - 核心保存函数
+        // 从 Supabase 加载任务数据
+        async function loadFromSupabase() {
+            try {
+                // 检查 supabase 是否初始化
+                if (!supabase) {
+                    console.log('Supabase 未初始化，尝试从localStorage加载数据');
+                    const localData = loadFromLocalStorage();
+                    if (localData) {
+                        return localData;
+                    }
+                    showNotification('Supabase 未初始化，使用本地存储数据', false);
+                    return null;
+                }
+                
+                // 强制从 Supabase 获取最新数据
+                const { data, error } = await supabase
+                    .from('tasks_163')
+                    .select('*')
+                    .order('id', { ascending: true });
+                
+                if (error) {
+                    // Supabase请求失败时，记录错误但仍返回null，让调用者决定如何处理
+                    console.error('从Supabase加载数据失败:', error);
+                    showNotification('从Supabase加载数据失败，正在尝试使用最新缓存', false);
+                    // 不自动降级到本地存储，让调用者决定
+                    return null;
+                }
+                
+                if (data && data.length > 0) {
+                    // 将Supabase数据转换为应用所需格式
+                    const tasks = data;
+                    // 将Supabase数据保存到localStorage作为备份
+                    localStorage.setItem('timeProjectReminderTasks_163', JSON.stringify(tasks));
+                    console.log('成功从Supabase获取最新数据，共', tasks.length, '条记录');
+                    return tasks;
+                } else {
+                    // 如果Supabase中没有数据，尝试从localStorage加载
+                    console.log('Supabase中没有数据，尝试从localStorage加载');
+                    const localData = loadFromLocalStorage();
+                    if (localData) {
+                        return localData;
+                    }
+                    return null;
+                }
+            } catch (error) {
+                console.error('从Supabase加载数据异常:', error);
+                // 异常情况下仍尝试从localStorage加载，确保系统可用性
+                const localData = loadFromLocalStorage();
+                if (localData) {
+                    showNotification('从Supabase加载数据异常，使用本地存储数据', true);
+                    return localData;
+                }
+                showNotification('加载数据失败: ' + error.message, true);
+                return null;
+            }
+        }
+        
+        // 保存数据到localStorage和Supabase - 核心保存函数
         function saveToLocalStorage(data, retry = 0) {
             // 如果正在保存中，等待后重试
             if (saveState.isSaving) {
@@ -769,15 +1332,47 @@
             saveState.isSaving = true;
             showSaveStatus(true);
             
-            return new Promise(resolve => {
+            return new Promise(async resolve => {
                 try {
                     // 验证数据格式
                     if (!data || !Array.isArray(data)) {
                         throw new Error('无效的数据格式');
                     }
                     
-                    // 尝试保存数据
-                    localStorage.setItem('timeProjectReminderTasks', JSON.stringify(data));
+                    // 1. 保存到本地存储作为基础
+                    localStorage.setItem('timeProjectReminderTasks_163', JSON.stringify(data));
+                    
+                    // 2. 如果Supabase可用，尝试保存到Supabase
+                    if (supabase) {
+                        try {
+                            // 处理数据，确保只包含Supabase表中存在的字段
+            const processedData = data.map(task => {
+                // 创建一个新的任务对象，只包含必要的字段
+                // 为recurrence添加默认值，防止违反NOT NULL约束
+                const processedTask = {
+                    id: task.id,
+                    name: task.name,
+                    startDate: task.startDate,
+                    startTime: task.startTime,
+                    displayThreshold: task.displayThreshold,
+                    displayThresholdUnit: task.displayThresholdUnit,
+                    priority: task.priority,
+                    recurrence: task.recurrence || ''
+                    // 注意：不直接包含duration、durationUnit和type字段
+                };
+                return processedTask;
+            });
+                            
+                            // 使用upsert操作更新或插入数据，保留其他设备的编辑
+                            if (processedData.length > 0) {
+                                await supabase.from('tasks_163')
+                                    .upsert(processedData, { onConflict: 'id' });
+                            }
+                        } catch (supabaseError) {
+                            console.warn('Supabase保存失败，仅保留本地存储:', supabaseError);
+                            // 不影响整体保存结果，继续执行
+                        }
+                    }
                     
                     // 更新保存状态
                     saveState.lastSaved = new Date();
@@ -789,7 +1384,7 @@
                     showNotification('数据已成功保存');
                     resolve(true);
                 } catch (e) {
-                    console.error('Failed to save to localStorage:', e);
+                    console.error('保存数据失败:', e);
                     
                     // 处理保存失败
                     saveState.saveAttempts++;
@@ -841,20 +1436,22 @@
         // 显示通知
         function showNotification(message, isError = false) {
             const notification = document.getElementById('notification');
-            notification.textContent = message;
-            
-            // 添加或移除错误类
-            if (isError) {
-                notification.classList.add('error');
-            } else {
-                notification.classList.remove('error');
+            if (notification) {
+                notification.textContent = message;
+                
+                // 添加或移除错误类
+                if (isError) {
+                    notification.classList.add('error');
+                } else {
+                    notification.classList.remove('error');
+                }
+                
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
             }
-            
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-            }, 3000);
         }
         
         // 获取今天的日期字符串
@@ -1082,7 +1679,8 @@
         }
         
         // 事件数据 - 修复空间站配置
-        let tasks = [
+        // 硬编码任务数据常量
+        const hardcodedTasksData = [
             {
                 id: 1,
                 name: "奶奶饭",
@@ -1261,8 +1859,9 @@
                     durationUnit: "week"
                 }
             },
+
             {
-                id: 14,
+                id: 15,
                 name: "双倍魔法",
                 startDate: "2025-11-07",
                 startTime: "00:00", 
@@ -1276,7 +1875,7 @@
                 }
             },
             {
-                id: 15,
+                id: 17,
                 name: "染料商店",
                 startDate: getTodayDate(),
                 startTime: "00:00",
@@ -1322,6 +1921,9 @@
                 }
             },
         ];
+        
+        // 初始化tasks为硬编码数据
+        let tasks = [...hardcodedTasksData];
 
         // 当前操作的事件ID
         let currentTaskId = null;
@@ -1374,7 +1976,7 @@
         const previewCard = document.getElementById('preview-card');
         
         // 初始化日期和时间为今天和当前时间
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const now = new Date();
             const dateStr = now.toISOString().split('T')[0];
             const timeStr = now.toTimeString().split(':').slice(0, 2).join(':');
@@ -1397,12 +1999,43 @@
             addTimeBtn.addEventListener('click', addTimeInput);
             
             // 检查是否有外部数据并加载
-            const savedData = loadFromLocalStorage();
-            if (savedData && savedData.tasks) {
-                tasks = savedData.tasks;
+            // 优先从Supabase加载数据
+            const supabaseData = await loadFromSupabase();
+            if (supabaseData) {
+                // 合并硬编数据和云端数据，以id为准
+                // 1. 创建一个以id为键的映射表
+                const mergedTasksMap = new Map();
+                
+                // 2. 先添加硬编数据到映射表
+                hardcodedTasksData.forEach(task => {
+                    mergedTasksMap.set(task.id, task);
+                });
+                
+                // 3. 再添加云端数据，相同id会覆盖硬编数据
+                supabaseData.forEach(task => {
+                    mergedTasksMap.set(task.id, task);
+                });
+                
+                // 4. 转换回数组
+                tasks = Array.from(mergedTasksMap.values());
+                showNotification('云端数据加载成功', false);
             } else {
-                // 保存初始任务列表
-                saveToLocalStorage(tasks);
+                // 如果Supabase加载失败，尝试从localStorage加载
+                const savedData = loadFromLocalStorage();
+                if (savedData) {
+                    // 合并硬编数据和localStorage数据
+                    const mergedTasksMap = new Map();
+                    hardcodedTasksData.forEach(task => {
+                        mergedTasksMap.set(task.id, task);
+                    });
+                    savedData.forEach(task => {
+                        mergedTasksMap.set(task.id, task);
+                    });
+                    tasks = Array.from(mergedTasksMap.values());
+                } else {
+                    // 保存初始任务列表
+                    saveToLocalStorage(tasks);
+                }
             }
             
             // 初始化下载按钮事件
@@ -1413,8 +2046,36 @@
                 await saveToLocalStorage(tasks);
             });
             
+            // 添加自动刷新机制，每60秒从Supabase加载一次最新数据
+            setInterval(async () => {
+                const latestData = await loadFromSupabase();
+                if (latestData) {
+                    // 合并硬编数据和最新云端数据
+                    const mergedTasksMap = new Map();
+                    
+                    // 1. 先添加硬编数据到映射表
+                    hardcodedTasksData.forEach(task => {
+                        mergedTasksMap.set(task.id, task);
+                    });
+                    
+                    // 2. 再添加云端数据，相同id会覆盖硬编数据
+                    latestData.forEach(task => {
+                        mergedTasksMap.set(task.id, task);
+                    });
+                    
+                    const mergedTasks = Array.from(mergedTasksMap.values());
+                    
+                    if (JSON.stringify(mergedTasks) !== JSON.stringify(tasks)) {
+                        tasks = mergedTasks;
+                        renderTasks();
+                        showNotification('数据已自动更新', false);
+                    }
+                }
+            }, 60000); // 60秒刷新一次
+            
             // 初始化悬停空白区域点击事件用于锁定
-            emptyHoverArea.addEventListener('click', toggleListLock);
+            // 删除锁定功能，lockIndicator现在是静态链接
+        // emptyHoverArea.addEventListener('click', toggleListLock);
             
             // 点击其他地方隐藏预览卡片
             document.addEventListener('click', (e) => {
@@ -1485,7 +2146,12 @@
             if (currentTask.recurrence.type === "custom_complex" && currentTask.recurrence.pattern === "dawn_redstone") {
                 recurrenceText = "红石规则";
             } else if (currentTask.recurrence.type === "daily_times" && currentTask.recurrence.customTimes) {
-                recurrenceText = `每天 ${currentTask.recurrence.customTimes.join(', ')}`;
+                // 简化时间显示：将"08:00"格式转换为"8点"
+                const simplifiedTimes = currentTask.recurrence.customTimes.map(time => {
+                    const hour = parseInt(time.split(':')[0]);
+                    return `${hour}点`;
+                });
+                recurrenceText = `每天 ${simplifiedTimes.join(', ')}`;
             } else {
                 switch(currentTask.recurrence.type) {
                     case "none":
@@ -1495,7 +2161,12 @@
                         recurrenceText = "每天";
                         break;
                     case "daily_times":
-                        recurrenceText = `每天 ${currentTask.recurrence.customTimes?.join(', ') || ''}`;
+                        // 简化时间显示：将"08:00"格式转换为"8点"
+                        const simplifiedTimes = currentTask.recurrence.customTimes?.map(time => {
+                            const hour = parseInt(time.split(':')[0]);
+                            return `${hour}点`;
+                        }) || [];
+                        recurrenceText = `每天 ${simplifiedTimes.join(', ')}`;
                         break;
                     case "weekly":
                         const dayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -1635,25 +2306,25 @@
             });
         }
         
-        // 切换任务列表锁定状态
-        function toggleListLock() {
-            isListLocked = !isListLocked;
-            const icon = lockIndicator.querySelector('i');
-            
-            if (isListLocked) {
-                icon.classList.remove('fa-unlock');
-                icon.classList.add('fa-lock');
-                lockIndicator.classList.add('locked');
-                allTasksEl.style.maxHeight = '500px';
-                showNotification('任务列表已锁定显示');
-            } else {
-                icon.classList.remove('fa-lock');
-                icon.classList.add('fa-unlock');
-                lockIndicator.classList.remove('locked');
-                allTasksEl.style.maxHeight = '0';
-                showNotification('任务列表已解锁');
-            }
-        }
+        // 切换任务列表锁定功能已移除，lockIndicator现在是静态链接
+        // function toggleListLock() {
+        //     isListLocked = !isListLocked;
+        //     const icon = lockIndicator.querySelector('i');
+        //     
+        //     if (isListLocked) {
+        //         icon.classList.remove('fa-unlock');
+        //         icon.classList.add('fa-lock');
+        //         lockIndicator.classList.add('locked');
+        //         allTasksEl.style.maxHeight = '500px';
+        //         showNotification('任务列表已锁定显示');
+        //     } else {
+        //         icon.classList.remove('fa-lock');
+        //         icon.classList.add('fa-unlock');
+        //         lockIndicator.classList.remove('locked');
+        //         allTasksEl.style.maxHeight = '0';
+        //         showNotification('任务列表已解锁');
+        //     }
+        // }
         
         // 测试本地存储是否可用
         function testLocalStorageAvailability() {
@@ -1968,6 +2639,8 @@
                 const isOngoing = now >= nextStart && now < endTime;
                 const timeUntilStart = nextStart - now;
                 
+
+                
                 // 调试信息
                 if (task.name === "空间站") {
                     console.log(`空间站事件状态计算:`);
@@ -2153,7 +2826,12 @@
             let recurrenceText = "";
             // 特殊处理每日特定时间重复
             if (task.recurrence.type === "daily_times" && task.recurrence.customTimes) {
-                recurrenceText = `每天 ${task.recurrence.customTimes.join(', ')}`;
+                // 简化时间显示：将"08:00"格式转换为"8点"
+                const simplifiedTimes = task.recurrence.customTimes.map(time => {
+                    const hour = parseInt(time.split(':')[0]);
+                    return `${hour}点`;
+                });
+                recurrenceText = `每天 ${simplifiedTimes.join(', ')}`;
             } else if (task.recurrence.type === "custom_complex" && task.recurrence.pattern === "dawn_redstone") {
                 recurrenceText = "红石规则";
             } else {
@@ -2215,8 +2893,10 @@
             // 确定时间文本样式 - 正在进行的文本使用红色
             const timeTextClass = task.status === "ongoing" ? "ongoing-text" : "";
             
-            // 添加地点信息（如果是破晓红石事件）
-            const locationInfo = task.location ? `<div class="text-xs text-primary font-medium mt-1"><i class="fa fa-map-marker mr-1"></i>${task.location}</div>` : '';
+            // 添加地点信息 - 为破晓红石事件添加特殊类
+            const isDawnRedstone = task.name === "破晓 红石";
+            const locationClass = isDawnRedstone ? "text-xs font-medium mt-1 dawn-redstone-location" : "text-xs text-primary font-medium mt-1";
+            const locationInfo = task.location ? `<div class="${locationClass}"><i class="fa fa-map-marker mr-1"></i>${task.location}</div>` : '';
             
             taskEl.innerHTML = `
                 <div class="flex justify-between items-center task-title">
@@ -2259,7 +2939,7 @@
         function createMiniTaskElement(task) {
             const taskEl = document.createElement('div');
             // 统一缩略事件的样式
-            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer hover:bg-dark-hover future-task-item";
+            const baseClass = "flex justify-between items-center p-2 rounded-lg bg-dark-bg border border-gray-700 cursor-pointer future-task-item";
             
             taskEl.className = baseClass;
             taskEl.dataset.taskId = task.id;
@@ -2281,14 +2961,16 @@
                              task.startTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
             }
             
-            // 添加地点信息（如果是破晓红石事件）
-            const locationInfo = task.location ? `<div class="text-xs text-primary truncate mt-0.5">${task.location}</div>` : '';
+            // 添加地点信息 - 为破晓红石事件添加特殊类
+            const isDawnRedstone = task.name === "破晓 红石";
+            const locationClass = isDawnRedstone ? "text-xs truncate mt-0.5 dawn-redstone-location" : "text-xs text-primary truncate mt-0.5";
+            const locationInfo = task.location ? `<div class="${locationClass}">${task.location}</div>` : '';
             
             taskEl.innerHTML = `
                 <div class="flex items-center flex-1 min-w-0">
                     <span class="w-2 h-2 rounded-full mr-2 bg-priority-${task.priority}"></span>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm truncate">${task.name}</div>
+                        <div class="text-sm truncate flex items-center">${task.name}</div>
                         <div class="text-xs text-primary flex items-center">
                             ${ongoingIndicator}<span class="${timeTextClass}">${task.timeText || '即将开始'}</span>${countdownBadge}
                         </div>
@@ -2702,18 +3384,22 @@
             confirmDeleteModal.classList.add('hidden');
         }
 
-        // 鼠标悬停显示所有事件 - 考虑锁定状态
-        appContainer.addEventListener('mouseenter', () => {
-            if (!isListLocked) {
-                allTasksEl.style.maxHeight = '500px';
-            }
-        });
-
-        appContainer.addEventListener('mouseleave', () => {
-            if (!isListLocked) {
+        // 点击展开/折叠未来事件列表
+        function toggleFutureEvents() {
+            // 切换展开/折叠状态
+            if (allTasksEl.style.maxHeight === '500px') {
                 allTasksEl.style.maxHeight = '0';
+                // 显示词条文本提示器
+                showNotification('列表已收起');
+            } else {
+                allTasksEl.style.maxHeight = '500px';
+                // 显示词条文本提示器
+                showNotification('列表已展开');
             }
-        });
+        }
+
+        // 添加点击事件监听，用于展开/折叠未来事件列表
+        emptyHoverArea.addEventListener('click', toggleFutureEvents);
 
         // 应用容器右键菜单事件
         appContainer.addEventListener('contextmenu', (e) => {
@@ -2909,15 +3595,244 @@
             }
         }
 
+        // ==================== 主题管理器 ====================
+        class ThemeManager {
+            constructor() {
+                this.currentTheme = this.getStoredTheme() || 'light';
+                this.init();
+            }
+            
+            // 初始化主题
+            init() {
+                this.applyTheme(this.currentTheme);
+            }
+
+            // 获取系统主题偏好
+            getSystemTheme() {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark';
+                }
+                return 'light';
+            }
+
+            // 获取存储的主题
+            getStoredTheme() {
+                return localStorage.getItem('theme');
+            }
+
+            // 保存主题偏好
+            saveTheme(theme) {
+                localStorage.setItem('theme', theme);
+            }
+
+            // 应用主题
+            applyTheme(theme) {
+                this.currentTheme = theme;
+                document.documentElement.setAttribute('data-theme', theme);
+                
+                this.saveTheme(theme);
+                this.updateThemeIcon();
+                this.updateTooltips();
+            }
+
+            // 更新词条提示器样式
+            updateTooltips() {
+                const tooltips = document.querySelectorAll('.download-tooltip, .save-tooltip');
+                tooltips.forEach(tooltip => {
+                    if (this.currentTheme === 'light') {
+                        tooltip.style.backgroundColor = '#FF6B8B';
+                        tooltip.style.color = 'var(--card-color)';
+                    } else {
+                        tooltip.style.backgroundColor = 'var(--card-color)';
+                        tooltip.style.color = 'var(--text-color)';
+                    }
+                });
+            }
+
+            // 更新主题图标
+            updateThemeIcon() {
+                const icon = document.getElementById('theme-icon');
+                if (icon) {
+                    if (this.currentTheme === 'dark') {
+                        icon.src = './icons/sun.png';
+                        icon.title = '切换到浅色模式';
+                    } else {
+                        icon.src = './icons/moon.png';
+                        icon.title = '切换到深色模式';
+                    }
+                }
+            }
+
+            // 切换主题
+            toggleTheme() {
+                const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+                this.applyTheme(newTheme);
+                showNotification(`已切换到${newTheme === 'dark' ? '深色' : '浅色'}模式`);
+            }
+
+            // 监听系统主题变化
+            watchSystemTheme() {
+                if (window.matchMedia) {
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                        // 只有当用户没有手动设置过主题时才跟随系统
+                        if (!this.getStoredTheme()) {
+                            const newTheme = e.matches ? 'dark' : 'light';
+                            this.applyTheme(newTheme);
+                        }
+                    });
+                }
+            }
+
+            // 初始化主题
+            init() {
+                this.applyTheme(this.currentTheme);
+                this.watchSystemTheme();
+            }
+        }
+
+        // 在DOM加载完成后初始化主题管理器
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化主题管理器
+            const themeManager = new ThemeManager();
+            
+            // 获取主题切换按钮
+            const themeToggle = document.getElementById('theme-toggle');
+            
+            // 绑定主题切换事件
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    themeManager.toggleTheme();
+                });
+            }
+        });
+
+        // 魔法图标配置
+        const magicIconsConfig = {
+            0: [ // 星期日
+                { name: '今日 体型重塑', png: 'txcs.png' },
+                { name: '今日 彩虹魔法', png: 'chmf.png' }
+            ],
+            1: [ // 星期一
+                { name: '今日 浪漫烟花', png: 'lmyh.png' }
+            ],
+            2: [ // 星期二
+                { name: '今日 充能药剂', png: 'cnyj.png' }
+            ],
+            3: [ // 星期三
+                { name: '今日 璀璨之星', png: 'cczx.png' }
+            ],
+            4: [ // 星期四
+                { name: '今日 漂浮魔法', png: 'pfmf.png' }
+            ],
+            5: [ // 星期五
+                { name: '今日魔法 小不点', png: 'xbd.png' },
+                { name: '今日免费魔法 大只佬', png: 'dzl.png' }
+            ],
+            6: [ // 星期六
+                { name: '今日 返老还童', png: 'flht.png' },
+                { name: '今日 长大成人', png: 'zdcr.png' }
+            ]
+        };
+        
+        // 初始化魔法图标
+        function initMagicIcons() {
+            const container = document.getElementById('magic-icons-container');
+            const today = new Date().getDay(); // 获取今天是星期几 (0-6)
+            const magicIcons = magicIconsConfig[today] || [];
+            
+            // 清空容器
+            container.innerHTML = '';
+            
+            // 添加魔法图标
+                magicIcons.forEach(magic => {
+                    const iconElement = document.createElement('div');
+                    iconElement.className = 'magic-icon-item cursor-pointer relative';
+                    iconElement.title = magic.name;
+                    iconElement.innerHTML = `
+                        <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: transparent; border: none; border-radius: 8px; overflow: hidden;">
+                            <img src="./icons/${magic.png}" alt="${magic.name}" 
+                                 style="width: 32px; height: 32px; object-fit: contain; transition: transform 0.2s ease;" 
+                                 class="magic-icon hover:scale-110" />
+                        </div>
+                    `;
+                    
+                    // 添加点击事件，显示魔法名称
+                    iconElement.addEventListener('click', () => {
+                        showNotification(magic.name);
+                    });
+                    
+                    container.appendChild(iconElement);
+                });
+            
+            // 添加季蜡图标 - 每天切换一个地图，顺序：云野, 雨林, 霞谷, 暮土, 禁阁
+            const seasonWaxMaps = ['云野', '雨林', '霞谷', '暮土', '禁阁'];
+            const currentDate = new Date();
+            
+            // 计算2025年11月27日应该显示霞谷（索引2）
+            // 计算当天是一年中的第几天
+            const dayOfYear = Math.floor((currentDate - new Date(currentDate.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+            
+            // 添加偏移量确保2025年11月27日显示霞谷
+            // 2025年11月27日是第331天，331 % 5 = 1（对应雨林），需要偏移+1到索引2（霞谷）
+            const offset = 1;
+            const mapIndex = (dayOfYear + offset) % seasonWaxMaps.length;
+            const currentMap = seasonWaxMaps[mapIndex];
+            
+            // 检查jl.png是否存在，如不存在则使用默认图标
+            const seasonWaxElement = document.createElement('div');
+            seasonWaxElement.className = 'magic-icon-item cursor-pointer relative';
+            seasonWaxElement.title = `今日季蜡位置: ${currentMap}`;
+            seasonWaxElement.innerHTML = `
+                <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: transparent; border: none; border-radius: 8px; overflow: hidden; margin-top: 8px;">
+                    <img src="./icons/jl.png" alt="季蜡" 
+                         style="width: 32px; height: 32px; object-fit: contain; transition: transform 0.2s ease;" 
+                         class="magic-icon hover:scale-110" 
+                         onerror="this.src='./icons/gjf.png'; this.alt='季蜡';" />
+                </div>
+                <div style="text-align: center; font-size: 10px; color: var(--text-color); margin-top: 2px; font-weight: 500; width: 100%;">
+                    ${currentMap}
+                </div>
+            `;
+            
+            // 添加点击事件，显示季蜡位置
+            seasonWaxElement.addEventListener('click', () => {
+                showNotification(`今日季蜡位置: ${currentMap}`);
+            });
+            
+            container.appendChild(seasonWaxElement);
+        }
+        
         // 初始化并定时更新
         updateCurrentTime();
         updateTasks();
+        initMagicIcons();
+        
+        // 数据加载完成，显示应用
+        setTimeout(() => {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const appContainer = document.getElementById('app-container');
+            
+            if (loadingIndicator) {
+                loadingIndicator.style.opacity = '0';
+                setTimeout(() => {
+                    loadingIndicator.style.display = 'none';
+                }, 500);
+            }
+            
+            if (appContainer) {
+                appContainer.style.opacity = '1';
+                appContainer.style.transform = 'translateY(0)';
+            }
+        }, 200);
         
         // 每秒更新时间
         setInterval(updateCurrentTime, 1000);
         
         // 每秒更新一次事件状态
         setInterval(updateTasks, 1000);
+        
+        // 每分钟更新一次魔法图标（防止跨天未刷新）
+        setInterval(initMagicIcons, 60000);
     </script>
 </body>
 </html>

@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sky 红石 日历</title>
-    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet" defer>
+    <script src="https://cdn.tailwindcss.com" defer></script>
     <style>
         /* 保持原有的所有CSS样式不变 */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap&font-display=swap');
         
         body {
             font-family: 'Inter', sans-serif;
@@ -806,6 +806,10 @@
             // 计算该月有多少天
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             
+            // 创建文档片段用于批量添加DOM元素，减少重排重绘
+            const weekdayFragment = document.createDocumentFragment();
+            const calendarFragment = document.createDocumentFragment();
+            
             // 创建星期标题
             const weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
             
@@ -817,15 +821,21 @@
                 weekdayName.textContent = weekdayNames[i];
                 weekdayHeader.appendChild(weekdayName);
                 
-                weekdayHeadersContainer.appendChild(weekdayHeader);
+                weekdayFragment.appendChild(weekdayHeader);
             }
+            
+            // 批量添加星期标题到DOM
+            weekdayHeadersContainer.appendChild(weekdayFragment);
             
             // 创建日期单元格前的空白
             for (let i = 0; i < firstDay; i++) {
                 const emptyDay = document.createElement('div');
                 emptyDay.className = 'calendar-day opacity-30';
-                calendarContainer.appendChild(emptyDay);
+                calendarFragment.appendChild(emptyDay);
             }
+            
+            // 预计算当前时间的分钟数，避免重复计算
+            const nowTimeMinutes = nowPacific.getHours() * 60 + nowPacific.getMinutes();
             
             // 创建日期单元格
             for (let day = 1; day <= daysInMonth; day++) {
@@ -856,7 +866,6 @@
                     dayEvents.forEach(event => {
                         // 检查事件是否正在进行中（使用调整后的时间）
                         const isActive = event.timeSlots.some(slot => {
-                            const nowTime = nowPacific.getHours() * 60 + nowPacific.getMinutes();
                             const [startHour, startMinute] = slot.start.split(':');
                             const [endHour, endMinute] = slot.end.split(':');
                             
@@ -868,7 +877,7 @@
                                 endTime += 24 * 60;
                             }
                             
-                            return nowTime >= startTime && nowTime < endTime;
+                            return nowTimeMinutes >= startTime && nowTimeMinutes < endTime;
                         });
                         
                         const eventElement = document.createElement('div');
@@ -907,8 +916,11 @@
                     });
                 }
                 
-                calendarContainer.appendChild(dayElement);
+                calendarFragment.appendChild(dayElement);
             }
+            
+            // 批量添加日历单元格到DOM
+            calendarContainer.appendChild(calendarFragment);
         }
         
         // 显示事件详情
@@ -991,38 +1003,55 @@
         
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
+            // 初始化日历 - 关键渲染优先执行
             updateCurrentTime();
             renderCalendar();
             
-            // 添加上下月按钮事件
-            document.getElementById('prev-month').addEventListener('click', () => {
-                if (currentMonth === 0) {
-                    currentMonth = 11;
-                    currentYear--;
-                } else {
-                    currentMonth--;
-                }
-                renderCalendar();
-            });
+            // 非关键代码延迟执行
+            setTimeout(() => {
+                // 添加上下月按钮事件
+                document.getElementById('prev-month').addEventListener('click', () => {
+                    if (currentMonth === 0) {
+                        currentMonth = 11;
+                        currentYear--;
+                    } else {
+                        currentMonth--;
+                    }
+                    renderCalendar();
+                });
+                
+                document.getElementById('next-month').addEventListener('click', () => {
+                    if (currentMonth === 11) {
+                        currentMonth = 0;
+                        currentYear++;
+                    } else {
+                        currentMonth++;
+                    }
+                    renderCalendar();
+                });
+                
+                // 优化时间更新：每秒更新时间，同时检查是否需要重新渲染日历
+                let lastRenderMinute = new Date().getMinutes();
+                setInterval(() => {
+                    updateCurrentTime();
+                    
+                    // 只有当分钟数变化时才重新渲染日历，减少不必要的渲染
+                    const currentMinute = new Date().getMinutes();
+                    if (currentMinute !== lastRenderMinute) {
+                        renderCalendar();
+                        lastRenderMinute = currentMinute;
+                    }
+                }, 1000);
+            }, 0); // 0ms延迟，放入事件队列尾部
             
-            document.getElementById('next-month').addEventListener('click', () => {
-                if (currentMonth === 11) {
-                    currentMonth = 0;
-                    currentYear++;
-                } else {
-                    currentMonth++;
-                }
-                renderCalendar();
-            });
-            
-            // 每秒更新时间
-            setInterval(updateCurrentTime, 1000);
-            
-            // 每分钟重新渲染日历（检查是否有事件变为活动状态）
-            setInterval(renderCalendar, 60000);
-            
-            // 监听窗口大小变化，重新渲染日历以适配4字换行
-            window.addEventListener('resize', renderCalendar);
+            // 监听窗口大小变化，添加防抖处理 - 低优先级，延迟执行
+            setTimeout(() => {
+                let resizeTimeout;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(renderCalendar, 100); // 100ms防抖
+                });
+            }, 2000);
         });
     </script>
 </body>
