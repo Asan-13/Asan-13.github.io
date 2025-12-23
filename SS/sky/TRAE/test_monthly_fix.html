@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试每月特定时间点保存功能</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-container { max-width: 600px; margin: 0 auto; }
+        .test-section { margin-bottom: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .btn:hover { background-color: #0056b3; }
+        .time-input-group { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .start-time-input { padding: 5px; border: 1px solid #ccc; border-radius: 3px; }
+        .remove-time-btn { padding: 5px 10px; background-color: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .result { margin-top: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>测试每月特定时间点保存功能</h1>
+        
+        <div class="test-section">
+            <h2>每月特定时间点设置</h2>
+            <div id="monthly-time-points">
+                <div id="monthly-times-container" class="time-container">
+                    <div class="time-input-group">
+                        <input type="time" name="monthly-time-0" class="start-time-input" value="08:00">
+                        <button type="button" class="remove-time-btn">删除</button>
+                    </div>
+                </div>
+                <button type="button" id="add-time-point-btn" class="btn">添加时间点</button>
+            </div>
+            
+            <button type="button" id="save-btn" class="btn">保存设置</button>
+            
+            <div class="result" id="save-result"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 模拟添加时间点功能
+        document.getElementById('add-time-point-btn').addEventListener('click', function() {
+            const container = document.getElementById('monthly-times-container');
+            const inputCount = container.querySelectorAll('.start-time-input').length;
+            
+            const timePointDiv = document.createElement('div');
+            timePointDiv.className = 'time-input-group';
+            timePointDiv.innerHTML = `
+                <input type="time" name="monthly-time-${inputCount}" class="start-time-input">
+                <button type="button" class="remove-time-btn">删除</button>
+            `;
+            
+            // 添加删除事件
+            timePointDiv.querySelector('.remove-time-btn').addEventListener('click', () => {
+                const timeInputs = container.querySelectorAll('.start-time-input');
+                if (timeInputs.length > 1) {
+                    timePointDiv.remove();
+                }
+            });
+            
+            container.appendChild(timePointDiv);
+        });
+        
+        // 模拟保存功能
+        document.getElementById('save-btn').addEventListener('click', function() {
+            // 修复前的代码（错误的选择器）
+            const oldStartTimes = Array.from(document.querySelectorAll('#monthly-time-points .time-input')).map(input => input.value);
+            
+            // 修复后的代码（正确的选择器）
+            const newStartTimes = Array.from(document.querySelectorAll('#monthly-time-points .start-time-input')).map(input => input.value);
+            
+            const resultDiv = document.getElementById('save-result');
+            resultDiv.innerHTML = `
+                <h3>保存结果：</h3>
+                <p><strong>修复前（使用 .time-input）收集的时间点：</strong> ${JSON.stringify(oldStartTimes)}</p>
+                <p><strong>修复后（使用 .start-time-input）收集的时间点：</strong> ${JSON.stringify(newStartTimes)}</p>
+                <p><strong>结论：</strong> ${newStartTimes.length > oldStartTimes.length ? '修复成功！现在可以保存多个时间点了。' : '修复失败，请检查代码。'}</p>
+            `;
+        });
+        
+        // 为现有删除按钮添加事件
+        document.querySelectorAll('.remove-time-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const container = document.getElementById('monthly-times-container');
+                const timeInputs = container.querySelectorAll('.start-time-input');
+                if (timeInputs.length > 1) {
+                    this.parentElement.remove();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

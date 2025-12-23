@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每周模式修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .test-result {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .pass {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        .fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <h1>每周模式修复测试</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // 辅助函数：将时间转换为毫秒
+        function convertToMilliseconds(value, unit) {
+            const conversion = {
+                'minute': 60 * 1000,
+                'hour': 60 * 60 * 1000,
+                'day': 24 * 60 * 60 * 1000,
+                'week': 7 * 24 * 60 * 60 * 1000,
+                'month': 30 * 24 * 60 * 60 * 1000, // 近似值
+                'year': 365 * 24 * 60 * 60 * 1000  // 近似值
+            };
+            return (value || 1) * (conversion[unit] || conversion['hour']);
+        }
+
+        // 修复后的getNextOccurrence函数
+        function getNextOccurrence(task, now) {
+            try {
+                // 处理每周重复
+                if (task.recurrence.type === "weekly") {
+                    // 1. 确定起始日期：使用task.startDate，如果它存在；否则使用当前日期
+                    let startDate = new Date(now);
+                    startDate.setHours(0, 0, 0, 0);
+                    
+                    if (task.startDate) {
+                        const taskStartDate = new Date(task.startDate);
+                        taskStartDate.setHours(0, 0, 0, 0);
+                        
+                        // 如果task.startDate在未来，使用它；否则使用当前日期
+                        // 但始终确保不早于task.startDate
+                        if (taskStartDate > startDate) {
+                            startDate = taskStartDate;
+                        }
+                    }
+                    
+                    // 2. 找到从startDate开始的下一个符合条件的星期几
+                    let baseDate = new Date(startDate);
+                    let found = false;
+                    
+                    // 确保weekdays数组有值，如果为空则使用默认值[1]（周一），并将所有元素转换为数字
+                    const weekdays = task.recurrence.weekdays && task.recurrence.weekdays.length > 0 
+                        ? task.recurrence.weekdays.map(Number) 
+                        : [1]; // 默认周一
+                    
+                    // 最多检查7天，找到第一个符合条件的星期几
+                    for (let i = 0; i < 7; i++) {
+                        const checkDate = new Date(startDate);
+                        checkDate.setDate(startDate.getDate() + i);
+                        const checkWeekday = checkDate.getDay();
+                        
+                        if (weekdays.includes(checkWeekday)) {
+                            baseDate = checkDate;
+                            found = true;
+                            break;
+                        }
+                    }
+                    
+                    // 如果没有找到（理论上不应该发生，因为weekdays数组现在保证有值），默认使用当前日期
+                    if (!found) {
+                        baseDate = new Date(startDate);
+                    }
+                    
+                    baseDate.setHours(0, 0, 0, 0);
+                    const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                    
+                    // 3. 检查今天是否是事件应该发生的日期
+                    const today = new Date(now);
+                    today.setHours(0, 0, 0, 0);
+                    const isTodayEvent = baseDate.toDateString() === today.toDateString();
+                    
+                    // 4. 根据子模式处理时间
+                    if (task.recurrence.repeatType === 'time-range') {
+                        // 时间段间隔模式
+                        const [rangeStartHour, rangeStartMinute] = (task.recurrence.rangeStart || '00:00').split(':').map(Number);
+                        const [rangeEndHour, rangeEndMinute] = (task.recurrence.rangeEnd || '23:59').split(':').map(Number);
+                        
+                        // 计算时间段的开始和结束时间
+                        const rangeStart = new Date(baseDate);
+                        rangeStart.setHours(rangeStartHour, rangeStartMinute, 0, 0);
+                        
+                        const rangeEnd = new Date(baseDate);
+                        rangeEnd.setHours(rangeEndHour, rangeEndMinute, 0, 0);
+                        
+                        // 计算间隔时间（毫秒）
+                        const intervalMs = convertToMilliseconds(task.recurrence.intervalCount || 1, task.recurrence.intervalUnit || 'hour');
+                        
+                        // 遍历当天的所有时间段
+                        let currentTime = new Date(rangeStart);
+                        while (currentTime <= rangeEnd) {
+                            // 检查是否正在进行中
+                            if (now >= currentTime && now < currentTime.getTime() + durationMs) {
+                                return {
+                                    startTime: currentTime,
+                                    location: null
+                                };
+                            }
+                            
+                            // 检查是否是未来的时间点
+                            if (currentTime > now) {
+                                return {
+                                    startTime: currentTime,
+                                    location: null
+                                };
+                            }
+                            
+                            // 增加间隔时间
+                            currentTime = new Date(currentTime.getTime() + intervalMs);
+                        }
+                        
+                        // 如果当天没有找到未来的时间点，检查下一个符合条件的星期几
+                        // 找下一个星期
+                        const nextWeek = new Date(baseDate);
+                        nextWeek.setDate(baseDate.getDate() + 7);
+                        
+                        // 在下周的同一天设置时间范围的开始时间
+                        const nextTime = new Date(nextWeek);
+                        nextTime.setHours(rangeStartHour, rangeStartMinute, 0, 0);
+                        return {
+                            startTime: nextTime,
+                            location: null
+                        };
+                    } else if (task.recurrence.customTimes && task.recurrence.customTimes.length > 0) {
+                        // 时间点模式：检查所有时间点
+                        let closestFutureTime = null;
+                        
+                        for (const timeStr of task.recurrence.customTimes) {
+                            const [hours, minutes] = timeStr.split(':').map(Number);
+                            const timePoint = new Date(baseDate);
+                            timePoint.setHours(hours, minutes, 0, 0);
+                            
+                            // 检查是否正在进行中
+                            if (now >= timePoint && now < timePoint.getTime() + durationMs) {
+                                return {
+                                    startTime: timePoint,
+                                    location: null
+                                };
+                            }
+                            
+                            // 找到最早的未来时间点
+                            if (timePoint > now && (!closestFutureTime || timePoint < closestFutureTime)) {
+                                closestFutureTime = timePoint;
+                            }
+                        }
+                        
+                        // 如果找到未来时间点，使用它
+                        if (closestFutureTime) {
+                            return {
+                                startTime: closestFutureTime,
+                                location: null
+                            };
+                        } else {
+                            // 否则使用第一个时间点并移到下周
+                            const [hours, minutes] = task.recurrence.customTimes[0].split(':').map(Number);
+                            const nextTime = new Date(baseDate);
+                            nextTime.setHours(hours, minutes, 0, 0);
+                            nextTime.setDate(nextTime.getDate() + 7);
+                            return {
+                                startTime: nextTime,
+                                location: null
+                            };
+                        }
+                    } else {
+                        // 默认情况
+                        const startTime = task.startTime || '00:00';
+                        const [startHour, startMinute] = startTime.split(':').map(Number);
+                        const nextTime = new Date(baseDate);
+                        nextTime.setHours(startHour, startMinute, 0, 0);
+                        
+                        // 检查是否正在进行中
+                        if (now >= nextTime && now < nextTime.getTime() + durationMs) {
+                            return {
+                                startTime: nextTime,
+                                location: null
+                            };
+                        }
+                        
+                        // 如果时间已过，移到下周
+                        if (nextTime <= now) {
+                            nextTime.setDate(nextTime.getDate() + 7);
+                        }
+                        return {
+                            startTime: nextTime,
+                            location: null
+                        };
+                    }
+                }
+            } catch (error) {
+                console.error("Error in getNextOccurrence:", error);
+                return {
+                    startTime: null,
+                    location: null
+                };
+            }
+        }
+
+        // 执行测试
+        function runTest() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '';
+
+            // 测试用例：用户描述的场景
+            const testCase = {
+                name: "用户场景测试：20日周六，设置每周日，开始日期22日",
+                task: {
+                    startDate: "2025-12-22", // 开始日期设为22日
+                    startTime: "10:00",
+                    recurrence: {
+                        type: "weekly",
+                        weekdays: ["0"], // 每周日（字符串形式，模拟可能的输入）
+                        duration: 1,
+                        durationUnit: "hour"
+                    }
+                },
+                now: new Date("2025-12-20T15:00:00"), // 当前时间：20日周六15:00
+                expectedDate: "2025-12-28" // 期望的下一次发生日期：28日周日
+            };
+
+            // 执行测试
+            const result = getNextOccurrence(testCase.task, testCase.now);
+            const resultDate = result.startTime ? result.startTime.toISOString().split('T')[0] : null;
+            const isPass = resultDate === testCase.expectedDate;
+
+            // 显示结果
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${isPass ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `
+                <h3>${testCase.name}</h3>
+                <p>当前时间：${testCase.now.toLocaleString()}</p>
+                <p>开始日期：${testCase.task.startDate}</p>
+                <p>每周几：${testCase.task.recurrence.weekdays}</p>
+                <p>计算结果：${resultDate ? resultDate : '错误'}</p>
+                <p>期望结果：${testCase.expectedDate}</p>
+                <p>测试结果：${isPass ? '通过' : '失败'}</p>
+            `;
+            results.appendChild(resultDiv);
+
+            // 额外测试：weekdays数组为数字形式的情况
+            const testCase2 = {
+                name: "额外测试：weekdays数组为数字形式",
+                task: {
+                    startDate: "2025-12-22",
+                    startTime: "10:00",
+                    recurrence: {
+                        type: "weekly",
+                        weekdays: [0], // 每周日（数字形式）
+                        duration: 1,
+                        durationUnit: "hour"
+                    }
+                },
+                now: new Date("2025-12-20T15:00:00"),
+                expectedDate: "2025-12-28"
+            };
+
+            const result2 = getNextOccurrence(testCase2.task, testCase2.now);
+            const resultDate2 = result2.startTime ? result2.startTime.toISOString().split('T')[0] : null;
+            const isPass2 = resultDate2 === testCase2.expectedDate;
+
+            const resultDiv2 = document.createElement('div');
+            resultDiv2.className = `test-result ${isPass2 ? 'pass' : 'fail'}`;
+            resultDiv2.innerHTML = `
+                <h3>${testCase2.name}</h3>
+                <p>当前时间：${testCase2.now.toLocaleString()}</p>
+                <p>开始日期：${testCase2.task.startDate}</p>
+                <p>每周几：${testCase2.task.recurrence.weekdays}</p>
+                <p>计算结果：${resultDate2 ? resultDate2 : '错误'}</p>
+                <p>期望结果：${testCase2.expectedDate}</p>
+                <p>测试结果：${isPass2 ? '通过' : '失败'}</p>
+            `;
+            results.appendChild(resultDiv2);
+        }
+
+        // 页面加载时执行测试
+        window.onload = runTest;
+    </script>
+</body>
+</html>

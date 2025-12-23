@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时区转换测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .pass {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .fail {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>时区转换测试</h1>
+    <h2>太平洋时间(PDT/PST)与北京时间(CST)自动切换测试</h2>
+    
+    <div id="test-results"></div>
+    
+    <script>
+        // 复制TimeZoneUtils实现
+        const TimeZoneUtils = {
+            // 判断当前是否处于太平洋夏令时
+            isPDT(date = new Date()) {
+                // 太平洋夏令时通常在每年3月第二个星期日凌晨2点开始
+                // 到11月第一个星期日凌晨2点结束
+                const year = date.getFullYear();
+                
+                // 计算3月第二个星期日凌晨2点（PDT开始时间）
+                const march = new Date(year, 2, 1); // 3月1日
+                let secondSundayInMarch = march;
+                while (secondSundayInMarch.getDay() !== 0) {
+                    secondSundayInMarch.setDate(secondSundayInMarch.getDate() + 1);
+                }
+                secondSundayInMarch.setDate(secondSundayInMarch.getDate() + 7); // 第二个星期日
+                secondSundayInMarch.setHours(2, 0, 0, 0); // 凌晨2点
+                
+                // 计算11月第一个星期日凌晨2点（PDT结束时间）
+                const november = new Date(year, 10, 1); // 11月1日
+                let firstSundayInNovember = november;
+                while (firstSundayInNovember.getDay() !== 0) {
+                    firstSundayInNovember.setDate(firstSundayInNovember.getDate() + 1);
+                }
+                firstSundayInNovember.setHours(2, 0, 0, 0); // 凌晨2点
+                
+                // 判断给定日期是否在PDT期间
+                return date >= secondSundayInMarch && date < firstSundayInNovember;
+            },
+            
+            // 太平洋时间到北京时间的转换
+            PDTtoCST(pdtDate) {
+                // 根据是否处于PDT期间使用不同的偏移量
+                // PST (UTC-8) → CST (UTC+8) = +16小时
+                // PDT (UTC-7) → CST (UTC+8) = +15小时
+                const offsetHours = this.isPDT(pdtDate) ? 15 : 16;
+                return new Date(pdtDate.getTime() + offsetHours * 60 * 60 * 1000);
+            },
+            
+            // 北京时间到太平洋时间的转换
+            CSTtoPDT(cstDate) {
+                // 根据是否处于PDT期间使用不同的偏移量
+                // CST (UTC+8) → PST (UTC-8) = -16小时
+                // CST (UTC+8) → PDT (UTC-7) = -15小时
+                const offsetHours = this.isPDT(cstDate) ? 15 : 16;
+                return new Date(cstDate.getTime() - offsetHours * 60 * 60 * 1000);
+            },
+            
+            // 格式化时间为北京时间显示
+            formatCSTTime(date) {
+                return date.toLocaleTimeString('zh-CN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            },
+            
+            // 格式化日期为北京时间显示
+            formatCSTDate(date) {
+                return date.toLocaleDateString('zh-CN', { 
+                    year: 'numeric',
+                    month: '2-digit', 
+                    day: '2-digit'
+                });
+            },
+            
+            // 格式化日期时间
+            formatDateTime(date) {
+                return this.formatCSTDate(date) + ' ' + this.formatCSTTime(date);
+            }
+        };
+        
+        // 测试用例
+        const testCases = [
+            // 夏令时测试 (PDT)
+            {
+                name: "夏令时测试 (2024年6月1日)",
+                pdtDate: new Date(2024, 5, 1, 0, 0), // 2024年6月1日 00:00 PDT
+                expectedIsPDT: true,
+                expectedOffset: 15
+            },
+            // 标准时测试 (PST)
+            {
+                name: "标准时测试 (2024年12月1日)",
+                pdtDate: new Date(2024, 11, 1, 0, 0), // 2024年12月1日 00:00 PST
+                expectedIsPDT: false,
+                expectedOffset: 16
+            },
+            // 夏令时开始前一天
+            {
+                name: "夏令时开始前一天 (2024年3月9日)",
+                pdtDate: new Date(2024, 2, 9, 23, 59), // 2024年3月9日 23:59 PST
+                expectedIsPDT: false,
+                expectedOffset: 16
+            },
+            // 夏令时开始当天
+            {
+                name: "夏令时开始当天 (2024年3月10日 2:00)",
+                pdtDate: new Date(2024, 2, 10, 2, 0), // 2024年3月10日 2:00 PDT
+                expectedIsPDT: true,
+                expectedOffset: 15
+            },
+            // 夏令时结束当天
+            {
+                name: "夏令时结束当天 (2024年11月3日 1:59)",
+                pdtDate: new Date(2024, 10, 3, 1, 59), // 2024年11月3日 1:59 PDT
+                expectedIsPDT: true,
+                expectedOffset: 15
+            },
+            // 标准时开始当天
+            {
+                name: "标准时开始当天 (2024年11月3日 2:00)",
+                pdtDate: new Date(2024, 10, 3, 2, 0), // 2024年11月3日 2:00 PST
+                expectedIsPDT: false,
+                expectedOffset: 16
+            }
+        ];
+        
+        // 运行测试
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            let passed = 0;
+            let failed = 0;
+            
+            testCases.forEach((testCase, index) => {
+                const result = document.createElement('div');
+                result.className = 'test-result';
+                
+                try {
+                    // 测试isPDT方法
+                    const actualIsPDT = TimeZoneUtils.isPDT(testCase.pdtDate);
+                    const isPDTPass = actualIsPDT === testCase.expectedIsPDT;
+                    
+                    // 测试PDTtoCST方法
+                    const cstDate = TimeZoneUtils.PDTtoCST(testCase.pdtDate);
+                    const actualOffset = (cstDate.getTime() - testCase.pdtDate.getTime()) / (1000 * 60 * 60);
+                    const offsetPass = actualOffset === testCase.expectedOffset;
+                    
+                    // 测试CSTtoPDT方法
+                    const convertedBackPDT = TimeZoneUtils.CSTtoPDT(cstDate);
+                    // 允许1分钟误差
+                    const conversionPass = Math.abs(convertedBackPDT.getTime() - testCase.pdtDate.getTime()) < 60000;
+                    
+                    if (isPDTPass && offsetPass && conversionPass) {
+                        result.className += ' pass';
+                        result.innerHTML = `
+                            <strong>测试 ${index + 1}: ${testCase.name}</strong><br>
+                            PDT状态: ${actualIsPDT} (预期: ${testCase.expectedIsPDT}) ✓<br>
+                            偏移量: ${actualOffset}小时 (预期: ${testCase.expectedOffset}小时) ✓<br>
+                            双向转换: ${conversionPass ? '成功' : '失败'} ✓<br>
+                            PDT时间: ${testCase.pdtDate.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}<br>
+                            CST时间: ${TimeZoneUtils.formatDateTime(cstDate)}
+                        `;
+                        passed++;
+                    } else {
+                        result.className += ' fail';
+                        result.innerHTML = `
+                            <strong>测试 ${index + 1}: ${testCase.name}</strong><br>
+                            PDT状态: ${actualIsPDT} (预期: ${testCase.expectedIsPDT}) ${isPDTPass ? '✓' : '✗'}<br>
+                            偏移量: ${actualOffset}小时 (预期: ${testCase.expectedOffset}小时) ${offsetPass ? '✓' : '✗'}<br>
+                            双向转换: ${conversionPass ? '成功' : '失败'} ${conversionPass ? '✓' : '✗'}<br>
+                            PDT时间: ${testCase.pdtDate.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })}<br>
+                            CST时间: ${TimeZoneUtils.formatDateTime(cstDate)}
+                        `;
+                        failed++;
+                    }
+                } catch (error) {
+                    result.className += ' fail';
+                    result.innerHTML = `
+                        <strong>测试 ${index + 1}: ${testCase.name}</strong><br>
+                        错误: ${error.message}
+                    `;
+                    failed++;
+                }
+                
+                resultsDiv.appendChild(result);
+            });
+            
+            // 总结
+            const summary = document.createElement('div');
+            summary.className = 'test-result ' + (failed === 0 ? 'pass' : 'fail');
+            summary.innerHTML = `
+                <strong>测试总结:</strong> 共 ${testCases.length} 个测试，通过 ${passed} 个，失败 ${failed} 个
+            `;
+            resultsDiv.appendChild(summary);
+        }
+        
+        // 运行测试
+        runTests();
+    </script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拉花喷射测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow: hidden;
+            background-color: #000;
+            background-image: url('163/images/l7/27.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+        }
+        
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #sprayButton {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 100;
+            transition: background-color 0.3s ease;
+        }
+        
+        #sprayButton:hover {
+            background-color: #45a049;
+        }
+        
+        #sprayButton:active {
+            background-color: #3e8e41;
+        }
+    </style>
+</head>
+<body>
+    <button id="sprayButton">喷射拉花</button>
+    <canvas id="canvas"></canvas>
+    
+    <script>
+        // 获取画布和上下文
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 设置画布大小
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // 光斑数组
+        const spots = [];
+        
+        // 光斑类
+        class Spot {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                
+                // 添加立体效果：z轴深度属性
+                // 使用平方分布使更多光斑生成在远处（数值更大），看起来更小
+                this.z = Math.random() * Math.random() * 100 + 50; // 50-150的深度值，更多光斑集中在远处，看起来更小
+                const depthFactor = 200 / (this.z + 50); // 深度因子，近大远小
+                
+                // 【控制光斑大小的核心代码】
+                // (Math.random() * 4 + 2) 生成2-6的基础大小，增加起始大小一级
+                // * depthFactor 应用深度缩放，实现近大远小效果
+                this.size = (Math.random() * 4 + 2) * depthFactor; // 2-6的基础大小，数值越小光斑越小，起始大小加大一级
+                this.initialSize = this.size; // 记录初始大小，用于实现增大效果
+                this.maxSize = this.size * 1.3; // 设置最大大小（增大50%）
+                this.color = this.getRandomColor();
+                
+                // 计算屏幕中上区域的目标点（自适应屏幕尺寸）
+                const targetX = canvas.width / 2; // 屏幕水平中心
+                // 通过屏幕宽度检测是否为电脑端（大于640px为电脑端）
+                const isDesktop = window.innerWidth > 640;
+                // 电脑端时垂直方向0%位置（屏幕最上边缘），移动端时25%位置
+                const targetY = isDesktop ? 0 : canvas.height * 0.25;
+                
+                // 计算从起始点到目标点的角度
+                let angle = Math.atan2(targetY - this.y, targetX - this.x);
+                
+                // 使用高斯分布实现非均匀角度分布，使光斑更集中在中间区域
+                // 高斯分布函数
+                function gaussianRandom() {
+                    let u = 0, v = 0;
+                    while(u === 0) u = Math.random(); // 转换[0,1)到(0,1]
+                    while(v === 0) v = Math.random();
+                    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+                }
+                
+                // 喷射角度偏差参数：控制光斑扩散程度
+                const angleDeviation = gaussianRandom() * 0.02; // 角度偏差，数值越大光斑扩散范围越广
+                angle += angleDeviation * Math.PI; // 添加随机偏差，保持扩散效果
+                
+                // 喷射速度参数：控制爆发力和高度
+                // 电脑端使用更高的基础速度，移动端保持原速度
+                const baseSpeed = isDesktop ? 130 : 50;
+                const speed = Math.random() * 3 + baseSpeed; // 电脑端: 80-83, 移动端: 50-53的速度范围，数值越大喷射高度越高
+                
+                // 根据深度调整速度，远处的光斑移动更慢，增强视差效果
+                const speedFactor = 1 / (this.z / 100); // 近处速度快，远处速度慢
+                this.speedX = Math.cos(angle) * speed * speedFactor; // x方向速度
+                this.speedY = Math.sin(angle) * speed * speedFactor; // y方向速度（向上）
+                
+                // 物理属性参数 - 添加随机变化实现不同降落速度
+                this.gravity = Math.random() * 0.15 + 0.15; // 随机重力加速度：0.15-0.3，数值越大下落越快
+                this.airResistance = Math.random() * 0.07 + 0.88; // 随机空气阻力：0.88-0.95，数值越大减速越慢
+                
+                // 雪花飘动效果参数
+                this.waveOffset1 = Math.random() * Math.PI * 2;
+                this.waveOffset2 = Math.random() * Math.PI * 2;
+                // 主要摇摆幅度，数值越大左右摇摆越明显
+                // 电脑端最小值为1，移动端最小值为0.5
+                // 复用前面已经声明的isDesktop变量
+                this.waveAmplitude1 = Math.random() * 1.5 + (isDesktop ? 1 : 0.5);
+                this.waveAmplitude2 = Math.random() * 0.8 + 0.2; // 次要摇摆幅度，数值越大上下摇摆越明显
+                this.waveFrequency1 = Math.random() * 0.02 + 0.01; // 主要摇摆频率，数值越大摇摆速度越快
+                this.waveFrequency2 = Math.random() * 0.015 + 0.005; // 次要摇摆频率，数值越大摇摆速度越快
+                
+                // 动画控制参数
+                this.frameCount = 0; // 记录光斑已存在的帧数，用于控制大小变化动画
+                this.totalGrowthFrames = 300; // 光斑完成最大增长所需的帧数（可根据需要调整，数值越大增长越慢）
+                this.totalGrowthFactor = 1.5; // 总增大比例（50%），保持固定确保线性增长
+                
+                // 雪花旋转效果参数
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.02; // 旋转速度，数值越大旋转越快
+                
+                // 不规则形状属性参数
+                this.irregularity = Math.random() * 0.15 + 0.05; // 不规则程度，数值越大形状越不规则
+                this.spikes = Math.floor(Math.random() * 6) + 10; // 10-15个尖刺，数值越大尖刺越多
+                
+                // 【光斑透明度控制的核心代码】
+                this.opacity = Math.random() * 0.1 + 0.9; // 50%-100%透明度，数值越大光斑越明显，提高基础透明度
+                
+                // 随机落地消失阈值，使每个光斑在不同高度消失
+                // 大部分光斑在屏幕内消失，只有少部分在屏幕外消失
+                // 90%的光斑在屏幕内底部50-150像素开始消失，10%的光斑在屏幕外0-100像素开始消失
+                this.groundThreshold = canvas.height - (Math.random() > 0.1 ? (Math.random() * 100 + 50) : (-Math.random() * 100)); // 距离屏幕底部50-150像素(90%)或屏幕外0-100像素(10%)的随机位置开始消失
+                
+                // 对于近处的光斑（z值较小），确保透明度达到70%
+                if (this.z < 150) {
+                    this.opacity = Math.max(this.opacity, 0.9); // 确保近处光斑达到90%透明度，数值越大近处光斑越明显
+                }
+                
+                // 添加随机变色速度系数，使不同光斑颜色变化不同步
+                this.colorSpeedFactor = Math.random() * 0.6 + 0.7; // 0.7-1.3的随机系数，控制颜色变化速度
+            }
+            
+            getRandomColor() {
+                const colors = [
+                    'rgba(255, 255, 255, ',   // 白色 - 主要雪花颜色
+                    'rgba(240, 248, 255, ',    // 爱丽丝蓝
+                    'rgba(255, 255, 240, ',    // 象牙白
+                    'rgba(251, 177, 202, ',     // 红色（带颜色渐变效果） - #FBB1CA
+                    'rgba(0, 191, 255, ',      // 蓝色
+                    'rgba(251, 177, 202, ',     // 红色（带颜色渐变效果，增加出现概率） - #FBB1CA
+                    'rgba(0, 191, 255, ',      // 蓝色（增加出现概率）
+                    'rgba(255, 255, 255, '     // 白色
+                ];
+                // 随机选择颜色，现在红色和蓝色会有更高的出现概率
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                // 检查是否为红色或蓝色光斑，如果是则标记为可渐变颜色
+                this.isGradientColor = (color.includes('251, 177, 202') || color.includes('0, 191, 255'));
+                
+                // 记录初始颜色类型，用于区分渐变方案
+                this.isBlueGradient = color.includes('0, 191, 255');
+                
+                return color;
+            }
+            
+            update() {
+                // 应用空气阻力
+                this.speedX *= this.airResistance;
+                this.speedY *= this.airResistance;
+                
+                // 应用重力
+                this.speedY += this.gravity; // 负重力使光斑向上加速
+                
+                // 雪花飘动效果，使用两个低频率正弦波叠加
+                this.waveOffset1 += this.waveFrequency1;
+                this.waveOffset2 += this.waveFrequency2;
+                // 使用不同的频率和相位，创造平滑的飘动效果
+                const waveX = Math.sin(this.waveOffset1) * this.waveAmplitude1 + Math.sin(this.waveOffset2) * this.waveAmplitude2;
+                const waveY = Math.cos(this.waveOffset1 * 0.8) * this.waveAmplitude1 * 0.3 + Math.cos(this.waveOffset2 * 0.6) * this.waveAmplitude2 * 0.2;
+                
+                // 更新位置
+                this.x += this.speedX + waveX;
+                this.y += this.speedY + waveY;
+                
+                // 更新旋转
+                this.rotation += this.rotationSpeed;
+                
+                // 光斑线性稳定变大效果：从创建开始就立即开始线性增长动画
+                this.frameCount++;
+                
+                // 使用帧数计算增长进度，实现精确的线性增长
+                // Math.min 确保进度不会超过100%
+                const growthProgress = Math.min(this.frameCount / this.totalGrowthFrames, 1);
+                
+                // 线性增长公式：当前大小 = 初始大小 + (初始大小 * 增长比例 * 增长进度)
+                // 这个公式确保增长速度完全线性且稳定
+                this.size = this.initialSize * (1 + (this.totalGrowthFactor - 1) * growthProgress);
+                
+                // 为红色和蓝色光斑添加颜色渐变效果
+                if (this.isGradientColor) {
+                    // 计算生命周期进度（从0到1），应用随机变色速度系数
+                    const lifeProgress = Math.min(this.frameCount / (this.totalGrowthFrames * 1.5 * this.colorSpeedFactor), 1);
+                    
+                    let r, g, b;
+                    
+                    if (this.isBlueGradient) {
+                        // 蓝色光斑渐变：白色 -> #25BDF8 -> #9370DB -> #25BDF8
+                        // 白色：255, 255, 255
+                        // #25BDF8：37, 189, 248
+                        // #9370DB (中紫色)：147, 112, 219
+                        if (lifeProgress < 0.25) {
+                            // 第一阶段：白色 (255, 255, 255) 到 #25BDF8 (37, 189, 248)
+                            const phaseProgress = lifeProgress / 0.25;
+                            r = Math.floor(255 - (255 - 37) * phaseProgress); // 红色分量从255降到37
+                            g = Math.floor(255 - (255 - 189) * phaseProgress); // 绿色分量从255降到189
+                            b = Math.floor(255 - (255 - 248) * phaseProgress); // 蓝色分量从255降到248
+                        } else if (lifeProgress < 0.5) {
+                            // 第二阶段：#25BDF8 (37, 189, 248) 到 #9370DB (147, 112, 219)
+                            const phaseProgress = (lifeProgress - 0.25) / 0.25;
+                            r = Math.floor(37 + (147 - 37) * phaseProgress); // 红色分量从37升到147
+                            g = Math.floor(189 + (112 - 189) * phaseProgress); // 绿色分量从189降到112
+                            b = Math.floor(248 + (219 - 248) * phaseProgress); // 蓝色分量从248降到219
+                        } else if (lifeProgress < 0.75) {
+                            // 第三阶段：#9370DB (147, 112, 219) 到 #25BDF8 (37, 189, 248)
+                            const phaseProgress = (lifeProgress - 0.5) / 0.25;
+                            r = Math.floor(147 - (147 - 37) * phaseProgress); // 红色分量从147降到37
+                            g = Math.floor(112 - (112 - 189) * phaseProgress); // 绿色分量从112升到189
+                            b = Math.floor(219 + (248 - 219) * phaseProgress); // 蓝色分量从219升到248
+                        } else {
+                            // 第四阶段：#25BDF8 (37, 189, 248) 保持不变
+                            r = 37; // 红色分量保持37
+                            g = 189; // 绿色分量保持189
+                            b = 248; // 蓝色分量保持248
+                        }
+                    } else {
+                        // 红色光斑渐变：#FBB1CA -> #ffe1f1ff -> #ff7300f5
+                        // #FBB1CA 的 RGB 值：251, 177, 202
+                        // #ffe1f1ff 的 RGB 值：255, 225, 241
+                        // #ff7300f5 的 RGB 值：240, 130, 20 (降低颜色深度后)
+                        if (lifeProgress < 0.5) {
+                            // 第一阶段：#FBB1CA (251, 177, 202) 到 #ffe1f1ff (255, 225, 241)
+                            const phaseProgress = lifeProgress * 2; // 0-1 映射到 0-1
+                            r = Math.floor(251 + 4 * phaseProgress); // 红色分量从251升到255
+                            g = Math.floor(177 + 48 * phaseProgress); // 绿色分量从177升到225
+                            b = Math.floor(202 + 39 * phaseProgress); // 蓝色分量从202升到241
+                        } else if (lifeProgress < 1) {
+                            // 第二阶段：#ffe1f1ff (255, 225, 241) 到 #ff7300f5 (255, 115, 0)
+                            const phaseProgress = (lifeProgress - 0.5) * 2; // 0.5-1 映射到 0-1
+                            r = 255; // 红色分量保持不变
+                            g = Math.floor(225 - 95 * phaseProgress); // 绿色分量从225降到130
+                            b = Math.floor(241 - 221 * phaseProgress); // 蓝色分量从241降到20
+                        } else {
+                            // 达到目标颜色后保持不变
+                            r = 240;
+                            g = 130;
+                            b = 20;
+                        }
+                    }
+                    
+                    // 更新光斑颜色
+                    this.color = `rgba(${r}, ${g}, ${b}, `;
+                }
+                
+                // 快落地时逐渐消失效果（随机阈值）
+                if (this.y > this.groundThreshold) {
+                    // 计算距离各自消失阈值的相对距离（0-1）
+                    const distanceToGround = (this.y - this.groundThreshold) / 100;
+                    // 透明度随距离增加而衰减，每个光斑衰减速度略有不同
+                    this.opacity *= Math.max(0, 1 - distanceToGround * (Math.random() * 0.5 + 1.5)); // 透明度衰减速度，数值越大消失越快
+                    // 保持光斑继续增大，不再缩小，增强持续变大的视觉效果
+                    // this.size *= Math.max(0.5, 1 - distanceToGround * (Math.random() * 0.2 + 0.3)); // 注释掉缩小效果
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                
+                // 设置透明度
+                ctx.globalAlpha = this.opacity;
+                
+                // 应用旋转效果
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.translate(-this.x, -this.y);
+                
+                // 绘制不规则圆形光斑（雪花形状）
+                // 使用径向渐变实现虚化边缘，不增加额外光晕效果
+                this.drawIrregularCircle(ctx, this.x, this.y, this.size);
+                
+                ctx.restore();
+            }
+            
+            // 绘制不规则圆形的方法
+            drawIrregularCircle(ctx, x, y, radius) {
+                const points = [];
+                const angleStep = Math.PI * 2 / this.spikes;
+                
+                for (let i = 0; i < Math.PI * 2; i += angleStep) {
+                    const randomRadius = radius * (1 + Math.random() * this.irregularity - this.irregularity / 2);
+                    const px = x + Math.cos(i) * randomRadius;
+                    const py = y + Math.sin(i) * randomRadius;
+                    points.push({ x: px, y: py });
+                }
+                
+                // 绘制平滑的不规则形状
+                ctx.beginPath();
+                
+                // 使用修改后的贝塞尔曲线方法创建更平滑的形状
+                for (let i = 0; i < points.length; i++) {
+                    const curr = points[i];
+                    const next = points[(i + 1) % points.length];
+                    const nextNext = points[(i + 2) % points.length];
+                    
+                    // 计算中点
+                    const mx1 = (curr.x + next.x) / 2;
+                    const my1 = (curr.y + next.y) / 2;
+                    const mx2 = (next.x + nextNext.x) / 2;
+                    const my2 = (next.y + nextNext.y) / 2;
+                    
+                    if (i === 0) {
+                        ctx.moveTo(mx1, my1);
+                    } else {
+                        ctx.quadraticCurveTo(next.x, next.y, mx2, my2);
+                    }
+                }
+                
+                ctx.closePath();
+                
+                // 使用径向渐变填充，设置适度的边缘虚化效果
+                // 在之前两次修改之间找到平衡的衰减曲线
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+                gradient.addColorStop(0, this.color + '1)'); // 中心完全不透明
+                gradient.addColorStop(0.65, this.color + '0.9)'); // 65%半径处90%不透明（中间值）
+                gradient.addColorStop(0.95, this.color + '0.4)'); // 95%半径处40%不透明（中间值）
+                gradient.addColorStop(1, this.color + '0.2)'); // 边缘20%不透明（中间值）
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            }
+            
+            isDead() {
+                // 判断光斑是否完全超出屏幕范围或透明度为0
+                // 增加向下消失范围，允许光斑在屏幕底部下方200像素内消失
+                return this.y - this.size > canvas.height + 200 || 
+                       this.x + this.size < -100 || 
+                       this.x - this.size > canvas.width + 100 ||
+                       this.opacity <= 0.05; // 透明度阈值，数值越小光斑存活时间越长
+            }
+        }
+        
+        // 在指定位置喷射光斑（通用函数）
+        function spraySpotsAtPosition(x, y) {
+            // 一次创建多个光斑，模拟雪花飘落效果
+            const spotCount = Math.floor(Math.random() * 42) + 98; // 98-140个光斑（增加40%），数值越大喷射越密集，增加更多小光斑
+            for (let i = 0; i < spotCount; i++) {
+                // 初始位置的随机性，使雪花从指定位置散开
+                const offsetX = (Math.random() - 0.5) * 10; // X方向初始位置偏移，数值越大初始扩散范围越广
+                const offsetY = (Math.random() - 0.5) * 10; // Y方向初始位置偏移，数值越大初始扩散范围越广
+                spots.push(new Spot(x + offsetX, y + offsetY));
+            }
+        }
+        
+        // 喷射光斑函数
+        function spraySpots() {
+            // 将起点移至屏幕中心偏右靠下的位置
+            const x = canvas.width * 0.7; // 屏幕水平中心偏右（70%宽度位置）
+            const y = canvas.height * 0.85; // 屏幕垂直方向85%的位置（中心靠下，更靠下）
+            spraySpotsAtPosition(x, y);
+        }
+        
+        // 动画循环
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 按z轴排序光斑，近处的光斑（z值小）在上面绘制
+            spots.sort((a, b) => b.z - a.z);
+            
+            // 更新和绘制光斑
+            for (let i = spots.length - 1; i >= 0; i--) {
+                const spot = spots[i];
+                spot.update();
+                spot.draw();
+                
+                if (spot.isDead()) {
+                    spots.splice(i, 1);
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // 点击按钮事件
+        document.getElementById('sprayButton').addEventListener('click', spraySpots);
+        
+        // 为触摸设备优化按钮样式
+        const sprayButton = document.getElementById('sprayButton');
+        sprayButton.addEventListener('touchstart', function() {
+            this.style.backgroundColor = '#45a049'; // 触摸时的按钮效果
+        });
+        
+        sprayButton.addEventListener('touchend', function() {
+            this.style.backgroundColor = '#4CAF50'; // 触摸结束后的按钮效果
+        });
+        
+        // 开始动画
+        animate();
+    </script>
+</body>
+</html>

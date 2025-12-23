@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试每月时间段重复事件编辑功能</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .pass { background-color: #d4edda; color: #155724; }
+        .fail { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>测试每月时间段重复事件编辑功能</h1>
+    <div id="test-results"></div>
+    
+    <!-- 模拟必要的DOM结构 -->
+    <div id="modal-title">编辑事件</div>
+    <input id="task-id-input" type="hidden">
+    <input id="task-name" type="text">
+    <select id="task-priority">
+        <option value="low">低</option>
+        <option value="medium">中</option>
+        <option value="high">高</option>
+    </select>
+    <input id="task-duration" type="number">
+    <select id="duration-unit">
+        <option value="minute">分钟</option>
+        <option value="hour">小时</option>
+    </select>
+    <input id="display-threshold" type="number">
+    <select id="display-threshold-unit">
+        <option value="minute">分钟</option>
+        <option value="hour">小时</option>
+    </select>
+    
+    <!-- 模拟monthly-options和monthly-time-range结构 -->
+    <div id="monthly-options" class="monthly-options">
+        <div id="monthly-time-range" class="mb-3">
+            <div class="grid grid-cols-2 gap-3 mb-2">
+                <div>
+                    <label class="block text-xs text-dark-textSecondary mb-1">开始时间</label>
+                    <input type="time" id="monthly-range-start" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-xs text-dark-textSecondary mb-1">结束时间</label>
+                    <input type="time" id="monthly-range-end" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-dark-textSecondary mb-1">间隔时间</label>
+                    <input type="number" id="monthly-range-interval" min="1" value="1" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-xs text-dark-textSecondary mb-1">时间单位</label>
+                    <select id="monthly-range-unit" class="w-full px-3 py-2 border border-gray-600 rounded-lg bg-dark-bg text-dark-text focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="minute">分钟</option>
+                        <option value="hour" selected>小时</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 模拟任务数据
+        const tasks = [
+            {
+                id: "test-123",
+                name: "测试每月时间段重复事件",
+                priority: "medium",
+                recurrence: {
+                    type: "monthly",
+                    duration: 30,
+                    durationUnit: "minute",
+                    timePoints: [],
+                    rangeStart: "10:00",
+                    rangeEnd: "18:00",
+                    intervalCount: 2,
+                    intervalUnit: "hour",
+                    day: 15
+                },
+                displayThreshold: 30,
+                displayThresholdUnit: "minute"
+            }
+        ];
+        
+        // 模拟DOM元素和变量
+        const modalTitle = document.getElementById('modal-title');
+        const taskIdInput = document.getElementById('task-id-input');
+        const monthlyOptions = document.getElementById('monthly-options');
+        const monthly_intervalOptions = null;
+        
+        // 从index.html复制的修复后的showEditTaskModal函数（简化版）
+        function showEditTaskModal(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            modalTitle.textContent = "编辑事件";
+            taskIdInput.value = task.id;
+            document.getElementById('task-name').value = task.name;
+            document.getElementById('task-priority').value = task.priority;
+            document.getElementById('task-duration').value = task.recurrence.duration;
+            document.getElementById('duration-unit').value = task.recurrence.durationUnit || "minute";
+            document.getElementById('display-threshold').value = task.displayThreshold;
+            document.getElementById('display-threshold-unit').value = task.displayThresholdUnit || "minute";
+            
+            const recurrenceType = task.recurrence.type || "none";
+            
+            // 设置每月重复选项
+            if (monthlyOptions) {
+                const timePointsDiv = monthlyOptions.querySelector('#monthly-time-points');
+                const timeRangeDiv = monthlyOptions.querySelector('#monthly-time-range');
+                
+                if (task.recurrence.timePoints && task.recurrence.timePoints.length > 0) {
+                    timePointsDiv.classList.remove('hidden');
+                    timeRangeDiv.classList.add('hidden');
+                } else {
+                    timePointsDiv = document.createElement('div');
+                    timePointsDiv.classList.add('hidden');
+                    timeRangeDiv.classList.remove('hidden');
+                    
+                    // 设置时间段重复的参数 - 修复后的代码
+                    timeRangeDiv.querySelector('#monthly-range-start').value = task.recurrence.rangeStart || '';
+                    timeRangeDiv.querySelector('#monthly-range-end').value = task.recurrence.rangeEnd || '';
+                    timeRangeDiv.querySelector('#monthly-range-interval').value = task.recurrence.intervalCount || 1;
+                    timeRangeDiv.querySelector('#monthly-range-unit').value = task.recurrence.intervalUnit || 'hour';
+                }
+            }
+            
+            return true;
+        }
+        
+        // 测试函数
+        function runTests() {
+            const results = [];
+            const testResultsDiv = document.getElementById('test-results');
+            testResultsDiv.innerHTML = '';
+            
+            // 测试编辑每月时间段重复事件
+            try {
+                const result = showEditTaskModal('test-123');
+                if (result) {
+                    // 检查DOM元素的值是否正确设置
+                    const rangeStart = document.getElementById('monthly-range-start').value;
+                    const rangeEnd = document.getElementById('monthly-range-end').value;
+                    const interval = document.getElementById('monthly-range-interval').value;
+                    const unit = document.getElementById('monthly-range-unit').value;
+                    
+                    if (rangeStart === '10:00' && rangeEnd === '18:00' && interval === '2' && unit === 'hour') {
+                        results.push({ name: "测试每月时间段重复事件编辑", status: "pass", message: "成功编辑每月时间段重复事件，所有参数正确设置" });
+                    } else {
+                        results.push({ name: "测试每月时间段重复事件编辑", status: "fail", message: `参数设置不正确: start=${rangeStart}, end=${rangeEnd}, interval=${interval}, unit=${unit}` });
+                    }
+                } else {
+                    results.push({ name: "测试每月时间段重复事件编辑", status: "fail", message: "编辑事件失败" });
+                }
+            } catch (error) {
+                results.push({ name: "测试每月时间段重复事件编辑", status: "fail", message: `出现错误: ${error.message}` });
+            }
+            
+            // 显示测试结果
+            results.forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `test-result ${result.status}`;
+                resultDiv.textContent = `${result.name}: ${result.message}`;
+                testResultsDiv.appendChild(resultDiv);
+            });
+            
+            // 检查是否所有测试都通过
+            const allPassed = results.every(result => result.status === "pass");
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = `test-result ${allPassed ? 'pass' : 'fail'}`;
+            summaryDiv.innerHTML = `<strong>测试总结: ${allPassed ? '所有测试通过！修复有效。' : '有测试失败，需要进一步检查。'}</strong>`;
+            testResultsDiv.appendChild(summaryDiv);
+        }
+        
+        // 页面加载时运行测试
+        window.onload = runTests;
+    </script>
+</body>
+</html>

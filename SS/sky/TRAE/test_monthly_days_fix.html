@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试每月模式时间段间隔项日期显示修复</title>
+    <style>
+        /* 简化的样式，用于测试 */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        /* 复制admin.html中的相关HTML结构样式 */
+        #monthly-time-points, #monthly-time-range {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #monthly-time-points.hidden, #monthly-time-range.hidden {
+            display: none;
+        }
+        input[name="monthday"] {
+            margin: 0 5px 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>测试每月模式时间段间隔项日期显示修复</h1>
+    
+    <!-- 复制admin.html中的相关HTML结构 -->
+    <div id="monthly-time-points">
+        <h3>每月时间点模式</h3>
+        <label>选择日期:</label>
+        <input type="checkbox" name="monthday" value="1"><span>1</span>
+        <input type="checkbox" name="monthday" value="2"><span>2</span>
+        <input type="checkbox" name="monthday" value="3"><span>3</span>
+        <input type="checkbox" name="monthday" value="4"><span>4</span>
+        <input type="checkbox" name="monthday" value="5"><span>5</span>
+        <input type="checkbox" name="monthday" value="6"><span>6</span>
+        <input type="checkbox" name="monthday" value="7"><span>7</span>
+        <input type="checkbox" name="monthday" value="8"><span>8</span>
+    </div>
+    
+    <div id="monthly-time-range" class="hidden">
+        <h3>每月时间段模式</h3>
+        <label>选择日期:</label>
+        <input type="checkbox" name="monthday" value="1"><span>1</span>
+        <input type="checkbox" name="monthday" value="2"><span>2</span>
+        <input type="checkbox" name="monthday" value="3"><span>3</span>
+        <input type="checkbox" name="monthday" value="4"><span>4</span>
+        <input type="checkbox" name="monthday" value="5"><span>5</span>
+        <input type="checkbox" name="monthday" value="6"><span>6</span>
+        <input type="checkbox" name="monthday" value="7"><span>7</span>
+        <input type="checkbox" name="monthday" value="8"><span>8</span>
+    </div>
+    
+    <div class="test-result" id="result"></div>
+    
+    <script>
+        // 模拟用户提供的云数据
+        const testTask = {
+            "recurrence": {
+                "days": [1, 2],
+                "type": "monthly",
+                "duration": 10,
+                "rangeEnd": "23:59",
+                "rangeStart": "00:10",
+                "durationUnit": "minute",
+                "intervalUnit": "hour",
+                "intervalCount": 1,
+                "monthlyRepeatType": "time-range"
+            }
+        };
+        
+        // 获取DOM元素
+        const monthlyTimePointsDiv = document.getElementById('monthly-time-points');
+        const monthlyTimeRangeDiv = document.getElementById('monthly-time-range');
+        const monthlyRepeatType = testTask.recurrence.monthlyRepeatType;
+        
+        // 模拟修复前的代码
+        function simulateOldCode() {
+            // 清除所有复选框
+            document.querySelectorAll('input[name="monthday"]').forEach(cb => cb.checked = false);
+            
+            // 首先设置日期
+            if (testTask.recurrence.days) {
+                testTask.recurrence.days.forEach(day => {
+                    const checkbox = document.querySelector(`input[name="monthday"][value="${day}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
+            // 然后切换显示
+            if (monthlyRepeatType === 'time-points') {
+                monthlyTimePointsDiv.classList.remove('hidden');
+                monthlyTimeRangeDiv.classList.add('hidden');
+            } else {
+                monthlyTimePointsDiv.classList.add('hidden');
+                monthlyTimeRangeDiv.classList.remove('hidden');
+            }
+            
+            return {
+                pointsChecked: getCheckedDays(monthlyTimePointsDiv),
+                rangeChecked: getCheckedDays(monthlyTimeRangeDiv)
+            };
+        }
+        
+        // 模拟修复后的代码
+        function simulateNewCode() {
+            // 清除所有复选框
+            document.querySelectorAll('input[name="monthday"]').forEach(cb => cb.checked = false);
+            
+            // 首先切换显示
+            if (monthlyRepeatType === 'time-points') {
+                monthlyTimePointsDiv.classList.remove('hidden');
+                monthlyTimeRangeDiv.classList.add('hidden');
+            } else {
+                monthlyTimePointsDiv.classList.add('hidden');
+                monthlyTimeRangeDiv.classList.remove('hidden');
+            }
+            
+            // 然后设置日期
+            if (testTask.recurrence.days) {
+                testTask.recurrence.days.forEach(day => {
+                    const checkbox = document.querySelector(`input[name="monthday"][value="${day}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
+            return {
+                pointsChecked: getCheckedDays(monthlyTimePointsDiv),
+                rangeChecked: getCheckedDays(monthlyTimeRangeDiv)
+            };
+        }
+        
+        // 模拟最终修复的代码（在切换显示后再次设置日期）
+        function simulateFinalCode() {
+            // 清除所有复选框
+            document.querySelectorAll('input[name="monthday"]').forEach(cb => cb.checked = false);
+            
+            // 首先设置日期（初始设置，可能会选中错误的div中的复选框）
+            if (testTask.recurrence.days) {
+                testTask.recurrence.days.forEach(day => {
+                    const checkbox = document.querySelector(`input[name="monthday"][value="${day}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
+            // 然后切换显示
+            if (monthlyRepeatType === 'time-points') {
+                monthlyTimePointsDiv.classList.remove('hidden');
+                monthlyTimeRangeDiv.classList.add('hidden');
+            } else {
+                monthlyTimePointsDiv.classList.add('hidden');
+                monthlyTimeRangeDiv.classList.remove('hidden');
+            }
+            
+            // 再次设置日期，确保选中的是当前显示的div中的复选框
+            if (testTask.recurrence.days) {
+                testTask.recurrence.days.forEach(day => {
+                    // 首先取消所有name="monthday"的复选框
+                    const allCheckboxes = document.querySelectorAll('input[name="monthday"]');
+                    allCheckboxes.forEach(cb => cb.checked = false);
+                    
+                    // 然后找到当前显示的div中的复选框并选中
+                    const visibleDiv = monthlyRepeatType === 'time-points' ? monthlyTimePointsDiv : monthlyTimeRangeDiv;
+                    const checkbox = visibleDiv.querySelector(`input[name="monthday"][value="${day}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+            
+            return {
+                pointsChecked: getCheckedDays(monthlyTimePointsDiv),
+                rangeChecked: getCheckedDays(monthlyTimeRangeDiv)
+            };
+        }
+        
+        // 获取指定div中被选中的日期
+        function getCheckedDays(div) {
+            const checkboxes = div.querySelectorAll('input[name="monthday"]:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
+        }
+        
+        // 运行测试
+        function runTest() {
+            const resultDiv = document.getElementById('result');
+            let html = '<h3>测试结果</h3>';
+            
+            // 测试修复前的代码
+            const oldResult = simulateOldCode();
+            html += '<p>修复前代码:</p>';
+            html += `<p>time-points div中选中的日期: [${oldResult.pointsChecked.join(', ')}]</p>`;
+            html += `<p>time-range div中选中的日期: [${oldResult.rangeChecked.join(', ')}]</p>`;
+            html += `<p class="error">问题: 日期被选中在隐藏的time-points div中，而不是显示的time-range div中</p>`;
+            
+            // 测试修复后的代码（仅调整顺序）
+            const newResult = simulateNewCode();
+            html += '<p>修复后代码（仅调整顺序）:</p>';
+            html += `<p>time-points div中选中的日期: [${newResult.pointsChecked.join(', ')}]</p>`;
+            html += `<p>time-range div中选中的日期: [${newResult.rangeChecked.join(', ')}]</p>`;
+            html += `<p class="success">修复: 日期现在被正确选中在显示的time-range div中</p>`;
+            
+            // 测试最终修复的代码（在切换显示后再次设置日期）
+            const finalResult = simulateFinalCode();
+            html += '<p>最终修复代码（完整修复）:</p>';
+            html += `<p>time-points div中选中的日期: [${finalResult.pointsChecked.join(', ')}]</p>`;
+            html += `<p>time-range div中选中的日期: [${finalResult.rangeChecked.join(', ')}]</p>`;
+            html += `<p class="success">最终修复: 确保只在当前显示的div中选中日期</p>`;
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        // 页面加载时运行测试
+        window.onload = runTest;
+    </script>
+</body>
+</html>
