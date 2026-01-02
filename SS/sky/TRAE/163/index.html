@@ -2473,7 +2473,7 @@
             }
             
             // GitHub Pages 配置
-            const githubRepo = 'Asan-13/Asan-13.github.io';
+            const githubRepo = 'sky-event/sky-event.github.io';
             const githubImageBaseUrl = `https://raw.githubusercontent.com/${githubRepo}/main/SS/sky/TRAE/163/images/${folderName}`;
             
             // 加载图片函数 - 支持本地缓存图片、本地文件和云端图片
@@ -4242,13 +4242,29 @@
                             if (closestTime) {
                                 const [hours, minutes] = closestTime.split(':').map(Number);
                                 userTimeObj = new Date();
-                                userTimeObj.setHours(hours, minutes, 0, 0);
+                                const targetTime = new Date();
+                                targetTime.setHours(hours, minutes, 0, 0);
+                                
+                                // 检查时间点是否在当前时间之前，如果是，则设置为明天的时间
+                                if (targetTime <= now) {
+                                    targetTime.setDate(targetTime.getDate() + 1);
+                                }
+                                
+                                userTimeObj = targetTime;
                             } else {
                                 // 否则使用第一个时间点
                                 const firstTime = allStartTimes[0];
                                 const [hours, minutes] = firstTime.split(':').map(Number);
                                 userTimeObj = new Date();
-                                userTimeObj.setHours(hours, minutes, 0, 0);
+                                const targetTime = new Date();
+                                targetTime.setHours(hours, minutes, 0, 0);
+                                
+                                // 检查时间点是否在当前时间之前，如果是，则设置为明天的时间
+                                if (targetTime <= now) {
+                                    targetTime.setDate(targetTime.getDate() + 1);
+                                }
+                                
+                                userTimeObj = targetTime;
                             }
                         }
                     } else {
@@ -4673,6 +4689,8 @@
                             
                             // 循环检查未来的日期，最多检查365天
                             for (let i = 0; i < 365; i++) {
+                                let hasFutureTimeToday = false;
+                                
                                 // 遍历所有时间点
                                 for (const timeStr of startTimes) {
                                     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -4690,6 +4708,7 @@
                                     
                                     // 检查是否是未来时间点
                                     if (eventTime > now) {
+                                        hasFutureTimeToday = true;
                                         return {
                                             startTime: eventTime,
                                             location: null
@@ -4697,7 +4716,7 @@
                                     }
                                 }
                                 
-                                // 检查下一天
+                                // 如果今天没有未来时间点，检查下一天
                                 checkDate.setDate(checkDate.getDate() + 1);
                             }
                             
@@ -6190,7 +6209,7 @@
             
             // 3. 配置GitHub图库信息
             const githubUsername = 'Asan-13';
-            const githubRepo = 'Asan-13.github.io';
+            const githubRepo = 'sky-event.github.io';
             const githubBranch = 'main';
             // 使用163目录独立的背景图目录，与根目录分离
             const basePath = 'SS/sky/TRAE/163/images/event-bg';
@@ -8121,7 +8140,7 @@
                         let checked = 0;
                         
                         // GitHub Pages 配置
-                        const githubRepo = 'Asan-13/Asan-13.github.io';
+                        const githubRepo = 'sky-event/sky-event.github.io';
                         const githubPath = `SS/sky/TRAE/163/images/${folderName}`;
                         
                         // 先尝试从GitHub API获取图片列表

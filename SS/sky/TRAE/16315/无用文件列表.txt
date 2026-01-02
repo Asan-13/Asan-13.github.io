@@ -1,0 +1,60 @@
+# 项目无用文件分析报告
+
+## 一、项目结构概述
+主项目文件：index.html、admin.html、hhs.html
+
+## 二、无用文件列表
+
+### 1. 测试文件
+- 根目录：
+  - `comprehensive_test.html` - 测试文件，未被引用
+  - `timezone_test.html` - 测试文件，未被引用
+  - `top_notification_bar.html` - 测试文件，未被引用
+  - `notification_test.html` - 测试文件，未被引用
+  - `simple_test.js` - 测试文件，未被引用
+
+- 163目录：
+  - `index-测试.html` - 测试文件，未被引用
+  - `run_monthly_tests.html` - 测试文件，未被引用
+  - `simple_monthly_test.js` - 测试文件，未被引用
+
+### 2. 副本/备份文件
+- 根目录：
+  - `index - 副本.html` - 主文件副本，未被引用
+  - `hardcoded_tasks - 副本.json` - 数据文件副本，未被引用
+
+- 163目录：
+  - `index - 副本.html` - 主文件副本，未被引用
+  - `hardcoded_tasks - 副本.json` - 数据文件副本，未被引用
+
+### 3. 冗余文件
+- 163目录：
+  - `hhs.html` - 根目录已有相同功能文件，未被引用
+
+### 4. 待删除目录
+- `163/待删除/` - 明确标记为待删除的目录，包含测试文件
+
+### 5. 未使用的依赖
+- `jsdom` - 在package.json中声明但未被任何HTML文件引用
+
+### 6. 开发依赖目录
+- `node_modules/` - 开发依赖目录，在生产环境中可能不需要（根据部署方式决定是否保留）
+
+## 三、保留文件说明
+- 主项目文件：index.html、admin.html、hhs.html
+- 163目录的主文件：index.html、admin.html
+- 数据文件：hardcoded_tasks.json
+- 必要依赖：font-awesome、@supabase/supabase-js
+- 必要资源：images/、icons/、libs/目录下的被引用文件
+
+## 四、清理建议
+1. 删除所有测试文件和副本文件
+2. 删除163/hhs.html冗余文件
+3. 删除163/待删除/目录
+4. 考虑移除未使用的jsdom依赖
+5. 如果是生产环境部署，考虑不包含node_modules/目录
+
+## 五、注意事项
+- 在删除文件前，请确保已经备份所有重要数据
+- 确认删除操作不会影响项目的正常运行
+- 如果有自动化脚本或其他工具依赖这些文件，请谨慎处理

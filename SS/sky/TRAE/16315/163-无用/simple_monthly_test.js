@@ -1,0 +1,210 @@
+// 模拟convertToMilliseconds函数
+function convertToMilliseconds(value, unit) {
+    const multipliers = {
+        'minute': 60000,
+        'hour': 3600000,
+        'day': 86400000,
+        'week': 604800000,
+        'month': 2592000000,
+        'year': 31536000000
+    };
+    return (value || 0) * (multipliers[unit] || 1);
+}
+
+// 模拟getNextOccurrence函数（每月模式部分）
+function getNextOccurrence(task, now = new Date()) {
+    if (!task || !task.recurrence) {
+        return null;
+    }
+    
+    const startTime = task.startTime || "00:00";
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    
+    // 每月模式
+    if (task.recurrence.type === "monthly") {
+        if (task.recurrence.days && task.recurrence.days.length > 0) {
+            // 对days数组进行排序，确保按数值顺序查找下一个日期
+            const sortedDays = [...task.recurrence.days].sort((a, b) => a - b);
+            
+            // 确定起始日期，优先使用task.startDate（如果是未来日期）
+            let today = new Date(now);
+            if (task.startDate) {
+                const taskStartDate = new Date(task.startDate);
+                taskStartDate.setHours(0, 0, 0, 0);
+                
+                // 如果任务的startDate是未来日期，使用它作为起始日期
+                const currentDateOnly = new Date(now);
+                currentDateOnly.setHours(0, 0, 0, 0);
+                
+                if (taskStartDate > currentDateOnly) {
+                    today = taskStartDate;
+                }
+            }
+            
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            const currentDate = today.getDate();
+            
+            // 首先检查今天是否是空间站日期
+            if (sortedDays.includes(currentDate)) {
+                const todayEvent = new Date(currentYear, currentMonth, currentDate, startHour, startMinute);
+                const durationMs = convertToMilliseconds(task.recurrence.duration, task.recurrence.durationUnit);
+                
+                // 如果当前时间在事件持续时间内
+                if (todayEvent <= now && now < todayEvent.getTime() + durationMs) {
+                    return {
+                        startTime: todayEvent,
+                        location: null
+                    };
+                }
+            }
+            
+            // 检查今天之后的日期
+            for (const day of sortedDays) {
+                if (day > currentDate) {
+                    const candidate = new Date(currentYear, currentMonth, day, startHour, startMinute);
+                    if (candidate.getMonth() === currentMonth) {
+                        return {
+                            startTime: candidate,
+                            location: null
+                        };
+                    }
+                }
+            }
+            
+            // 如果本月没有符合条件的日期了，找下个月
+            const nextMonth = currentMonth + 1;
+            const nextYear = nextMonth > 11 ? currentYear + 1 : currentYear;
+            const adjustedMonth = nextMonth > 11 ? 0 : nextMonth;
+            
+            for (const day of sortedDays) {
+                const candidate = new Date(nextYear, adjustedMonth, day, startHour, startMinute);
+                if (candidate.getMonth() === adjustedMonth) {
+                    return {
+                        startTime: candidate,
+                        location: null
+                    };
+                }
+            }
+        }
+    }
+    
+    return null;
+}
+
+// 测试用例
+const tests = [
+    {
+        name: "测试1：类型转换 - days数组为字符串类型",
+        task: {
+            startDate: "2025-12-01",
+            startTime: "09:00",
+            recurrence: { type: "monthly", days: [5, 15], duration: 1, durationUnit: "hour" }
+        },
+        now: new Date("2025-12-03T08:00:00"),
+        expectedDate: "2025-12-05",
+        description: "测试days数组为数字类型时是否能正确匹配"
+    },
+    {
+        name: "测试2：开始日期 - 任务startDate为未来日期",
+        task: {
+            startDate: "2025-12-10",
+            startTime: "10:00",
+            recurrence: { type: "monthly", days: [5, 15], duration: 2, durationUnit: "hour" }
+        },
+        now: new Date("2025-12-03T09:00:00"),
+        expectedDate: "2025-12-15",
+        description: "测试startDate为未来日期时是否作为计算起点"
+    },
+    {
+        name: "测试3：多日期 - 未排序days数组",
+        task: {
+            startDate: "2025-12-01",
+            startTime: "09:00",
+            recurrence: { type: "monthly", days: [15, 5], duration: 1, durationUnit: "hour" }
+        },
+        now: new Date("2025-12-03T08:00:00"),
+        expectedDate: "2025-12-05",
+        description: "测试未排序的days数组是否能正确返回下一个最近的日期"
+    },
+    {
+        name: "测试4：事件当日 - 事件正在进行",
+        task: {
+            startDate: "2025-12-01",
+            startTime: "09:00",
+            recurrence: { type: "monthly", days: [5, 15], duration: 2, durationUnit: "hour" }
+        },
+        now: new Date("2025-12-05T09:30:00"),
+        expectedDate: "2025-12-05",
+        description: "测试事件当天进行中时是否返回当天日期"
+    },
+    {
+        name: "测试5：事件当日 - 事件已结束",
+        task: {
+            startDate: "2025-12-01",
+            startTime: "09:00",
+            recurrence: { type: "monthly", days: [5, 15], duration: 2, durationUnit: "hour" }
+        },
+        now: new Date("2025-12-05T11:30:00"),
+        expectedDate: "2025-12-15",
+        description: "测试事件当天已结束时是否返回下一个日期"
+    },
+    {
+        name: "测试6：跨月日期 - 当月日期大于月份最大天数",
+        task: {
+            startDate: "2025-02-01",
+            startTime: "09:00",
+            recurrence: { type: "monthly", days: [31], duration: 1, durationUnit: "hour" }
+        },
+        now: new Date("2025-02-20T08:00:00"),
+        expectedDate: "2025-03-31",
+        description: "测试当月日期大于月份最大天数时是否自动转为下月有效日期"
+    }
+];
+
+// 运行测试
+function runTests() {
+    console.log("每月模式测试结果\n");
+    let passCount = 0;
+    let failCount = 0;
+    
+    tests.forEach((test, index) => {
+        try {
+            const result = getNextOccurrence(test.task, test.now);
+            const resultDate = result ? result.startTime.toISOString().split('T')[0] : null;
+            const expectedDate = test.expectedDate;
+            const passed = resultDate === expectedDate;
+            
+            if (passed) {
+                passCount++;
+            } else {
+                failCount++;
+            }
+            
+            console.log(`测试 ${index + 1}: ${test.name}`);
+            console.log(`描述: ${test.description}`);
+            console.log(`当前时间: ${test.now.toISOString()}`);
+            console.log(`预期日期: ${expectedDate}`);
+            console.log(`实际日期: ${resultDate}`);
+            console.log(`结果: ${passed ? '✓ 通过' : '✗ 失败'}`);
+            console.log("---");
+            
+        } catch (error) {
+            failCount++;
+            console.log(`测试 ${index + 1}: ${test.name}`);
+            console.log(`描述: ${test.description}`);
+            console.log(`错误: ${error.message}`);
+            console.log(`结果: ✗ 失败`);
+            console.log("---");
+        }
+    });
+    
+    console.log(`\n测试总结`);
+    console.log(`通过: ${passCount}`);
+    console.log(`失败: ${failCount}`);
+    console.log(`总测试数: ${tests.length}`);
+    console.log(`成功率: ${((passCount / tests.length) * 100).toFixed(2)}%`);
+}
+
+// 运行测试
+runTests();

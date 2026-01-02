@@ -1,0 +1,38 @@
+# 云数据库配置信息
+
+## 根目录 index.html
+文件路径：c:\Users\shigu\Documents\GitHub\Asan-13.github.io\SS\sky\TRAE\16315\index.html
+
+### 配置信息
+- **Supabase URL**: https://prusinqhwaduefiuqkwt.supabase.co
+- **Supabase Key**: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydXNpbnFod2FkdWVmaXVxa3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMTI5OTYsImV4cCI6MjA3OTU4ODk5Nn0.X__p8sP8ZdaOBGsbFWnhAdgLnjTXN-Y8YMVL5csVQ2Y
+
+### 初始化方式
+- 检测顺序：
+  1. window.supabase.createClient（CDN UMD版本的正确导出方式）
+  2. window.createClient（备选方式）
+  3. 直接的createClient函数（ES模块方式）
+
+## 163目录 index.html
+文件路径：c:\Users\shigu\Documents\GitHub\Asan-13.github.io\SS\sky\TRAE\16315\163\index.html
+
+### 配置信息
+- **Supabase URL**: 优先从localStorage.getItem('supabaseUrl_163')获取，否则使用默认值
+  - 默认值：https://prusinqhwaduefiuqkwt.supabase.co
+- **Supabase Key**: 优先从localStorage.getItem('supabaseKey_163')获取，否则使用默认值
+  - 默认值：eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydXNpbnFod2FkdWVmaXVxa3d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQwMTI5OTYsImV4cCI6MjA3OTU4ODk5Nn0.X__p8sP8ZdaOBGsbFWnhAdgLnjTXN-Y8YMVL5csVQ2Y
+
+### 初始化方式
+- 检测顺序：
+  1. window.createClient (UMD版本)
+  2. window.supabase.createClient (另一种UMD暴露方式)
+  3. createClient (ES模块版本)
+
+### 验证机制
+- URL验证：检查是否包含'.supabase.co'
+- Key验证：检查是否存在且长度不小于30个字符
+
+## 总结
+1. 根目录和163目录的index.html使用的是同一个Supabase项目（相同的URL和Key）
+2. 163目录的文件支持通过localStorage动态配置Supabase URL和Key
+3. 两个文件都采用了多种方式检测createClient函数，以确保兼容性
